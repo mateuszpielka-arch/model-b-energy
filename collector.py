@@ -4,6 +4,11 @@ from zoneinfo import ZoneInfo
 import requests
 import xml.etree.ElementTree as ET
 
+try:
+    import psycopg
+except ImportError:
+    psycopg = None
+
 PSE_BASE="https://api.raporty.pse.pl/api"
 ENTSOE_BASE="https://web-api.tp.entsoe.eu/api"
 DE_LU="10Y1001A1001A82H"
@@ -72,6 +77,41 @@ def fetch_entsoe(day, token):
                     print(json.dumps({"event":"entsoe_point","dataset":name,"start":p["start"],"resolution":p["resolution"],**pt}),flush=True)
     return out
 
+def archive_postgres(out):
+    db_url=os.environ.get("DATABASE_URL")
+    if not db_url:
+        print(json.dumps({"event":"db_skip","reason":"DATABASE_URL not set"}),flush=True); return
+    if psycopg is None:
+        raise RuntimeError("DATABASE_URL is set but psycopg is not installed")
+    retrieved=datetime.fromisoformat(out["retrieved_at_utc"])
+    day=out["business_date"]
+    payload=json.dumps(out,ensure_ascii=False)
+    with psycopg.connect(db_url) as conn:
+        with conn.cursor() as cur:
+            cur.execute("CREATE SCHEMA IF NOT EXISTS raw")
+            cur.execute("CREATE SCHEMA IF NOT EXISTS clean")
+            cur.execute("CREATE SCHEMA IF NOT EXISTS model")
+            cur.execute("""CREATE TABLE IF NOT EXISTS raw.snapshots (
+                id BIGSERIAL PRIMARY KEY,
+                business_date DATE NOT NULL,
+                retrieved_at_utc TIMESTAMPTZ NOT NULL,
+                source_version TEXT NOT NULL DEFAULT 'energy-collector-v3',
+                payload JSONB NOT NULL,
+                payload_hash TEXT NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                UNIQUE (business_date, payload_hash)
+            )""")
+            import hashlib
+            h=hashlib.sha256(payload.encode("utf-8")).hexdigest()
+            cur.execute("""INSERT INTO raw.snapshots
+                (business_date,retrieved_at_utc,payload,payload_hash)
+                VALUES (%s,%s,%s::jsonb,%s)
+                ON CONFLICT (business_date,payload_hash) DO NOTHING
+                RETURNING id""",(day,retrieved,payload,h))
+            row=cur.fetchone()
+            print(json.dumps({"event":"db_archive","day":day,"inserted":bool(row),"id":row[0] if row else None}),flush=True)
+        conn.commit()
+
 def main():
     day=os.environ.get("BUSINESS_DATE") or (sys.argv[1] if len(sys.argv)>1 else None)
     if not day: raise SystemExit("Set BUSINESS_DATE=YYYY-MM-DD")
@@ -88,5 +128,6 @@ def main():
     os.makedirs("data",exist_ok=True)
     with open(f"data/snapshot_{day}.json","w",encoding="utf-8") as f: json.dump(out,f,ensure_ascii=False,indent=2)
     print(json.dumps({"event":"saved","day":day}),flush=True)
+    archive_postgres(out)
 
 if __name__=="__main__": main()
