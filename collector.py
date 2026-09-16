@@ -128,6 +128,6 @@ def main():
     os.makedirs("data",exist_ok=True)
     with open(f"data/snapshot_{day}.json","w",encoding="utf-8") as f: json.dump(out,f,ensure_ascii=False,indent=2)
     print(json.dumps({"event":"saved","day":day}),flush=True)
-    archive_postgres(out)
+    try:\n        archive_postgres(out)\n    except Exception as e:\n        print(json.dumps({"event":"db_error","error":repr(e)}),flush=True)\n        raise
 
 if __name__=="__main__": main()
