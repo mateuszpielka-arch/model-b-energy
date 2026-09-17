@@ -71,10 +71,6 @@ def fetch_entsoe(day, token):
         parsed=parse_entsoe(r.text); out[name]={"status":200,"series":parsed}
         n=sum(len(p["points"]) for s in parsed for p in s["periods"])
         print(json.dumps({"event":"entsoe_summary","dataset":name,"series":len(parsed),"points":n}),flush=True)
-        for s in parsed:
-            for p in s["periods"]:
-                for pt in p["points"]:
-                    print(json.dumps({"event":"entsoe_point","dataset":name,"start":p["start"],"resolution":p["resolution"],**pt}),flush=True)
     return out
 
 def archive_postgres(out):
@@ -126,8 +122,13 @@ def main():
     else:
         print(json.dumps({"event":"entsoe_skip","reason":"ENTSOE_TOKEN not set"}),flush=True)
     os.makedirs("data",exist_ok=True)
-    with open(f"data/snapshot_{day}.json","w",encoding="utf-8") as f: json.dump(out,f,ensure_ascii=False,indent=2)
+    with open(f"data/snapshot_{day}.json","w",encoding="utf-8") as f:
+        json.dump(out,f,ensure_ascii=False,indent=2)
     print(json.dumps({"event":"saved","day":day}),flush=True)
-    try:\n        archive_postgres(out)\n    except Exception as e:\n        print(json.dumps({"event":"db_error","error":repr(e)}),flush=True)\n        raise
+    try:
+        archive_postgres(out)
+    except Exception as e:
+        print(json.dumps({"event":"db_error","error":repr(e)}),flush=True)
+        raise
 
 if __name__=="__main__": main()
