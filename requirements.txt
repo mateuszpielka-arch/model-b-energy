@@ -1,1 +1,2 @@
-requests==2.32.5\npsycopg[binary]==3.2.10\n
+requests>=2.32,<3
+psycopg[binary]>=3.2,<4
