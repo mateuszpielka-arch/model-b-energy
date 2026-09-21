@@ -109,8 +109,10 @@ def archive_postgres(out):
         conn.commit()
 
 def main():
+    # Explicit BUSINESS_DATE/CLI remains available for controlled tests; production defaults to tomorrow in Warsaw.
     day=os.environ.get("BUSINESS_DATE") or (sys.argv[1] if len(sys.argv)>1 else None)
-    if not day: raise SystemExit("Set BUSINESS_DATE=YYYY-MM-DD")
+    if not day:
+        day=(datetime.now(ZoneInfo("Europe/Warsaw")).date()+timedelta(days=1)).isoformat()
     out={"business_date":day,"retrieved_at_utc":datetime.now(timezone.utc).isoformat()}
     for ep in ("pk5l-wp","unav-pk5l"):
         rows=fetch_pse(ep,day); out[ep]=rows
