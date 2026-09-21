@@ -77,8 +77,15 @@ def persist(conn,day,snapshot_id,prices,status,pub_ts):
         return cur.fetchone()[0]
 
 def main():
-    day=os.environ.get("BUSINESS_DATE"); db=os.environ.get("DATABASE_URL"); status=os.environ.get("FORECAST_STATUS","DRAFT").upper()
-    if not day or not db: raise SystemExit("Set BUSINESS_DATE and DATABASE_URL")
+    local=ZoneInfo("Europe/Warsaw")
+    now_local=datetime.now(local)
+    day=os.environ.get("BUSINESS_DATE") or (now_local.date()+timedelta(days=1)).isoformat()
+    db=os.environ.get("DATABASE_URL"); status=os.environ.get("FORECAST_STATUS","FROZEN").upper()
+    if not db: raise SystemExit("Set DATABASE_URL")
+    # Hard decision cutoff: never create a new FROZEN forecast after 10:20 Warsaw time.
+    if status=="FROZEN" and now_local.time() > time(10,20):
+        print(json.dumps({"event":"NO_FORECAST","day":day,"reason":"hard cutoff 10:20 Europe/Warsaw exceeded","timestamp":now_local.isoformat()}),flush=True)
+        return
     if status not in ("DRAFT","FROZEN"): raise SystemExit("FORECAST_STATUS must be DRAFT or FROZEN")
     with psycopg.connect(db) as conn:
         sid,payload,retrieved=latest_snapshot(conn,day)
