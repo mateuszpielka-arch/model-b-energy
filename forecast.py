@@ -42,7 +42,7 @@ def validate(payload):
     rows=sorted(rows,key=lambda r: (hour_no(r), str(r.get("plan_dtime","")), str(r.get("period",""))))
     hours=[hour_no(r) for r in rows]
     if len(rows)==24 and hours!=list(range(1,25)): raise RuntimeError(f"Invalid hourly sequence: {hours}")
-    if len(rows)==25 and not (hours==list(range(1,26)) or (len(set(hours))==24 and sorted(set(hours))==list(range(1,25)) and hours.count(3)==2)):
+    if len(rows)==25 and not (hours==list(range(1,26)) or (len(set(hours))==24 and sorted(set(hours))==list(range(1,25)) and sum(hours.count(h)==2 for h in range(1,25))==1)):
         raise RuntimeError(f"Invalid 25-hour DST sequence: {hours}")
     if len(rows)==23 and not (len(set(hours))==23 and set(hours)==set(range(1,25))-{3}):
         raise RuntimeError(f"Invalid 23-hour DST sequence: {hours}")
