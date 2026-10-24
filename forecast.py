@@ -38,10 +38,14 @@ def hour_no(row):
 
 def validate(payload):
     rows=payload.get("pk5l-wp",[])
-    if len(rows)!=24: raise RuntimeError(f"PK5L expected 24 rows, got {len(rows)}")
-    rows=sorted(rows,key=hour_no)
+    if len(rows) not in (23,24,25): raise RuntimeError(f"PK5L expected 23, 24 or 25 rows, got {len(rows)}")
+    rows=sorted(rows,key=lambda r: (hour_no(r), str(r.get("plan_dtime","")), str(r.get("period",""))))
     hours=[hour_no(r) for r in rows]
-    if hours!=list(range(1,25)): raise RuntimeError(f"Invalid hourly sequence: {hours}")
+    if len(rows)==24 and hours!=list(range(1,25)): raise RuntimeError(f"Invalid hourly sequence: {hours}")
+    if len(rows)==25 and not (hours==list(range(1,26)) or (len(set(hours))==24 and sorted(set(hours))==list(range(1,25)) and hours.count(3)==2)):
+        raise RuntimeError(f"Invalid 25-hour DST sequence: {hours}")
+    if len(rows)==23 and not (len(set(hours))==23 and set(hours)==set(range(1,25))-{3}):
+        raise RuntimeError(f"Invalid 23-hour DST sequence: {hours}")
     missing=[hour_no(r) for r in rows if r.get(JWCD_FIELD) is None]
     if missing: raise RuntimeError(f"Missing {JWCD_FIELD} for hours {missing}")
     return rows
@@ -49,9 +53,9 @@ def validate(payload):
 def predict_24(payload):
     out=[]
     for r in validate(payload):
-        h=hour_no(r); jwcd=float(r[JWCD_FIELD]); intercept,slope=COEF[h]
+        h=hour_no(r); jwcd=float(r[JWCD_FIELD]); intercept,slope=COEF[min(h,24)]
         price=intercept+slope*jwcd
-        out.append({"hour":h,"jwcd_mw":round(jwcd,2),"price":round(price,2)})
+        out.append({"hour":h,"sequence":len(out)+1,"jwcd_mw":round(jwcd,2),"price":round(price,2)})
     return out
 
 def publication_ts(payload):
@@ -92,7 +96,7 @@ def main():
         vals=[x["price"] for x in prices]
         print(json.dumps({"event":"forecast_saved","day":day,"forecast_id":fid,"snapshot_id":sid,
           "publication_ts":pub,"model_version":MODEL_VERSION,"status":status,
-          "summary":{"avg":round(sum(vals)/24,2),"min":min(vals),"max":max(vals)},
+          "summary":{"avg":round(sum(vals)/len(vals),2),"min":min(vals),"max":max(vals)},
           "prices":prices}),flush=True)
 
 if __name__=="__main__": main()
