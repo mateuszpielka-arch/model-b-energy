@@ -39,12 +39,12 @@ def hour_no(row):
 def validate(payload):
     rows=payload.get("pk5l-wp",[])
     if len(rows) not in (23,24,25): raise RuntimeError(f"PK5L expected 23, 24 or 25 rows, got {len(rows)}")
-    rows=sorted(rows,key=lambda r: (str(r.get("plan_dtime","")), str(r.get("period",""))))
+    rows=sorted(rows,key=lambda r: (hour_no(r), str(r.get("plan_dtime","")), str(r.get("period",""))))
     hours=[hour_no(r) for r in rows]
     if len(rows)==24 and hours!=list(range(1,25)): raise RuntimeError(f"Invalid hourly sequence: {hours}")
-    if len(rows)==25 and not (hours==list(range(1,26)) or (len(set(hours))==24 and sorted(set(hours))==list(range(1,25)) and max(hours)<=24)):
+    if len(rows)==25 and not (hours==list(range(1,26)) or (len(set(hours))==24 and sorted(set(hours))==list(range(1,25)) and hours.count(3)==2)):
         raise RuntimeError(f"Invalid 25-hour DST sequence: {hours}")
-    if len(rows)==23 and not (len(set(hours))==23 and set(hours).issubset(set(range(1,25)))):
+    if len(rows)==23 and not (len(set(hours))==23 and set(hours)==set(range(1,25))-{3}):
         raise RuntimeError(f"Invalid 23-hour DST sequence: {hours}")
     missing=[hour_no(r) for r in rows if r.get(JWCD_FIELD) is None]
     if missing: raise RuntimeError(f"Missing {JWCD_FIELD} for hours {missing}")
