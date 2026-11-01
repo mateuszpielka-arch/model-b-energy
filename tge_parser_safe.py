@@ -1,5 +1,7 @@
 """Strict hourly Fixing I parser. No database or network side effects."""
 import re
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 from html.parser import HTMLParser
 
 class _Rows(HTMLParser):
@@ -34,6 +36,7 @@ def parse_fix1(html: str, day: str) -> dict[int, float]:
     Returns a partial map if the page is incomplete. Duplicate hour rows fail
     closed; 25-hour DST days require separate period identifiers and schema.
     """
+    date.fromisoformat(day)
     parser = _Rows()
     parser.feed(html)
     prices = {}
@@ -50,8 +53,102 @@ def parse_fix1(html: str, day: str) -> dict[int, float]:
             raise ValueError(f"Unsupported hour {hour}; DST requires separate handling")
         raw = cells[2].replace("\xa0", " ").replace("\u202f", " ").strip()
         if not number.fullmatch(raw):
-            continue
+            raise ValueError(f"Invalid Fixing I price for H{hour:02d}: {raw!r}")
         if hour in prices:
             raise ValueError(f"Duplicate hourly key H{hour:02d}; fail closed")
         prices[hour] = float(raw.replace(" ", "").replace("−", "-").replace(",", "."))
     return prices
+
+
+class _FixingTable(_Rows):
+    """Select the official RDN table and retain expanded header groups."""
+    def __init__(self):
+        super().__init__()
+        self.active = False
+        self.count = 0
+        self.closed = False
+        self.header_rows = []
+        self.span = 1
+        self.is_header = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "table":
+            if self.active:
+                raise ValueError("Nested table in RDN; unsupported layout")
+            if attrs.get("id") == "rdn":
+                self.count += 1
+                self.active = True
+            return
+        if not self.active:
+            return
+        if tag == "tr" and self.row is not None:
+            raise ValueError("Unclosed RDN row")
+        if tag in ("td", "th"):
+            if self.cell is not None:
+                raise ValueError("Unclosed RDN cell")
+            self.span = int(attrs.get("colspan", "1"))
+            if not 1 <= self.span <= 30 or attrs.get("rowspan", "1") != "1":
+                raise ValueError("Unsupported RDN header span")
+            self.is_header = tag == "th"
+        super().handle_starttag(tag, list(attrs.items()))
+
+    def handle_data(self, data):
+        if self.active:
+            super().handle_data(data)
+
+    def handle_endtag(self, tag):
+        if not self.active:
+            return
+        if tag == "table":
+            if self.row is not None or self.cell is not None:
+                raise ValueError("Incomplete RDN table")
+            self.active = False
+            self.closed = True
+            return
+        if tag == "tr" and self.row is not None and self.is_header:
+            self.header_rows.append(list(self.row))
+        super().handle_endtag(tag)
+        if tag == "th" and self.row is not None:
+            self.row.extend([self.row[-1]] * (self.span - 1))
+
+
+def parse_verified_layout(html: str, day: str) -> dict[int, float]:
+    """Fail closed unless the captured RDN Fixing I column contract matches.
+
+    This validates layout, not authenticity of the HTTP source or archive approval.
+    """
+    table = _FixingTable()
+    table.feed(html)
+    table.close()
+    if table.count != 1 or not table.closed or table.active:
+        raise ValueError("Expected one complete table id=rdn")
+    if len(table.header_rows) != 2:
+        raise ValueError("Expected two RDN header rows")
+    groups, columns = table.header_rows
+    if (groups[:4] != ["", "", "Fixing I", "Fixing I"] or
+        columns[:4] != ["Data dostawy", "Typ instrumentu", "Kurs [PLN/MWh]", "Wolumen [MW]"] or
+        len(groups) != len(columns)):
+        raise ValueError("RDN Fixing I columns changed; admission blocked")
+    # Reuse the strict numeric/duplicate validator only for this selected table.
+    from html import escape
+    selected = "".join("<tr>" + "".join("<td>" + escape(c) + "</td>" for c in row) + "</tr>"
+                       for row in table.rows)
+    return parse_fix1(selected, day)
+
+
+def parse_complete_standard_day(html: str, day: str) -> dict[int, float]:
+    """SHADOW admission guard. DST blocked until official period mapping is tested.
+
+    Requires the official RDN table/header layout; HTTP provenance remains separate.
+    """
+    d = date.fromisoformat(day)
+    tz = ZoneInfo("Europe/Warsaw")
+    start = datetime.combine(d, time(), tz).astimezone(timezone.utc)
+    end = datetime.combine(d + timedelta(days=1), time(), tz).astimezone(timezone.utc)
+    if (end - start).total_seconds() != 86400:
+        raise ValueError("DST day requires verified period mapping; admission blocked")
+    rows = parse_verified_layout(html, day)
+    if set(rows) != set(range(1, 25)):
+        raise ValueError("Incomplete hourly Fixing I snapshot; admission blocked")
+    return rows
