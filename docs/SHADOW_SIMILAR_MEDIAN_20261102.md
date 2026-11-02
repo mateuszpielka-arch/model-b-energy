@@ -34,3 +34,10 @@ Nie wykonano rzeczywistego backtestu walk-forward ani rankingu. Brak zweryfikowa
 historii i adaptera legacy PSE/DST nadal blokuje wnioski rynkowe. Brak Ridge/PV/wiatru/P1/P2.
 Nie zmieniono produkcyjnego 90D, FROZEN, archiwów, kolektora ani konfiguracji Railway.
 Następny krok: runner walk-forward na wspólnych datach i raport braków przy odrzuceniu dnia.
+
+## Dowód CI
+
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41490354187
+Commit a053a83cc58dd8408ac7df837a5c06ae037202c4; job 125431654818:
+completed/success. Odczytane logi: 90 testów, OK, bez pominięć, również 12 testów
+PostgreSQL. Nie jest to backtest rynkowy ani ranking modeli.
