@@ -33,3 +33,10 @@ Brak adaptera legacy payload PSE -> kanoniczne okresy UTC, szczególnie DST.
 Funkcja jest przygotowaniem do walk-forward; sam walk-forward nie jest wdrożony.
 
 Produkcja, model 90D, FROZEN, archiwa, konfiguracja Railway i PR #2 bez zmian.
+
+## Potwierdzony wynik CI
+
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41468875693
+Commit 6332d34a28eeb6695e2358e5b1a76618ad0694c6, job 125357160996.
+Krok unittest success. Odczytane logi: Ran 63 tests in 3.315s, OK, bez pominięć
+(02.11.2026 15:10:48 UTC). Wszystkie 12 testów PostgreSQL również wykonano.
