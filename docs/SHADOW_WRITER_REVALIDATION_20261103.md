@@ -28,3 +28,10 @@ Lokalnie125testów:105OK,20PostgreSQL SKIPPED. Oczekiwanie na pełne CI.
 
 Nie zmieniono produkcji, FROZEN, 90D, istniejących archiwów, Railway ani PR#2.
 Aktualny audyt bazy nadal wymaga dostępu read-only/eksportu; realny ranking niewykonany.
+
+## Dowód CI
+
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41543665441
+Commita3eb4faf5e36df53ce52324fff4b730e99c0ed79;job125613767351 completed/success.
+Logi:125testów,OK,bez pominięć,także20 integracyjnych PostgreSQL.
+Potwierdzono zero zapisów po podmianie ceny oraz nienaruszone wcześniejsze dane.
