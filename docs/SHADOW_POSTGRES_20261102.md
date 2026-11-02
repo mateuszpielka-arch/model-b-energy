@@ -34,3 +34,17 @@ bez zmian. Moduł nie jest podłączony do kolektora.
 
 Kolejny krok: uzyskać i sprawdzić wynik sześciu testów na izolowanym PostgreSQL,
 naprawić ewentualne błędy; dopiero potem budować trwały zapis scoringu.
+
+## Potwierdzenie testów PostgreSQL — aktualizacja
+
+CI zakończyło się sukcesem 02.11.2026 o 11:19:47 UTC (12:19:47 Warsaw).
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41435871111
+Testowany commit e6a41d84acc5ed651f0715c999152b9575c0c7e8, job integration
+125245372598. Odczytano status run/job i pełne logi: Ran 42 tests in 1.377s, OK,
+bez SKIPPED. Wszystkie 6 testów PostgreSQL wykonało się i przeszło.
+Potwierdzono insert/replay, kwarantannę konfliktu i częściowej doby, rollback
+po wymuszonym błędzie w połowie, 4 równoległych writerów oraz odrzucenie złego raw.
+Użyto jednorazowego PostgreSQL 16.15 i psycopg 3.3.6 w CI. Wcześniejszy brak
+lokalnej bazy nadal dotyczy lokalnego środowiska, ale nie blokuje już dowodu CI.
+Nie jest to wdrożenie produkcyjne ani potwierdzenie 7 dni walidacji źródeł TGE.
+Następny krok: trwały scoring SHADOW i dodatkowe dni rzeczywistych danych.
