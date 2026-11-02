@@ -33,3 +33,11 @@ Railway ani PR #2. Ten moduł łączy wyłącznie lokalny disposable PostgreSQL;
 nie jest wdrożonym automatycznym scoringiem produkcyjnym.
 Następny krok: potwierdzić CI i dodać provenance historycznych snapshotów oraz
 read-only raport gotowości danych do walk-forward (bez liczenia na błędnej historii).
+
+## Potwierdzenie CI
+
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41451803205
+Commit f276cf53e3f94bd6eef584f623eeeab73c640586; job integration 125298753557:
+completed/success. Odczytano logi: 52 testy, OK, bez pominięć. Wszystkie 12
+integracyjnych testów PostgreSQL wykonało się, w tym 6 nowych trwałego scoringu.
+To usuwa blokadę potwierdzenia CI; nie zmienia ograniczeń wdrożenia produkcyjnego.
