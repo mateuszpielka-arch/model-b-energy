@@ -1,0 +1,37 @@
+name: Fix1 SHADOW isolated PostgreSQL
+on:
+  push:
+    branches: [test/tge-layout-validation-20261101]
+    paths:
+      - 'shadow_*.py'
+      - 'tests/**'
+      - '.github/workflows/fix1-shadow-postgres.yml'
+permissions:
+  contents: read
+concurrency:
+  group: fix1-shadow-postgres-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: shadow_test
+          POSTGRES_PASSWORD: disposable_test_password
+          POSTGRES_DB: fix1_shadow_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U shadow_test -d fix1_shadow_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      FIX1_SHADOW_TEST_DSN: postgresql://shadow_test:disposable_test_password@127.0.0.1:5432/fix1_shadow_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'psycopg[binary]>=3.2,<4'
+      - run: python -m unittest discover -s tests -v
