@@ -33,3 +33,13 @@ Lokalnie113testów:99OK,14PostgreSQL SKIPPED. Wymagane potwierdzenie CI.
 To wejście CLI do testowego stagingu, NIE wdrożony codzienny kolektor i NIE import
 naprawczy istniejących archiwów. DST, pełna historia JWCD/XLSB i realny ranking
 nadal wymagają dalszej walidacji.
+
+## Dowód CI i testu7sesji
+
+Kod/raport zapisane atomowo:562a14ef73b7967fb19d824176e6ccc69bc81e60.
+Wzmocniony test d098c20db37ac0527354346a90376c2ecb53fe06 celowo uszkadza hash
+OSTATNIEJ z7prawdziwych sesji; PostgreSQL nadal ma0paczek i0cen.
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41526982260
+Job125557133535:krok unittest success. Odczytane logi:113testów,OK,bez pominięć.
+Wszystkie14 testów PostgreSQL wykonano, w tym7dni insert/replay:168cen i7paczek,
+bez duplikatów i z historycznymiURL. Nie są to zmiany w produkcyjnym archiwum.
