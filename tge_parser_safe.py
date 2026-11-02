@@ -46,6 +46,8 @@ def parse_fix1(html: str, day: str) -> dict[int, float]:
         if len(cells) < 3:
             continue
         match = key.fullmatch(cells[0])
+        if not match and cells[0].startswith(day + "_H"):
+            raise ValueError(f"Unsupported hourly label {cells[0]}; preserve labels before DST mapping")
         if not match or cells[1] != "60":
             continue
         hour = int(match.group(1))
@@ -113,7 +115,7 @@ class _FixingTable(_Rows):
             self.row.extend([self.row[-1]] * (self.span - 1))
 
 
-def parse_verified_layout(html: str, day: str) -> dict[int, float]:
+def _validated_rdn_rows(html: str):
     """Fail closed unless the captured RDN Fixing I column contract matches.
 
     This validates layout, not authenticity of the HTTP source or archive approval.
@@ -130,10 +132,16 @@ def parse_verified_layout(html: str, day: str) -> dict[int, float]:
         columns[:4] != ["Data dostawy", "Typ instrumentu", "Kurs [PLN/MWh]", "Wolumen [MW]"] or
         len(groups) != len(columns)):
         raise ValueError("RDN Fixing I columns changed; admission blocked")
+    return table.rows
+
+
+def parse_verified_layout(html: str, day: str) -> dict[int, float]:
+    """Parse integer-hour map only from the verified RDN Fixing I layout."""
+    rows = _validated_rdn_rows(html)
     # Reuse the strict numeric/duplicate validator only for this selected table.
     from html import escape
     selected = "".join("<tr>" + "".join("<td>" + escape(c) + "</td>" for c in row) + "</tr>"
-                       for row in table.rows)
+                       for row in rows)
     return parse_fix1(selected, day)
 
 
