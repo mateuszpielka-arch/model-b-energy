@@ -1,0 +1,16 @@
+{
+  "url": "https://tge.pl/energia-elektryczna-rdn",
+  "retrieved_at_utc": "2026-11-02T12:13:56.264332+00:00",
+  "sha256": "b9a458939b229676b8d23933e97dfeb43ed551cd2645aa0d9b4c53baa4a2ece4",
+  "delivery_date": "2026-11-03",
+  "reference_sha256": "fd39a63c4ab1a67c62f030f5d4bd1da57b44ca2e1815c21791ec84548d66760f",
+  "reference_method": "Manual transcription of 24 hourly Fixing I values from independent web rendering of the same official TGE page (not a separate official export).",
+  "reference_web_refs": [
+    "turn0view0",
+    "turn1view0",
+    "turn2view0",
+    "turn2view1"
+  ],
+  "http_status": 200,
+  "note": "Raw response bytes preserved; retrieval timestamp is not publication_ts."
+}
