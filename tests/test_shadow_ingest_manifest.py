@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -56,6 +57,10 @@ class ManifestPostgresTests(unittest.TestCase):
 
     def test_bad_manifest_writes_no_batches(self):
         with TemporaryDirectory() as tmp:
-            p=Path(tmp)/'manifest.json';p.write_text(json.dumps({'entries':[],'errors':['capture failed']}))
-            with self.assertRaises(ValueError):ingest_manifest(p,conn=self.conn)
+            root=Path(tmp)/'captures';shutil.copytree(FIX,root)
+            p=root/'manifest.json';data=json.loads(p.read_text())
+            data['entries'][-1]['raw_sha256']='0'*64
+            p.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError,'hash mismatch'):ingest_manifest(p,conn=self.conn)
         self.assertEqual(self.conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone()[0],0)
+        self.assertEqual(self.conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone()[0],0)
