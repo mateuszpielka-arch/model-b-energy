@@ -36,3 +36,10 @@ Rozszerzono ścieżki CI o tge_*.py, nadal wyłącznie gałąź testową.
 Nie ukończono 7 kolejnych niezależnie zweryfikowanych dni, mapowania DST,
 importu historii XLSB ani rzeczywistego rankingu. Ten krok dostarcza brakujący
 oryginalny przypadek25h i eliminuje utratę etykiety w kodzie SHADOW.
+
+## Dowód CI
+
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41508226888
+Commit 8e3e6286cb6e936d6078e1c8b66d4961c3595b13; job 125492955445:
+completed/success. Odczytane logi:105 testów,OK,bez pominięć, także PostgreSQL.
+Wynik nie oznacza potwierdzenia mapowania UTC ani wdrożenia DST do archiwum.
