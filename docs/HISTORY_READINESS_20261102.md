@@ -38,3 +38,10 @@ Nie wolno z kontroli ZIP wywodzić kompletności historii.
 Lokalnie 69 testów: 57 OK, 12 PostgreSQL SKIPPED. Commity 82d58a5/e96b122.
 Konieczne potwierdzenie CI. Brak backtestu i rankingu; historia nadal nie została
 zweryfikowana w całości. Produkcja, 90D, FROZEN, archiwa i konfiguracja bez zmian.
+
+## Dowód CI
+
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41471340391
+Commit e96b12295aa8de4fe3bbc2661e6afaead60566a2; job 125365670993.
+Krok unittest zakończony success. Odczytane logi: Ran 69 tests, OK, bez pominięć,
+w tym 12 integracyjnych testów PostgreSQL. Nie oznacza to walidacji komórek XLSB.
