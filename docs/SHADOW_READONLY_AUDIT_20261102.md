@@ -32,3 +32,11 @@ Lokalnie117testów:99OK,18PostgreSQL SKIPPED. Wymagane potwierdzenie CI.
 Nie jest to wykonany aktualny audyt Railway. Kolejny potrzebny dowód: autoryzowany
 read-only dostęp lub aktualny export snapshotów z wiarygodnym czasem zakończenia,
 a także źródłowo zweryfikowane historyczne actual. Backtest rynkowy nadal niewykonany.
+
+## Dowód CI
+
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41535498955
+Commit2892f5d43f9d91636313a4493033793aef97d217;job125586179877 completed/success.
+Odczytane logi:117testów,OK,bez pominięć,także18 integracyjnych PostgreSQL.
+Potwierdzono serwerowe odrzucanie zapisu i brak mutacji podczas audytu.
+To dowód na disposable bazie, nie aktualny wynik danych produkcyjnych Railway.
