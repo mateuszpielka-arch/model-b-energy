@@ -25,3 +25,11 @@ operacyjnej obserwacji SHADOW. Ta druga bramka nie jest spełniona. Nie włączo
 nowego parsera do kolektora, nie zapisano cen do istniejącego PostgreSQL i nie
 naprawiano archiwów. Nie zmieniono modelu 90D, FROZEN, konfiguracji Railway ani PR #2.
 Mapowanie oficjalnych etykiet DST/UTC i sparowana historia JWCD nadal wymagają pracy.
+
+## Dowód CI i zapisu
+
+Cały zestaw 18 plików zapisano atomowym commitem 8601b9980dd7ffd79a991bdc1a918215217d1cb0,
+z kontrolą expected head; porównanie lokalnych blob hashes z GitHub:18/18 zgodne.
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41517836278
+Job 125525835832 completed/success. Odczytane logi:108 testów,OK,bez pominięć,
+także wszystkie testy PostgreSQL. Test wszystkich168 cen zgodny.
