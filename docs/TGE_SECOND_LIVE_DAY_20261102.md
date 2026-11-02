@@ -23,3 +23,11 @@ Obecnie posiadamy surowe odpowiedzi i porównanie pełnej doby dla dwóch dat do
 02.11 i 03.11. Nie osiągnięto jeszcze bramki 7 kolejnych dni ani oficjalnego
 mapowania DST. Nie dokonano importu do istniejącego archiwum, scoringu prognozy,
 backtestu ani rankingu. Parser/kolektor/model produkcyjny, FROZEN i PR #2 bez zmian.
+
+## Dowód CI po zapisie
+
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41443133214
+Testowany commit 92406984962435d44e0362f525264d982d6c32b7; job 125269830678.
+Odczytane logi: Ran 46 tests in 1.455s, OK, bez pominięć (02.11.2026 12:15:56 UTC).
+Krok unittest ma conclusion=success; wszystkie sześć testów PostgreSQL wykonało
+się obok czterech nowych testów drugiego rzeczywistego dnia TGE.
