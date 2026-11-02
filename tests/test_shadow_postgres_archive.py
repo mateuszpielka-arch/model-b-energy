@@ -12,7 +12,7 @@ DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 class PostgresArchiveTests(unittest.TestCase):
     def setUp(self):
         self.conn=connect_test_database(DSN); initialize(self.conn)
-        self.conn.execute('TRUNCATE fix1_shadow_test.quarantine,fix1_shadow_test.prices,fix1_shadow_test.batches RESTART IDENTITY')
+        self.conn.execute('TRUNCATE fix1_shadow_test.quarantine,fix1_shadow_test.prices,fix1_shadow_test.batches RESTART IDENTITY CASCADE')
         kw=fixtures.ArchiveAdmissionTests().args(); self.raw=kw['raw']; self.batch=prepare_batch(**kw)
 
     def tearDown(self): self.conn.close()
