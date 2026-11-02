@@ -4,7 +4,8 @@ Admission is restricted to standard 24h days. DST requires verified source label
 A batch is a staging candidate, not a certification of external TGE authenticity.
 """
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
+from urllib.parse import urlsplit, parse_qs
 from decimal import Decimal, InvalidOperation
 from hashlib import sha256
 import re
@@ -12,7 +13,7 @@ from shadow_scoring import expected_periods
 from tge_parser_safe import parse_complete_standard_day
 
 SOURCE_URL = 'https://tge.pl/energia-elektryczna-rdn'
-PARSER_VERSION = 'rdn-layout-shadow-v1'
+PARSER_VERSION = 'rdn-layout-shadow-v2'
 
 
 @dataclass(frozen=True)
@@ -38,8 +39,15 @@ def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: dateti
     Reference rows are (H01..H24, Decimal-compatible price) pairs. Preserve
     duplicates for detection. Caller retains raw/reference bytes immutably.
     """
-    if source_url != SOURCE_URL:
+    url = urlsplit(source_url)
+    if (url.scheme != 'https' or url.netloc != 'tge.pl' or
+            url.path != '/energia-elektryczna-rdn' or url.fragment):
         raise ValueError('Unexpected source URL')
+    if url.query:
+        query = parse_qs(url.query, keep_blank_values=True)
+        session = (date.fromisoformat(day)-timedelta(days=1)).strftime('%d-%m-%Y')
+        if query != {'dateShow': [session]}:
+            raise ValueError('Historical session URL does not match delivery date')
     if not isinstance(raw, bytes) or not raw:
         raise ValueError('Nonempty raw HTTP bytes required')
     if (not isinstance(retrieved_at, datetime) or retrieved_at.tzinfo is None
@@ -74,7 +82,8 @@ def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: dateti
     periods = expected_periods(d)
     return ArchiveBatch(d, sha256(raw).hexdigest(), reference_sha256,
                         retrieved_at.astimezone(timezone.utc),
-                        tuple((periods[h-1], reference[f'H{h:02d}']) for h in range(1,25)))
+                        tuple((periods[h-1], reference[f'H{h:02d}']) for h in range(1,25)),
+                        source_url=source_url)
 
 
 def classify_existing(batch: ArchiveBatch, existing_rows):

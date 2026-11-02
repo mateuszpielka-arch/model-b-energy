@@ -1,0 +1,56 @@
+{
+  "dry_run": true,
+  "days": 7,
+  "periods": 168,
+  "results": [
+    {
+      "day": "2026-10-27",
+      "periods": 24,
+      "status": "VALIDATED_DRY_RUN",
+      "raw_sha256": "73314256323843dc825311a38bcd0f69a7fae4ec704c073b92ea2632634af499",
+      "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=26-10-2026"
+    },
+    {
+      "day": "2026-10-28",
+      "periods": 24,
+      "status": "VALIDATED_DRY_RUN",
+      "raw_sha256": "8768edb87e5e192bdcb27d8738428ef6fed50b962bd685b77de3a74edbfa83b6",
+      "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=27-10-2026"
+    },
+    {
+      "day": "2026-10-29",
+      "periods": 24,
+      "status": "VALIDATED_DRY_RUN",
+      "raw_sha256": "d3a05e2136bb73f0eca9d20c172b5985d41cede3c57cf17c18c83dbc35d8b3c9",
+      "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=28-10-2026"
+    },
+    {
+      "day": "2026-10-30",
+      "periods": 24,
+      "status": "VALIDATED_DRY_RUN",
+      "raw_sha256": "8324e2372fc374c421d40ce9fa07bb0210591380014b11f6ca9cd5fc2ff29f01",
+      "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=29-10-2026"
+    },
+    {
+      "day": "2026-10-31",
+      "periods": 24,
+      "status": "VALIDATED_DRY_RUN",
+      "raw_sha256": "94c94322c4ff8dbe46925a41632b3689459f0a965a6a7458246d45a6be2f05cc",
+      "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=30-10-2026"
+    },
+    {
+      "day": "2026-11-01",
+      "periods": 24,
+      "status": "VALIDATED_DRY_RUN",
+      "raw_sha256": "8715861ede1b8669e42cde8696a7b52bc877d67f95579e7028211fb7759b2df6",
+      "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=31-10-2026"
+    },
+    {
+      "day": "2026-11-02",
+      "periods": 24,
+      "status": "VALIDATED_DRY_RUN",
+      "raw_sha256": "33ec7dcb66cfd21096ed5dd7d8457b0fcd0ab3cc5b62eb9a12b1c467b9836bc8",
+      "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=01-11-2026"
+    }
+  ]
+}
