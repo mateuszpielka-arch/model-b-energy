@@ -35,3 +35,10 @@ Lokalnie 98 testów: 86 OK, 12 PostgreSQL SKIPPED. Commity 39920f9 / 24a4dbc.
 Wymagane potwierdzenie CI. Nie wykonano jeszcze rzeczywistego backtestu ani rankingu.
 Zweryfikowana historia/adaptacja PSE/DST i odczyt wartości XLSB nadal wymagają pracy.
 Nie zmieniono produkcyjnego 90D, FROZEN, archiwów, konfiguracji Railway ani PR #2.
+
+## Dowód CI
+
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41498860264
+Commit 24a4dbc7f5f6fa2d0f01903ae233c17a926e5c5f, job 125461320421:
+completed/success. Odczytane logi: 98 testów, OK, bez pominięć (także PostgreSQL).
+Nie jest to dowód wyników rzeczywistych modeli; runner sprawdzono syntetycznie.
