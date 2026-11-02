@@ -21,34 +21,13 @@ def predict_ols(*, target_day, target_snapshots, history, window_days):
     the same coefficient. This is an explicit SHADOW policy, not the production
     hour/sequence mapping or a claim that official PSE/TGE DST labels are resolved.
     """
-    if window_days not in (30,60,90):
-        raise ValueError('Only JWCD OLS 30/60/90 calendar-day windows allowed')
-    cutoff=_utc(datetime.combine(target_day-timedelta(days=1),time(9,50),WARSAW))
-    required={target_day-timedelta(days=i) for i in range(1,window_days+1)}
-    packets={}
-    for packet in history:
-        d=packet['day']
-        if d not in required: continue  # Future or outside-window records cannot affect fit.
-        if d in packets: raise ValueError('Duplicate historical delivery date')
-        packets[d]=packet
-    if set(packets)!=required:
-        raise ValueError('Incomplete calendar training window')
-    target=select_snapshot(target_day,target_snapshots)
-    if target.snapshot_id is None: raise ValueError('No complete pre-cutoff target JWCD')
-    buckets=defaultdict(list); evidence=[]
-    for day,p in sorted(packets.items()):
-        if p.get('actual_verified') is not True or not p.get('actual_version'):
-            raise ValueError('Historical actual provenance not verified')
-        if _utc(p.get('actual_available_at'))>cutoff:
-            raise ValueError('Historical actual unavailable at target cutoff')
-        selection=select_snapshot(day,p['snapshots'])
-        if selection.snapshot_id is None: raise ValueError('Historical JWCD availability not proven')
-        actual=_prices(p['actual'])
-        if set(actual)!=set(expected_periods(day)):
-            raise ValueError('Historical actual incomplete or invalid periods')
-        for period,jwcd in selection.rows:
+    from shadow_training import prepare_training
+    cutoff,target,prepared,evidence=prepare_training(target_day=target_day,
+        target_snapshots=target_snapshots,history=history,window_days=window_days)
+    buckets=defaultdict(list)
+    for day,jwcd_rows,actual in prepared:
+        for period,jwcd in jwcd_rows:
             buckets[period.astimezone(WARSAW).hour].append((jwcd,actual[period]))
-        evidence.append((day.isoformat(),selection.snapshot_id,p['actual_version']))
     coefficients={}
     with localcontext() as ctx:
         ctx.prec=34
