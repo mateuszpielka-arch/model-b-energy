@@ -2,9 +2,7 @@
 
 Only accepts a dedicated local test database. Not a production integration.
 """
-from hashlib import sha256
-from shadow_archive_batch import ArchiveBatch, classify_existing
-from shadow_scoring import expected_periods
+from shadow_archive_batch import classify_existing, revalidate_batch
 
 DDL = '''
 CREATE SCHEMA IF NOT EXISTS fix1_shadow_test;
@@ -60,12 +58,7 @@ def archive_batch(conn, batch, raw):
     Quarantine retains raw HTML/reference hash for offline investigation.
     """
     _guard(conn)
-    if not isinstance(batch, ArchiveBatch) or sha256(raw).hexdigest() != batch.raw_sha256:
-        raise ValueError('Batch/raw evidence mismatch')
-    if (len(batch.rows) != 24 or len(dict(batch.rows)) != 24 or
-            set(dict(batch.rows)) != set(expected_periods(batch.delivery_date)) or
-            any(not price.is_finite() for _,price in batch.rows)):
-        raise ValueError('Complete finite standard-day batch required')
+    batch = revalidate_batch(batch, raw)
     with conn.transaction():
         # Stable numeric date key, no Python hash randomization across workers.
         conn.execute('SELECT pg_advisory_xact_lock(716101, %s)', (batch.delivery_date.toordinal(),))

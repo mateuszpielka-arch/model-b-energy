@@ -109,3 +109,27 @@ def classify_existing(batch: ArchiveBatch, existing_rows):
     if not old:
         return 'INSERT'
     return 'REPLAY' if old == dict(batch.rows) else 'QUARANTINE'
+
+
+def revalidate_batch(batch, raw):
+    """Rebuild admission from original HTML at the writer boundary.
+
+    Frozen dataclasses do not prove correctness: callers can construct/replace
+    them directly. Reference hash authenticity remains caller-owned evidence;
+    every price, period, date, source URL and supported parser version is checked.
+    """
+    from shadow_scoring import _prices
+    if not isinstance(batch, ArchiveBatch) or not isinstance(raw, bytes):
+        raise ValueError('Expected ArchiveBatch and original raw bytes')
+    if sha256(raw).hexdigest() != batch.raw_sha256:
+        raise ValueError('Batch/raw evidence mismatch')
+    if batch.parser_version != PARSER_VERSION:
+        raise ValueError('Unsupported admission parser version')
+    periods = expected_periods(batch.delivery_date)
+    prices = _prices(batch.rows)
+    if len(periods) != 24 or set(prices) != set(periods):
+        raise ValueError('Complete standard-day periods required')
+    return prepare_batch(raw=raw, day=batch.delivery_date.isoformat(),
+        source_url=batch.source_url, retrieved_at=batch.retrieved_at,
+        reference_rows=[(f'H{i:02d}',prices[period]) for i,period in enumerate(periods,1)],
+        reference_sha256=batch.reference_sha256)
