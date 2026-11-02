@@ -4,6 +4,7 @@ on:
     branches: [test/tge-layout-validation-20261101]
     paths:
       - 'shadow_*.py'
+      - 'tge_*.py'
       - 'tests/**'
       - '.github/workflows/fix1-shadow-postgres.yml'
 permissions:
