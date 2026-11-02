@@ -1,0 +1,102 @@
+"""Prepare immutable, evidence-linked Fixing I batches; no DB/network writes.
+
+Admission is restricted to standard 24h days. DST requires verified source labels.
+A batch is a staging candidate, not a certification of external TGE authenticity.
+"""
+from dataclasses import dataclass
+from datetime import date, datetime, timezone
+from decimal import Decimal, InvalidOperation
+from hashlib import sha256
+import re
+from shadow_scoring import expected_periods
+from tge_parser_safe import parse_complete_standard_day
+
+SOURCE_URL = 'https://tge.pl/energia-elektryczna-rdn'
+PARSER_VERSION = 'rdn-layout-shadow-v1'
+
+
+@dataclass(frozen=True)
+class ArchiveBatch:
+    delivery_date: date
+    raw_sha256: str
+    reference_sha256: str
+    retrieved_at: datetime
+    rows: tuple
+    source_url: str = SOURCE_URL
+    parser_version: str = PARSER_VERSION
+
+    @property
+    def identity(self):
+        return (self.delivery_date.isoformat(), self.raw_sha256,
+                self.reference_sha256, self.parser_version)
+
+
+def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: datetime,
+                  reference_rows, reference_sha256: str):
+    """Bind complete parsed prices to an independent reference artifact hash.
+
+    Reference rows are (H01..H24, Decimal-compatible price) pairs. Preserve
+    duplicates for detection. Caller retains raw/reference bytes immutably.
+    """
+    if source_url != SOURCE_URL:
+        raise ValueError('Unexpected source URL')
+    if not isinstance(raw, bytes) or not raw:
+        raise ValueError('Nonempty raw HTTP bytes required')
+    if (not isinstance(retrieved_at, datetime) or retrieved_at.tzinfo is None
+            or retrieved_at.utcoffset() is None):
+        raise ValueError('Aware retrieval timestamp required')
+    if not re.fullmatch('[0-9a-f]{64}', reference_sha256):
+        raise ValueError('Independent reference artifact SHA256 required')
+    parsed = parse_complete_standard_day(raw.decode('utf-8', errors='strict'), day)
+    reference = {}
+    for label, value in reference_rows:
+        if not re.fullmatch(r'H(?:0[1-9]|1[0-9]|2[0-4])', label):
+            raise ValueError('Invalid reference hour')
+        if label in reference:
+            raise ValueError('Duplicate reference hour')
+        try:
+            if isinstance(value, bool):
+                raise ValueError('Boolean price')
+            price = Decimal(str(value))
+        except InvalidOperation as exc:
+            raise ValueError('Invalid reference price') from exc
+        if not price.is_finite():
+            raise ValueError('Nonfinite reference price')
+        reference[label] = price
+    expected = {f'H{h:02d}' for h in range(1,25)}
+    if set(reference) != expected:
+        raise ValueError('Incomplete reference day')
+    prices = {f'H{h:02d}': Decimal(str(v)) for h,v in parsed.items()}
+    if prices != reference:
+        mismatches = sorted(k for k in expected if prices[k] != reference[k])
+        raise ValueError(f'Official reference mismatch: {mismatches}')
+    d = date.fromisoformat(day)
+    periods = expected_periods(d)
+    return ArchiveBatch(d, sha256(raw).hexdigest(), reference_sha256,
+                        retrieved_at.astimezone(timezone.utc),
+                        tuple((periods[h-1], reference[f'H{h:02d}']) for h in range(1,25)))
+
+
+def classify_existing(batch: ArchiveBatch, existing_rows):
+    """Plan insert/replay/quarantine without mutating any existing records.
+
+    A DB adapter must serialize this decision with the write in one transaction.
+    Partial existing days and changed prices are quarantined, never repaired here.
+    """
+    old = {}
+    for period, value in existing_rows:
+        if period.tzinfo is None or period.utcoffset() is None:
+            raise ValueError('Existing period must include timezone')
+        key = period.astimezone(timezone.utc)
+        if key in old:
+            return 'QUARANTINE'
+        try:
+            price = Decimal(str(value))
+        except InvalidOperation:
+            return 'QUARANTINE'
+        if not price.is_finite():
+            return 'QUARANTINE'
+        old[key] = price
+    if not old:
+        return 'INSERT'
+    return 'REPLAY' if old == dict(batch.rows) else 'QUARANTINE'
