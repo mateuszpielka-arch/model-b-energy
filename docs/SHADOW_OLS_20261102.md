@@ -40,3 +40,10 @@ Nie zmieniono forecast.py, tge_collector.py, FROZEN, istniejących archiwów,
 konfiguracji Railway ani PR #2. Moduł nie jest podłączony do produkcji.
 Dalszy krok: zweryfikowany historyczny adapter danych i runner walk-forward;
 bez źródeł gotowość rynku/ranking pozostaje niewykazana.
+
+## Dowód CI
+
+https://github.com/mateuszpielka-arch/model-b-energy/actions/runs/41479737393
+Commit 298e7dbe312650726058cada90ddfd598659e170; job 125394804687:
+completed/success. Odczytane logi: 79 testów, OK, bez pominięć; wykonano także
+12 testów integracyjnych PostgreSQL. Nadal brak realnego backtestu/rankingu.
