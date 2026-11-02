@@ -1,0 +1,11 @@
+{
+  "url": "https://tge.pl/energia-elektryczna-rdn?dateShow=24-10-2026",
+  "session_date": "2026-10-24",
+  "delivery_date": "2026-10-25",
+  "retrieved_at_utc": "2026-11-02T19:13:05.184268+00:00",
+  "raw_sha256": "0a247756fb2f56ba608a45ed04917a88053805d574445b7604945a0d413c3d6d",
+  "bytes": 442277,
+  "http_status": 200,
+  "utc_mapping_verified": false,
+  "note": "Capture is source evidence, not independent price reference; no production import."
+}
