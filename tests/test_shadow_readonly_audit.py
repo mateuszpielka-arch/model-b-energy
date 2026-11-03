@@ -95,6 +95,26 @@ class ReadonlyAuditTests(unittest.TestCase):
                 self.assertEqual(snapshot['availability_status'], 'RETRIEVAL_STARTED_AFTER_CUTOFF')
                 self.assertFalse(snapshot['model_ready'])
 
+    def test_audit_distinguishes_late_and_unverified_publications(self):
+        from psycopg.types.json import Jsonb
+
+        self.seed_dst()
+        self.conn.execute(
+            'UPDATE raw.snapshots SET payload=%s',
+            (Jsonb({'pk5l-wp': [
+                {'publication_ts': '2026-10-24T09:50:00+02:00'},
+                {'publication_ts': '2026-10-24T07:51:00Z'},
+                {'publication_ts': '2026-10-24T08:00:00'},
+                {'publication_ts': 'invalid'},
+            ]}),),
+        )
+
+        snapshot = audit_connection(self.conn)['snapshots'][0]
+        self.assertEqual(snapshot['publication_after_cutoff'], 1)
+        self.assertEqual(snapshot['publication_unverified'], 2)
+        self.assertEqual(snapshot['availability_status'], 'PUBLICATION_AFTER_CUTOFF')
+        self.assertFalse(snapshot['model_ready'])
+
     def test_missing_tables_reported_without_creation(self):
         self.conn.execute('DROP SCHEMA raw CASCADE');self.conn.execute('DROP SCHEMA actual CASCADE')
         out=audit_connection(self.conn)

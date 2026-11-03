@@ -32,14 +32,33 @@ def audit_connection(conn):
                 labels=[str(r.get('period','')) for r in values if isinstance(r,dict)]
                 counts=Counter(labels)
                 cutoff = cutoff_for_day(day)
-                availability = (
-                    'RETRIEVAL_STARTED_AFTER_CUTOFF' if retrieved > cutoff
-                    else 'UNPROVEN_NO_VERIFIED_COMPLETION_TIMESTAMP'
-                )
+                publication_values = [
+                    row['publication_ts'] for row in values
+                    if isinstance(row, dict) and row.get('publication_ts')
+                ]
+                publications = []
+                for value in publication_values:
+                    if not isinstance(value, str):
+                        continue
+                    try:
+                        stamp = datetime.fromisoformat(value)
+                    except ValueError:
+                        continue
+                    if stamp.utcoffset() is not None:
+                        publications.append(stamp)
+                late_publications = sum(stamp > cutoff for stamp in publications)
+                if retrieved > cutoff:
+                    availability = 'RETRIEVAL_STARTED_AFTER_CUTOFF'
+                elif late_publications:
+                    availability = 'PUBLICATION_AFTER_CUTOFF'
+                else:
+                    availability = 'UNPROVEN_NO_VERIFIED_COMPLETION_TIMESTAMP'
                 snapshots.append(dict(snapshot_id=sid,day=day.isoformat(),expected_periods=len(expected_periods(day)),
                     rows=len(values),distinct_raw_labels=len(counts),repeated_raw_labels=sum(v-1 for v in counts.values()),
                     jwcd_nonnull=sum(isinstance(r,dict) and r.get('fcst_gen_unit_stor_prov') is not None for r in values),
-                    publication_nonnull=sum(isinstance(r,dict) and bool(r.get('publication_ts')) for r in values),
+                    publication_nonnull=len(publication_values),
+                    publication_unverified=len(publication_values)-len(publications),
+                    publication_after_cutoff=late_publications,
                     retrieved_at_utc=retrieved.isoformat(),
                     cutoff_utc=cutoff.isoformat(),
                     availability_status=availability,
