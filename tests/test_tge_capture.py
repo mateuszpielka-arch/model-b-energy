@@ -74,3 +74,13 @@ class CaptureReferenceTest(unittest.TestCase):
         row.remove(cells[2])
         with self.assertRaisesRegex(ValueError, "reference row does not match header"):
             extract_reference(html.tostring(document), "2026-11-02")
+
+    def test_header_span_cannot_shift_fixing_i_group(self):
+        from lxml import html
+
+        fixture = Path(__file__).parent / "fixtures/tge_rdn_captured_2026-11-01.html"
+        document = html.fromstring(fixture.read_text(encoding="utf-8"))
+        first, = document.xpath('//table[@id="rdn"]/thead/tr[1]/th[1]')
+        first.set("colspan", "2")
+        with self.assertRaisesRegex(ValueError, "Unsupported reference header spans"):
+            extract_reference(html.tostring(document), "2026-11-02")

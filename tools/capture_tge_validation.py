@@ -31,7 +31,12 @@ def extract_reference(raw, day):
                      if ' '.join(group.text_content().split()) == 'Fixing I']
     if len(fixing_groups) != 1 or fixing_groups[0].get('colspan') != '2':
         raise ValueError('Expected one two-column Fixing I group')
-    names=[' '.join(x.text_content().split()) for x in headers[1].xpath('./th')]
+    columns = headers[1].xpath('./th')
+    if any(group.get('colspan', '1') != '1' for group in groups[:2]) or any(
+        cell.get('rowspan', '1') != '1' for cell in [*groups, *columns]
+    ) or any(cell.get('colspan', '1') != '1' for cell in columns):
+        raise ValueError('Unsupported reference header spans')
+    names=[' '.join(x.text_content().split()) for x in columns]
     if names[:3]!=['Data dostawy','Typ instrumentu','Kurs [PLN/MWh]']:
         raise ValueError('Wrong market/unit/columns')
     rows=[]

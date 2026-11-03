@@ -148,3 +148,6 @@ grupy o tej samej nazwie. Lokalnie przeszło 113 testów, w tym porównanie
 - Ekstraktor lxml odrzuca skrócone i scalone wiersze godzinowe. Test
   usuwa komórkę ceny z zapisanej sesji, pozostawiając liczbowy wolumen.
   Lokalnie przeszło 116 testów, a 25 testów PostgreSQL pominięto.
+- Ekstraktor lxml odrzuca scalenia nagłówków przesuwające Fixing I.
+  Test zmienia colspan pierwszej komórki nagłówka w zapisanej sesji.
+  Lokalnie przeszło 117 testów, a 25 testów PostgreSQL pominięto.
