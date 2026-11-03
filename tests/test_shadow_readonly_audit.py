@@ -44,6 +44,26 @@ class ReadonlyAuditTests(unittest.TestCase):
                 conn.execute('INSERT INTO actual.tge_fix1 VALUES(%s,%s,%s)',(date(2026,11,2),1,100))
             self.assertEqual(audit_connection(conn)['actual_days'],[])
 
+    def test_audit_uses_same_snapshot_across_queries(self):
+        from unittest.mock import patch
+
+        self.seed_dst()
+        execute = self.conn.execute
+        with connect_test_database(DSN) as writer:
+            def execute_with_concurrent_insert(query, *args, **kwargs):
+                if 'FROM actual.tge_fix1 GROUP BY' in query:
+                    writer.execute(
+                        'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s)',
+                        (date(2026, 10, 25), 25, 100),
+                    )
+                return execute(query, *args, **kwargs)
+
+            with patch.object(self.conn, 'execute', side_effect=execute_with_concurrent_insert):
+                report = audit_connection(self.conn)
+
+        self.assertEqual(report['actual_days'][0]['rows'], 24)
+        self.assertEqual(execute('SELECT count(*) FROM actual.tge_fix1').fetchone()[0], 25)
+
     def test_missing_tables_reported_without_creation(self):
         self.conn.execute('DROP SCHEMA raw CASCADE');self.conn.execute('DROP SCHEMA actual CASCADE')
         out=audit_connection(self.conn)

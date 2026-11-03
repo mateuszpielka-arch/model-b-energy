@@ -16,7 +16,7 @@ def connect_readonly(dsn):
 def audit_connection(conn):
     if not conn.autocommit: raise ValueError('Dedicated autocommit connection required')
     with conn.transaction():
-        conn.execute('SET TRANSACTION READ ONLY')
+        conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY')
         if conn.execute('SHOW transaction_read_only').fetchone()[0]!='on':
             raise ValueError('Database did not enforce READ ONLY')
         present={name:conn.execute('SELECT to_regclass(%s)',(name,)).fetchone()[0] is not None
