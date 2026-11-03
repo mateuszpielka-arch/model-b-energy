@@ -166,3 +166,7 @@ potwierdzają oba przypadki. Lokalnie przeszło 119 testów, 25 pominięto.
   dla dni uwzględnionych w rankingu. Test potwierdza, że wadliwy kandydat
   jest widoczny w raporcie, a obie doby pozostają we wspólnej próbie.
   Lokalnie przeszło 120 testów, a 25 testów PostgreSQL pominięto.
+- Raport walk-forward zapisuje dla użytego snapshotu JWCD najpóźniejszy
+  czas publikacji oraz początek i koniec pobrania w UTC. Test porównuje
+  raport z danymi wejściowymi i granicą emisji. Lokalnie przeszło 121 testów,
+  a 25 testów PostgreSQL pominięto.

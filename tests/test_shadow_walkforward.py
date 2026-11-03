@@ -106,3 +106,22 @@ class WalkforwardTests(unittest.TestCase):
             str(original['id']): 'CONFLICTING_LATEST_SNAPSHOTS',
             'conflicting-revision': 'CONFLICTING_LATEST_SNAPSHOTS',
         })
+
+    def test_ranked_day_reports_source_times_used_for_cutoff(self):
+        args = self.args()
+        snapshot = args['history'][-1]['snapshots'][0]
+        result = run_walkforward(**args)
+        day = result['accepted'][-1]
+
+        self.assertEqual(day['target_snapshot_id'], str(snapshot['id']))
+        self.assertEqual(
+            datetime.fromisoformat(day['target_latest_publication_ts']),
+            max(row['publication_ts'] for row in snapshot['rows']),
+        )
+        self.assertEqual(
+            datetime.fromisoformat(day['target_retrieval_started_at']),
+            snapshot['retrieved_at'],
+        )
+        completed = datetime.fromisoformat(day['target_retrieval_completed_at'])
+        self.assertEqual(completed, snapshot['retrieval_completed_at'])
+        self.assertLessEqual(completed, datetime.fromisoformat(day['simulated_issue_at']))
