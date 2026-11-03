@@ -92,6 +92,8 @@ class _FixingTable(_Rows):
             self.span = int(attrs.get("colspan", "1"))
             if not 1 <= self.span <= 30 or attrs.get("rowspan", "1") != "1":
                 raise ValueError("Unsupported RDN header span")
+            if tag == "td" and self.span != 1:
+                raise ValueError("Unsupported RDN data cell colspan")
             self.is_header = tag == "th"
         super().handle_starttag(tag, list(attrs.items()))
 

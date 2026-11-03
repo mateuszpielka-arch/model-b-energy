@@ -116,3 +116,10 @@ Stały cron UTC nie jest dowodem dostarczenia. Harmonogramów w tej zmianie nie 
 - Manifest sesji jest publikowany atomowo po zapisaniu kompletnego JSON.
   Testy potwierdzają poprawny odczyt oraz brak manifestu po błędzie serializacji.
   Lokalnie przeszło 110 testów, a 25 testów PostgreSQL pominięto.
+
+## Checkpoint 2026-11-03 — scalone komórki danych RDN
+
+Parser SHADOW odrzuca `colspan` w komórkach danych RDN, bo może przesunąć
+kolumnę ceny względem nagłówka. Test modyfikuje pojedynczą komórkę w rzeczywistej
+sesji dla dostawy 02.11.2026. Lokalnie przeszło 111 testów, w tym porównanie
+168 cen z siedmiu zapisanych sesji. Pominięto 25 testów PostgreSQL.

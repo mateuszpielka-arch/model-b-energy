@@ -34,3 +34,10 @@ class LayoutTests(unittest.TestCase):
     def test_other_market_rows_ignored(self):
         foreign = '<table id="mc"><tr><td>2026-11-02_H01</td><td>60</td><td>1,00</td></tr></table>'
         self.assertEqual(parse_verified_layout(foreign + self.html, '2026-11-02')[1], 687.34)
+
+    def test_merged_data_cell_rejected(self):
+        label = '2026-11-02_H01</td>'
+        start = self.html.rindex('<td', 0, self.html.index(label))
+        html = self.html[:start] + self.html[start:].replace('<td', '<td colspan="2"', 1)
+        with self.assertRaisesRegex(ValueError, 'RDN data cell colspan'):
+            parse_verified_layout(html, '2026-11-02')
