@@ -30,3 +30,9 @@
 5. Keep 09:50 morning forecast and 18:00 evening report separate.
 
 No production rollout is authorized by this checkpoint.
+
+## Additional archive safety work (same checkpoint)
+- Inspected the current repository `tge_collector.py`: its legacy collector contains `ON CONFLICT(delivery_date,hour) DO UPDATE`, which can overwrite existing hourly prices with a misparsed value; its `score()` reads legacy actuals without an independent reference check. This is a concrete code-level risk; it was **not** changed in production.
+- Added `tge_shadow_archive_policy.py`: pure fail-closed proposal for promotion into a **separate verified archive**, never modifying legacy `actual.tge_fix1`. Conflicting verified hours or reference mismatches quarantine the **whole day**; matching records are idempotent; missing verified hours are proposed as append-only inserts.
+- Added `tests/test_tge_shadow_archive_policy.py`: **6/6** offline tests passed (new day, idempotence, immutable conflict, reference mismatch, partial day, incomplete day).
+- Together with the six 2026-11-04 parser/scoring tests, **12/12 newly introduced tests passed locally**. These tests do not prove production DB integration, raw-HTML compatibility, or successful execution of the full pre-existing suite.
