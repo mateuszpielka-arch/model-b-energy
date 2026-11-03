@@ -134,6 +134,9 @@ def _validated_rdn_rows(html: str):
         columns[:4] != ["Data dostawy", "Typ instrumentu", "Kurs [PLN/MWh]", "Wolumen [MW]"] or
         len(groups) != len(columns)):
         raise ValueError("RDN Fixing I columns changed; admission blocked")
+    for row in table.rows:
+        if row and re.match(r"^\d{4}-\d{2}-\d{2}_H", row[0]) and len(row) != len(columns):
+            raise ValueError("Hourly RDN row width does not match header")
     return table.rows
 
 

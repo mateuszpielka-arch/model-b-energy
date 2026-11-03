@@ -41,3 +41,11 @@ class LayoutTests(unittest.TestCase):
         html = self.html[:start] + self.html[start:].replace('<td', '<td colspan="2"', 1)
         with self.assertRaisesRegex(ValueError, 'RDN data cell colspan'):
             parse_verified_layout(html, '2026-11-02')
+
+    def test_missing_price_cell_cannot_shift_volume_into_price_column(self):
+        start = self.html.index('<td align="right">', self.html.index('2026-11-02_H01'))
+        end = self.html.index('</td>', start) + len('</td>')
+        volume_end = self.html.index('</td>', end)
+        html = self.html[:start] + '<td>2492,98' + self.html[volume_end:]
+        with self.assertRaisesRegex(ValueError, 'row width does not match header'):
+            parse_verified_layout(html, '2026-11-02')

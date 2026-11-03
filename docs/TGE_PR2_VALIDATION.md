@@ -123,3 +123,10 @@ Parser SHADOW odrzuca `colspan` w komórkach danych RDN, bo może przesunąć
 kolumnę ceny względem nagłówka. Test modyfikuje pojedynczą komórkę w rzeczywistej
 sesji dla dostawy 02.11.2026. Lokalnie przeszło 111 testów, w tym porównanie
 168 cen z siedmiu zapisanych sesji. Pominięto 25 testów PostgreSQL.
+
+## Checkpoint 2026-11-03 — szerokość wiersza godzinowego RDN
+
+Parser SHADOW porównuje liczbę komórek każdego wiersza godzinowego z nagłówkiem.
+Test na zmodyfikowanym HTML rzeczywistej sesji odtwarza brak komórki ceny oraz
+liczbowy wolumen w jej miejscu. Lokalnie przeszło 112 testów, w tym porównanie
+168 cen z siedmiu zapisanych sesji. Pominięto 25 testów PostgreSQL.
