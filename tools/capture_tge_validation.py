@@ -13,6 +13,7 @@ import io
 import json
 from pathlib import Path
 import re
+from tempfile import NamedTemporaryFile
 from urllib.request import Request, urlopen
 
 
@@ -66,6 +67,20 @@ def capture(day, directory):
         hours=len(rows),bytes=len(raw))
 
 
+def write_manifest(directory, manifest):
+    # Publish the manifest only once the complete JSON has been written.
+    temporary = NamedTemporaryFile(
+        mode="w", encoding="utf-8", dir=directory, delete=False
+    )
+    staging_path = Path(temporary.name)
+    try:
+        with temporary:
+            json.dump(manifest, temporary, indent=2)
+        staging_path.replace(directory / "manifest.json")
+    finally:
+        staging_path.unlink(missing_ok=True)
+
+
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--start',required=True);p.add_argument('--days',type=int,required=True);p.add_argument('--output',type=Path,required=True)
     args=p.parse_args()
@@ -86,5 +101,5 @@ if __name__=='__main__':
                 errors.append({'day':d.isoformat(),'error':str(exc)});print(json.dumps(errors[-1]),flush=True)
     manifest=dict(entries=sorted(entries,key=lambda e:e['delivery_date']),errors=errors,
                   note='Historical captures obtained in one run; NOT seven days of operational SHADOW observation.')
-    (args.output/'manifest.json').write_text(json.dumps(manifest,indent=2))
+    write_manifest(args.output, manifest)
     if errors:raise SystemExit(1)

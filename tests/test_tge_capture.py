@@ -1,8 +1,11 @@
+import json
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+from tools.capture_tge_validation import write_manifest
 
 
 class CaptureOutputTest(unittest.TestCase):
@@ -31,3 +34,20 @@ class CaptureOutputTest(unittest.TestCase):
             self.assertEqual(
                 {path.name: path.read_bytes() for path in output.iterdir()}, original
             )
+
+    def test_manifest_is_published_as_complete_json(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            manifest = {"entries": [{"hours": 24}], "errors": []}
+            write_manifest(output, manifest)
+
+            path = output / "manifest.json"
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), manifest)
+            self.assertEqual(list(output.iterdir()), [path])
+
+    def test_failed_serialization_leaves_no_manifest_or_temporary_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            with self.assertRaises(TypeError):
+                write_manifest(output, {"entries": [object()]})
+            self.assertEqual(list(output.iterdir()), [])

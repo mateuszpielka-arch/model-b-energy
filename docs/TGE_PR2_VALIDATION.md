@@ -113,3 +113,6 @@ Stały cron UTC nie jest dowodem dostarczenia. Harmonogramów w tej zmianie nie 
 - Test CLI porównuje zawartość wszystkich trzech plików bajt po bajcie.
   Lokalnie uruchomiono 133 testy, z których 108 przeszło, a 25 testów
   PostgreSQL pominięto z powodu braku lokalnej instancji testowej.
+- Manifest sesji jest publikowany atomowo po zapisaniu kompletnego JSON.
+  Testy potwierdzają poprawny odczyt oraz brak manifestu po błędzie serializacji.
+  Lokalnie przeszło 110 testów, a 25 testów PostgreSQL pominięto.
