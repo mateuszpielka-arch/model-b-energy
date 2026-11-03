@@ -151,3 +151,10 @@ grupy o tej samej nazwie. Lokalnie przeszło 113 testów, w tym porównanie
 - Ekstraktor lxml odrzuca scalenia nagłówków przesuwające Fixing I.
   Test zmienia colspan pierwszej komórki nagłówka w zapisanej sesji.
   Lokalnie przeszło 117 testów, a 25 testów PostgreSQL pominięto.
+
+## Checkpoint 2026-11-03 — sprzeczne snapshoty JWCD
+
+Selekcja SHADOW blokuje dobę, gdy najnowsze dopuszczone snapshoty mają
+identyczne czasy rozpoczęcia i zakończenia pobrania, ale różne wartości JWCD.
+Snapshoty z identycznymi wartościami pozostają dopuszczalne. Dwa testy
+potwierdzają oba przypadki. Lokalnie przeszło 119 testów, 25 pominięto.

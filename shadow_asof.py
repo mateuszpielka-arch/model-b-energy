@@ -84,5 +84,12 @@ def select_snapshot(day, snapshots):
             rejected.append((sid,str(exc)))
     if not eligible:
         return SnapshotSelection(None,cutoff,(),tuple(rejected))
-    _,_,sid,rows = max(eligible)
+    completed, retrieved, sid, rows = max(eligible)
+    latest = [(candidate_id, candidate_rows)
+              for end, start, candidate_id, candidate_rows in eligible
+              if (end, start) == (completed, retrieved)]
+    if any(candidate_rows != rows for _, candidate_rows in latest):
+        rejected.extend((candidate_id, 'CONFLICTING_LATEST_SNAPSHOTS')
+                        for candidate_id, _ in sorted(latest))
+        return SnapshotSelection(None, cutoff, (), tuple(rejected))
     return SnapshotSelection(sid,cutoff,rows,tuple(rejected))

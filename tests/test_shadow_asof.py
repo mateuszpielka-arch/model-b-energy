@@ -83,3 +83,22 @@ class AvailabilityTests(unittest.TestCase):
         s=self.snapshot(); s['retrieval_completed_at']=datetime(2026,11,2,8,50,tzinfo=UTC)
         before=deepcopy(s); self.assertEqual(select_snapshot(s['delivery_date'],[s]).snapshot_id,'early')
         self.assertEqual(s,before)
+
+    def test_conflicting_snapshots_with_same_latest_times_block_selection(self):
+        first = self.snapshot(sid='first')
+        second = self.snapshot(sid='second')
+        second['rows'][0]['jwcd_mw'] = 11000
+        result = select_snapshot(first['delivery_date'], [second, first])
+        self.assertIsNone(result.snapshot_id)
+        self.assertEqual(result.rejected, (
+            ('first', 'CONFLICTING_LATEST_SNAPSHOTS'),
+            ('second', 'CONFLICTING_LATEST_SNAPSHOTS'),
+        ))
+
+    def test_equivalent_snapshots_with_same_times_remain_eligible(self):
+        first = self.snapshot(sid='first')
+        second = self.snapshot(sid='second')
+        second['rows'].reverse()
+        result = select_snapshot(first['delivery_date'], [first, second])
+        self.assertEqual(result.snapshot_id, 'second')
+        self.assertEqual(result.rejected, ())
