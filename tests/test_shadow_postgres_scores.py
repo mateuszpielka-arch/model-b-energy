@@ -55,6 +55,34 @@ class ScorePersistenceTests(unittest.TestCase):
         with self.assertRaises(ValueError): score_archived_day(self.conn,**self.kw)
         self.assertEqual(self.count(),0)
 
+    def test_quarantine_of_another_batch_for_day_blocks_replay(self):
+        score_archived_day(self.conn, **self.kw)
+        previous_score = self.conn.execute(
+            'SELECT payload FROM fix1_shadow_test.scores'
+        ).fetchone()
+        conflicting_batch_id = self.conn.execute(
+            """INSERT INTO fix1_shadow_test.batches
+                (delivery_date, raw_sha256, reference_sha256, parser_version,
+                 source_url, retrieved_at, raw_html)
+                SELECT delivery_date, raw_sha256, %s, parser_version,
+                       source_url, retrieved_at, raw_html
+                FROM fix1_shadow_test.batches
+                RETURNING id""",
+            ('a' * 64,),
+        ).fetchone()[0]
+        self.conn.execute(
+            'INSERT INTO fix1_shadow_test.quarantine(batch_id,reason) VALUES (%s,%s)',
+            (conflicting_batch_id, 'conflicting source'),
+        )
+
+        with self.assertRaisesRegex(ValueError, 'Quarantined delivery day'):
+            score_archived_day(self.conn, **self.kw)
+        self.assertEqual(self.count(), 1)
+        self.assertEqual(
+            self.conn.execute('SELECT payload FROM fix1_shadow_test.scores').fetchone(),
+            previous_score,
+        )
+
     def test_late_forecast_has_no_stored_score(self):
         self.kw['issued_at']=datetime(2026,11,1,8,51,tzinfo=timezone.utc)
         with self.assertRaises(ValueError): score_archived_day(self.conn,**self.kw)

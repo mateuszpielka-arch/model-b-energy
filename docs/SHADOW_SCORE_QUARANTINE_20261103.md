@@ -1,0 +1,1 @@
+Scoring SHADOW sprawdza kwarantannę po dacie dostawy pod wspólną blokadą zapisu i scoringu. Sprzeczna paczka o innym identyfikatorze blokuje ocenę i ponowienie dla tej doby. Dotychczasowy wynik pozostaje w archiwum. Test sprawdza ten przypadek na izolowanym PostgreSQL. Lokalnie zaliczono 106 testów. 23 testy PostgreSQL pominięto. Baza zmian 38b0fc6. PR #2 otwarty.

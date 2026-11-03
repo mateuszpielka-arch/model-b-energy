@@ -40,8 +40,16 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         if len(actual) != 24 or len(bids) != 1:
             raise ValueError('One complete accepted actual batch required')
         bid = next(iter(bids))
-        if conn.execute('SELECT 1 FROM fix1_shadow_test.quarantine WHERE batch_id=%s',(bid,)).fetchone():
-            raise ValueError('Quarantined actual batch cannot be scored')
+        conflict = conn.execute(
+            """SELECT 1
+               FROM fix1_shadow_test.quarantine AS quarantine
+               JOIN fix1_shadow_test.batches AS batch ON batch.id = quarantine.batch_id
+               WHERE batch.delivery_date = %s
+               LIMIT 1""",
+            (day,),
+        ).fetchone()
+        if conflict:
+            raise ValueError('Quarantined delivery day cannot be scored')
         raw_hash,ref_hash,parser,raw,delivery = conn.execute('''SELECT raw_sha256,
             reference_sha256,parser_version,raw_html,delivery_date
             FROM fix1_shadow_test.batches WHERE id=%s''',(bid,)).fetchone()
