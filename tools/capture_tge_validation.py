@@ -36,9 +36,15 @@ def extract_reference(raw, day):
         raise ValueError('Wrong market/unit/columns')
     rows=[]
     for row in tables[0].xpath('./tbody/tr'):
-        cells=[' '.join(c.text_content().split()) for c in row.xpath('./td')]
+        elements = row.xpath('./td')
+        cells=[' '.join(c.text_content().split()) for c in elements]
         if not cells or not cells[0].startswith(day+'_H'): continue
-        if len(cells)<3 or cells[1]!='60': raise ValueError('Bad hourly instrument row')
+        if len(elements) != len(names) or any(
+            cell.get('colspan', '1') != '1' or cell.get('rowspan', '1') != '1'
+            for cell in elements
+        ):
+            raise ValueError('Hourly reference row does not match header')
+        if cells[1]!='60': raise ValueError('Bad hourly instrument row')
         label=cells[0].split('_',1)[1]
         if not re.fullmatch(r'H(?:0[1-9]|1[0-9]|2[0-4])',label):
             raise ValueError('Capture utility supports standard days only')

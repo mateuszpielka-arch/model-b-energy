@@ -145,3 +145,6 @@ grupy o tej samej nazwie. Lokalnie przeszło 113 testów, w tym porównanie
   Potwierdza zgodność dat, kolejności okresów i wszystkich 168 cen z CSV
   dla dostaw 27.10–02.11.2026. HTML i CSV pochodzą z tej samej publikacji TGE.
   Lokalnie przeszło 115 testów, a 25 testów PostgreSQL pominięto.
+- Ekstraktor lxml odrzuca skrócone i scalone wiersze godzinowe. Test
+  usuwa komórkę ceny z zapisanej sesji, pozostawiając liczbowy wolumen.
+  Lokalnie przeszło 116 testów, a 25 testów PostgreSQL pominięto.

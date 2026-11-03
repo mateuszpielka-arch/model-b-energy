@@ -62,3 +62,15 @@ class CaptureReferenceTest(unittest.TestCase):
         self.assertNotEqual(html, source)
         with self.assertRaisesRegex(ValueError, "one two-column Fixing I group"):
             extract_reference(html.encode(), "2026-11-02")
+
+    def test_missing_price_cell_cannot_create_reference(self):
+        from lxml import html
+
+        fixture = Path(__file__).parent / "fixtures/tge_rdn_captured_2026-11-01.html"
+        document = html.fromstring(fixture.read_text(encoding="utf-8"))
+        row, = document.xpath('//table[@id="rdn"]/tbody/tr[td[1]="2026-11-02_H01"]')
+        cells = row.xpath("./td")
+        cells[3].text = "2492,98"
+        row.remove(cells[2])
+        with self.assertRaisesRegex(ValueError, "reference row does not match header"):
+            extract_reference(html.tostring(document), "2026-11-02")
