@@ -19,6 +19,7 @@ class WalkforwardTests(unittest.TestCase):
         self.assertTrue(all(r['periods']==48 and r['days']==2 for r in out['ranking']))
         self.assertTrue(all(r['mae']<Decimal('1e-24') for r in out['ranking'] if r['model'].startswith('ols')))
         self.assertTrue(out['simulation'])
+        self.assertEqual(out['accepted'][-1]['rejected_snapshots'], (('', 'INVALID_SNAPSHOT_OBJECT'),))
 
     def test_day_rejected_for_every_model_when_90d_window_incomplete(self):
         kw=self.args();kw['history']=kw['history'][1:]

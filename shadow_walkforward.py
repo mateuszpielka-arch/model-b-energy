@@ -80,6 +80,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
                     error=predicted[p]-y;t['n']+=1;t['ae']+=abs(error);t['err']+=error;t['denom']+=abs(y)
                     if y!=0:t['nz']+=1;t['ape']+=abs(error)/abs(y)
             accepted.append(dict(day=day.isoformat(),target_snapshot_id=selected.snapshot_id,
+                rejected_snapshots=selected.rejected,
                 simulated_issue_at=selected.cutoff_utc.isoformat(),predictions=predictions,scores=scores))
         ranking=[]
         if accepted:

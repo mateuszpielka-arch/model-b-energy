@@ -162,3 +162,7 @@ potwierdzają oba przypadki. Lokalnie przeszło 119 testów, 25 pominięto.
   przyczyny przed dopasowaniem modeli. Test konfliktu potwierdza wyłączenie
   tej doby ze wspólnej próby wszystkich modeli. Lokalnie przeszło 120
   testów, a 25 testów PostgreSQL pominięto.
+- Raport walk-forward zachowuje przyczyny odrzucenia snapshotów również
+  dla dni uwzględnionych w rankingu. Test potwierdza, że wadliwy kandydat
+  jest widoczny w raporcie, a obie doby pozostają we wspólnej próbie.
+  Lokalnie przeszło 120 testów, a 25 testów PostgreSQL pominięto.
