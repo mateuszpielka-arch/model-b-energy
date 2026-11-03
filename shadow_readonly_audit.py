@@ -38,13 +38,18 @@ def audit_connection(conn):
                     availability_status='UNPROVEN_NO_VERIFIED_COMPLETION_TIMESTAMP',
                     model_ready=False))
         if present['actual.tge_fix1']:
-            rows=conn.execute('''SELECT delivery_date,count(*),count(DISTINCT hour),
+            rows=conn.execute('''SELECT delivery_date,count(*),
+                array_agg(DISTINCT hour) FILTER (WHERE hour IS NOT NULL),
                 count(*) FILTER (WHERE price_pln_mwh IN (60,2026))
                 FROM actual.tge_fix1 GROUP BY delivery_date ORDER BY delivery_date''').fetchall()
-            for day,n,distinct,suspect in rows:
+            for day,n,hours,suspect in rows:
                 expected=len(expected_periods(day))
-                actuals.append(dict(day=day.isoformat(),rows=n,distinct_legacy_hours=distinct,
-                    expected_periods=expected,structurally_complete=(n==distinct==expected),
+                observed = set(hours or [])
+                required = set(range(1, expected + 1))
+                actuals.append(dict(day=day.isoformat(),rows=n,distinct_legacy_hours=len(observed),
+                    expected_periods=expected,structurally_complete=(n==expected and observed==required),
+                    missing_legacy_hours=sorted(required-observed),
+                    unexpected_legacy_hours=sorted(observed-required),
                     prices_equal_60_or_2026=suspect,
                     quality_status='UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION'))
         return dict(generated_at_utc=datetime.now(timezone.utc).isoformat(),transaction_read_only=True,

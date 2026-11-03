@@ -64,6 +64,19 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(report['actual_days'][0]['rows'], 24)
         self.assertEqual(execute('SELECT count(*) FROM actual.tge_fix1').fetchone()[0], 25)
 
+    def test_distinct_hours_can_still_be_incomplete(self):
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s)',
+                [(date(2026, 11, 2), hour, 100) for hour in (*range(1, 24), 25)],
+            )
+
+        day = audit_connection(self.conn)['actual_days'][0]
+        self.assertEqual(day['distinct_legacy_hours'], 24)
+        self.assertFalse(day['structurally_complete'])
+        self.assertEqual(day['missing_legacy_hours'], [24])
+        self.assertEqual(day['unexpected_legacy_hours'], [25])
+
     def test_missing_tables_reported_without_creation(self):
         self.conn.execute('DROP SCHEMA raw CASCADE');self.conn.execute('DROP SCHEMA actual CASCADE')
         out=audit_connection(self.conn)
