@@ -5,7 +5,7 @@ No I/O. Verified canonical history is a prerequisite, not produced by this modul
 """
 from datetime import datetime
 from decimal import Decimal, localcontext
-from shadow_asof import select_snapshot
+from shadow_asof import select_snapshot, snapshot_identifier
 from shadow_ols import predict_ols
 from shadow_similar_consensus import predict_similar, median_consensus
 from shadow_scoring import _utc, _prices, expected_periods, score_day
@@ -55,7 +55,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 stage='median4'; predictions[stage]=median_consensus(target_day=day,
                     models={m:predictions[m] for m in ('ols30','ols60','ols90','similar_shape')})
                 stage='scoring'
-                snapshot=next(s for s in target['snapshots'] if str(s['id'])==selected.snapshot_id)
+                snapshot=next(s for s in target['snapshots'] if snapshot_identifier(s)==selected.snapshot_id)
                 publication=max(_utc(r['publication_ts']) for r in snapshot['rows'])
                 retrieved=_utc(snapshot['retrieval_completed_at'])
                 scores={}

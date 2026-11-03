@@ -1,0 +1,1 @@
+Selekcja JWCD odrzuca uszkodzony obiekt snapshotu, błędny wiersz i pusty identyfikator. Poprawny kandydat nadal może wejść do walk-forward. Runner używa tej samej reguły identyfikacji przy odczycie metadanych publikacji. Testy regresji wykorzystują dane syntetyczne. Lokalnie zaliczono 107 testów i pominięto 25 PostgreSQL. Baza 73c62b4. PR #2 otwarty.

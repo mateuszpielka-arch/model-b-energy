@@ -12,7 +12,9 @@ class WalkforwardTests(unittest.TestCase):
                     evaluated_at=datetime(2026,11,5,tzinfo=timezone.utc))
 
     def test_two_days_all_models_share_48_periods(self):
-        out=run_walkforward(**self.args())
+        kw = self.args()
+        kw['history'][-1]['snapshots'].insert(0, None)
+        out = run_walkforward(**kw)
         self.assertEqual(out['common_days'],2);self.assertEqual(len(out['ranking']),6)
         self.assertTrue(all(r['periods']==48 and r['days']==2 for r in out['ranking']))
         self.assertTrue(all(r['mae']<Decimal('1e-24') for r in out['ranking'] if r['model'].startswith('ols')))

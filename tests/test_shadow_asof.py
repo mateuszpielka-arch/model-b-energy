@@ -26,6 +26,21 @@ class AvailabilityTests(unittest.TestCase):
         s=self.snapshot(); s['retrieval_completed_at']=datetime(2026,11,2,8,50,1,tzinfo=UTC)
         self.assertIsNone(select_snapshot(s['delivery_date'],[s]).snapshot_id)
 
+    def test_malformed_candidates_do_not_abort_selection(self):
+        good = self.snapshot()
+        malformed_row = self.snapshot(sid='bad-row')
+        malformed_row['rows'] = [None]
+        missing_id = self.snapshot(sid=None)
+
+        result = select_snapshot(good['delivery_date'], [None, malformed_row, missing_id, good])
+
+        self.assertEqual(result.snapshot_id, 'early')
+        self.assertEqual(result.rejected, (
+            ('', 'INVALID_SNAPSHOT_OBJECT'),
+            ('bad-row', 'INVALID_SNAPSHOT_ROW'),
+            ('', 'MISSING_OR_DUPLICATE_SNAPSHOT_ID'),
+        ))
+
     def test_missing_completion_is_unverifiable(self):
         s=self.snapshot(); del s['retrieval_completed_at']
         self.assertIsNone(select_snapshot(s['delivery_date'],[s]).snapshot_id)

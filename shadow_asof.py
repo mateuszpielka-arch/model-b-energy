@@ -4,6 +4,7 @@ Legacy PSE payloads need a separately verified adapter for local/DST period labe
 retrieval_completed_at must be evidenced, never inferred from a request start time.
 """
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
@@ -21,6 +22,15 @@ def cutoff_for_day(day):
     return _utc(datetime.combine(day - timedelta(days=1), time(9, 50), WARSAW))
 
 
+def snapshot_identifier(snapshot):
+    if not isinstance(snapshot, Mapping):
+        return ''
+    identifier = snapshot.get('id')
+    if type(identifier) not in (str, int) or not str(identifier).strip():
+        return ''
+    return str(identifier)
+
+
 def select_snapshot(day, snapshots):
     """Latest complete JWCD snapshot genuinely available by D-1 09:50 Warsaw.
 
@@ -31,12 +41,14 @@ def select_snapshot(day, snapshots):
     """
     cutoff = cutoff_for_day(day)
     snapshots = list(snapshots)
-    ids = Counter(str(s.get('id','')) for s in snapshots)
+    ids = Counter(snapshot_identifier(s) for s in snapshots)
     eligible, rejected = [], []
     periods = set(expected_periods(day))
     for s in snapshots:
-        sid = str(s.get('id',''))
+        sid = snapshot_identifier(s)
         try:
+            if not isinstance(s, Mapping):
+                raise ValueError('INVALID_SNAPSHOT_OBJECT')
             if not sid or ids[sid] != 1:
                 raise ValueError('MISSING_OR_DUPLICATE_SNAPSHOT_ID')
             if s.get('delivery_date') != day:
@@ -47,6 +59,8 @@ def select_snapshot(day, snapshots):
                 raise ValueError('RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER')
             clean = {}
             for row in s.get('rows',[]):
+                if not isinstance(row, Mapping):
+                    raise ValueError('INVALID_SNAPSHOT_ROW')
                 p = _utc(row.get('period_start_utc'))
                 pub = _utc(row.get('publication_ts'))
                 if pub > completed:
