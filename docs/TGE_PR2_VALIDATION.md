@@ -104,3 +104,12 @@ Utrzymać istniejące zadania, nie tworzyć duplikatów: prognoza D+1 gotowa i
 sprawdzona do 09:50 Europe/Warsaw, raport postępu 18:00. Sprawdzić rzeczywisty
 czas zakończenia i dostarczenie, retry oraz alarm przy braku danych przed 09:50.
 Stały cron UTC nie jest dowodem dostarczenia. Harmonogramów w tej zmianie nie zmieniono.
+
+## Checkpoint 2026-11-03 — zapis sesji walidacyjnych
+
+- Narzędzie `tools/capture_tge_validation.py` wymaga nowej ścieżki w
+  `--output`. Zajmuje ją przed pobieraniem i odrzuca istniejący katalog,
+  także pusty. Kolejne uruchomienie zachowuje wcześniejszy HTML, CSV i manifest.
+- Test CLI porównuje zawartość wszystkich trzech plików bajt po bajcie.
+  Lokalnie uruchomiono 133 testy, z których 108 przeszło, a 25 testów
+  PostgreSQL pominięto z powodu braku lokalnej instancji testowej.

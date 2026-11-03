@@ -70,8 +70,11 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--start',required=True);p.add_argument('--days',type=int,required=True);p.add_argument('--output',type=Path,required=True)
     args=p.parse_args()
     if not 1<=args.days<=7:p.error('Capture at most seven days per explicit invocation')
-    args.output.mkdir(parents=True,exist_ok=True)
     dates=[date.fromisoformat(args.start)+timedelta(days=i) for i in range(args.days)]
+    try:
+        args.output.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        p.error(f'Output path already exists: {args.output}; choose a new directory')
     entries=[];errors=[]
     with ThreadPoolExecutor(max_workers=2) as pool:
         pending={pool.submit(capture,d,args.output):d for d in dates}
