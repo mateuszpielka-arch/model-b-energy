@@ -170,3 +170,7 @@ potwierdzają oba przypadki. Lokalnie przeszło 119 testów, 25 pominięto.
   czas publikacji oraz początek i koniec pobrania w UTC. Test porównuje
   raport z danymi wejściowymi i granicą emisji. Lokalnie przeszło 121 testów,
   a 25 testów PostgreSQL pominięto.
+- Raport walk-forward zapisuje wersję i moment dostępności cen Fix1
+  użytych w rankingu. Test sprawdza zgodność z danymi wejściowymi oraz
+  przedział od symulowanej emisji do oceny. Lokalnie przeszły 122 testy,
+  a 25 testów PostgreSQL pominięto.

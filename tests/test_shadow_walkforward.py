@@ -125,3 +125,16 @@ class WalkforwardTests(unittest.TestCase):
         completed = datetime.fromisoformat(day['target_retrieval_completed_at'])
         self.assertEqual(completed, snapshot['retrieval_completed_at'])
         self.assertLessEqual(completed, datetime.fromisoformat(day['simulated_issue_at']))
+
+    def test_ranked_day_identifies_actual_version_and_availability(self):
+        args = self.args()
+        target = args['history'][-1]
+        target['actual_version'] = 'verified-revision-2'
+        result = run_walkforward(**args)
+        day = result['accepted'][-1]
+
+        self.assertEqual(day['actual_version'], 'verified-revision-2')
+        available = datetime.fromisoformat(day['actual_available_at'])
+        self.assertEqual(available, target['actual_available_at'])
+        self.assertLessEqual(datetime.fromisoformat(day['simulated_issue_at']), available)
+        self.assertLessEqual(available, args['evaluated_at'])
