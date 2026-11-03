@@ -136,5 +136,14 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(day['actual_version'], 'verified-revision-2')
         available = datetime.fromisoformat(day['actual_available_at'])
         self.assertEqual(available, target['actual_available_at'])
-        self.assertLessEqual(datetime.fromisoformat(day['simulated_issue_at']), available)
+        self.assertLess(datetime.fromisoformat(day["simulated_issue_at"]), available)
         self.assertLessEqual(available, args['evaluated_at'])
+
+    def test_actual_available_at_exact_issuance_is_rejected(self):
+        args = self.args()
+        target = args['history'][-1]
+        target['actual_available_at'] = datetime(2026, 11, 1, 8, 50, tzinfo=timezone.utc)
+        args['target_days'] = [target['day']]
+        result = run_walkforward(**args)
+        self.assertEqual(result['ranking'], [])
+        self.assertIn('coincides', result['skipped'][0]['reason'])

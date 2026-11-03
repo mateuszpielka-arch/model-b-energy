@@ -174,3 +174,7 @@ potwierdzają oba przypadki. Lokalnie przeszło 119 testów, 25 pominięto.
   użytych w rankingu. Test sprawdza zgodność z danymi wejściowymi oraz
   przedział od symulowanej emisji do oceny. Lokalnie przeszły 122 testy,
   a 25 testów PostgreSQL pominięto.
+- Walk-forward odrzuca ceny Fix1 oznaczone jako dostępne dokładnie
+  w chwili symulowanej emisji D-1 09:50. Test potwierdza, że taka doba
+  nie trafia do rankingu. Lokalnie przeszły 123 testy, a 25 testów
+  PostgreSQL pominięto.
