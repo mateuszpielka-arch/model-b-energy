@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.capture_tge_validation import write_manifest
+from tools.capture_tge_validation import extract_reference, write_manifest
 
 
 class CaptureOutputTest(unittest.TestCase):
@@ -51,3 +51,14 @@ class CaptureOutputTest(unittest.TestCase):
             with self.assertRaises(TypeError):
                 write_manifest(output, {"entries": [object()]})
             self.assertEqual(list(output.iterdir()), [])
+
+
+class CaptureReferenceTest(unittest.TestCase):
+    def test_duplicate_fixing_group_cannot_create_reference(self):
+        fixture = Path(__file__).parent / "fixtures/tge_rdn_captured_2026-11-01.html"
+        source = fixture.read_text(encoding="utf-8")
+        self.assertEqual(len(extract_reference(source.encode(), "2026-11-02")), 24)
+        html = source.replace(">Notowania ciągłe</th>", ">Fixing I</th>", 1)
+        self.assertNotEqual(html, source)
+        with self.assertRaisesRegex(ValueError, "one two-column Fixing I group"):
+            extract_reference(html.encode(), "2026-11-02")

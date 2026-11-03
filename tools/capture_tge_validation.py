@@ -27,6 +27,10 @@ def extract_reference(raw, day):
     groups=headers[0].xpath('./th')
     if len(groups)<3 or ' '.join(groups[2].text_content().split())!='Fixing I':
         raise ValueError('Third column group is not Fixing I')
+    fixing_groups = [group for group in groups
+                     if ' '.join(group.text_content().split()) == 'Fixing I']
+    if len(fixing_groups) != 1 or fixing_groups[0].get('colspan') != '2':
+        raise ValueError('Expected one two-column Fixing I group')
     names=[' '.join(x.text_content().split()) for x in headers[1].xpath('./th')]
     if names[:3]!=['Data dostawy','Typ instrumentu','Kurs [PLN/MWh]']:
         raise ValueError('Wrong market/unit/columns')

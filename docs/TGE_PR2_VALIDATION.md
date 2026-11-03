@@ -137,3 +137,7 @@ Parser SHADOW wymaga dokładnie dwóch kolumn pod nagłówkiem Fixing I.
 Test na zmodyfikowanej sesji dostawy 02.11.2026 potwierdza odrzucenie drugiej
 grupy o tej samej nazwie. Lokalnie przeszło 113 testów, w tym porównanie
 168 cen z siedmiu zapisanych sesji. Pominięto 25 testów PostgreSQL.
+- Ekstraktor referencyjny lxml również wymaga jednej grupy Fixing I
+  z dwiema kolumnami. Test potwierdza odczyt 24 cen z oryginalnej sesji
+  i odrzucenie jej kopii z powtórzonym nagłówkiem. Lokalnie przeszło
+  114 testów, a 25 testów PostgreSQL pominięto.
