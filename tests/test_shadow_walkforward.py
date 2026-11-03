@@ -67,6 +67,19 @@ class WalkforwardTests(unittest.TestCase):
         self.assertLess(abs(row['mae']-total/49),Decimal('1e-24'))
         self.assertLess(abs(row['wape_pct']-100*total/denom),Decimal('1e-24'))
 
+    def test_backdated_target_actual_is_rejected(self):
+        kw = self.args()
+        kw['target_days'] = kw['target_days'][-1:]
+        kw['history'][-1]['actual_available_at'] = datetime(2026, 11, 1, 8, tzinfo=timezone.utc)
+        for evaluated, reason in [
+            (datetime(2026, 11, 1, 8, 49, tzinfo=timezone.utc), 'after evaluation time'),
+            (kw['evaluated_at'], 'precedes simulated issuance'),
+        ]:
+            with self.subTest(evaluated=evaluated):
+                out = run_walkforward(**{**kw, 'evaluated_at': evaluated})
+                self.assertEqual(out['ranking'], [])
+                self.assertIn(reason, out['skipped'][0]['reason'])
+
     def test_empty_run_does_not_manufacture_winner(self):
         out=run_walkforward(history=[],target_days=[],evaluated_at=datetime(2026,11,5,tzinfo=timezone.utc))
         self.assertEqual(out['ranking'],[]);self.assertEqual(out['common_days'],0)

@@ -35,8 +35,14 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 target=packets[day]
                 if target.get('actual_verified') is not True or not target.get('actual_version'):
                     raise ValueError('Unverified target actual')
-                if _utc(target.get('actual_available_at'))>evaluated:
+                actual_available = _utc(target.get('actual_available_at'))
+                if actual_available > evaluated:
                     raise ValueError('Target actual not yet available for evaluation')
+                selected = select_snapshot(day, target['snapshots'])
+                if evaluated < selected.cutoff_utc:
+                    raise ValueError('Simulated issuance is after evaluation time')
+                if actual_available < selected.cutoff_utc:
+                    raise ValueError('Target actual timestamp precedes simulated issuance')
                 actual=_prices(target['actual'])
                 if set(actual)!=set(expected_periods(day)): raise ValueError('Incomplete target actual periods')
                 common=dict(target_day=day,target_snapshots=target['snapshots'],history=history)
@@ -49,7 +55,6 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 stage='median4'; predictions[stage]=median_consensus(target_day=day,
                     models={m:predictions[m] for m in ('ols30','ols60','ols90','similar_shape')})
                 stage='scoring'
-                selected=select_snapshot(day,target['snapshots'])
                 snapshot=next(s for s in target['snapshots'] if str(s['id'])==selected.snapshot_id)
                 publication=max(_utc(r['publication_ts']) for r in snapshot['rows'])
                 retrieved=_utc(snapshot['retrieval_completed_at'])

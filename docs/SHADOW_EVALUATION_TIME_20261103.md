@@ -1,0 +1,1 @@
+Walk-forward wymaga, aby symulowana emisja D-1 09:50 Europe/Warsaw poprzedzała ocenę. Odrzuca też ceny rzeczywiste z datą dostępności wcześniejszą niż symulowana emisja. Test regresji sprawdza oba przypadki na danych syntetycznych. Lokalnie przeszło 106 testów. 20 testów PostgreSQL pominięto lokalnie. Kod oceniono na gałęzi testowej przy bazie 4f20891. PR #2 był otwarty.
