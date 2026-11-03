@@ -158,3 +158,7 @@ Selekcja SHADOW blokuje dobę, gdy najnowsze dopuszczone snapshoty mają
 identyczne czasy rozpoczęcia i zakończenia pobrania, ale różne wartości JWCD.
 Snapshoty z identycznymi wartościami pozostają dopuszczalne. Dwa testy
 potwierdzają oba przypadki. Lokalnie przeszło 119 testów, 25 pominięto.
+- Raport walk-forward wskazuje odrzucone snapshoty dnia docelowego i ich
+  przyczyny przed dopasowaniem modeli. Test konfliktu potwierdza wyłączenie
+  tej doby ze wspólnej próby wszystkich modeli. Lokalnie przeszło 120
+  testów, a 25 testów PostgreSQL pominięto.

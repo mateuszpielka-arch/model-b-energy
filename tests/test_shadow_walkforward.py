@@ -85,3 +85,23 @@ class WalkforwardTests(unittest.TestCase):
     def test_empty_run_does_not_manufacture_winner(self):
         out=run_walkforward(history=[],target_days=[],evaluated_at=datetime(2026,11,5,tzinfo=timezone.utc))
         self.assertEqual(out['ranking'],[]);self.assertEqual(out['common_days'],0)
+
+    def test_target_snapshot_conflict_is_reported_before_model_fitting(self):
+        args = self.args()
+        target = args['history'][-1]
+        original = target['snapshots'][0]
+        conflict = deepcopy(original)
+        conflict['id'] = 'conflicting-revision'
+        conflict['rows'][0]['jwcd_mw'] += 1
+        target['snapshots'].append(conflict)
+        result = run_walkforward(**args)
+
+        self.assertEqual(result['common_days'], 1)
+        self.assertTrue(all(row['periods'] == 24 for row in result['ranking']))
+        skipped, = result['skipped']
+        self.assertEqual(skipped['day'], target['day'].isoformat())
+        self.assertEqual(skipped['stage'], 'target_snapshot')
+        self.assertEqual(dict(skipped['rejected_snapshots']), {
+            str(original['id']): 'CONFLICTING_LATEST_SNAPSHOTS',
+            'conflicting-revision': 'CONFLICTING_LATEST_SNAPSHOTS',
+        })

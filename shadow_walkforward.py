@@ -45,6 +45,13 @@ def run_walkforward(*,history,target_days,evaluated_at):
                     raise ValueError('Target actual timestamp precedes simulated issuance')
                 actual=_prices(target['actual'])
                 if set(actual)!=set(expected_periods(day)): raise ValueError('Incomplete target actual periods')
+                if selected.snapshot_id is None:
+                    skipped.append(dict(
+                        day=day.isoformat(), stage="target_snapshot",
+                        reason="No eligible target JWCD snapshot",
+                        rejected_snapshots=selected.rejected,
+                    ))
+                    continue
                 common=dict(target_day=day,target_snapshots=target['snapshots'],history=history)
                 predictions={}
                 for n in (30,60,90):
