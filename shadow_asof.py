@@ -17,6 +17,10 @@ class SnapshotSelection:
     rejected: tuple
 
 
+def cutoff_for_day(day):
+    return _utc(datetime.combine(day - timedelta(days=1), time(9, 50), WARSAW))
+
+
 def select_snapshot(day, snapshots):
     """Latest complete JWCD snapshot genuinely available by D-1 09:50 Warsaw.
 
@@ -25,7 +29,7 @@ def select_snapshot(day, snapshots):
     publication_ts (both aware), jwcd_mw (finite number). Missing completion or
     publication evidence rejects the candidate rather than inventing history.
     """
-    cutoff = _utc(datetime.combine(day-timedelta(days=1),time(9,50),WARSAW))
+    cutoff = cutoff_for_day(day)
     snapshots = list(snapshots)
     ids = Counter(str(s.get('id','')) for s in snapshots)
     eligible, rejected = [], []

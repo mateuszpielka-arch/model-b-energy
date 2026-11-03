@@ -77,6 +77,24 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(day['missing_legacy_hours'], [24])
         self.assertEqual(day['unexpected_legacy_hours'], [25])
 
+    def test_audit_cutoff_uses_offset_on_issue_date(self):
+        self.seed_dst()
+        for delivery, started, cutoff in [
+            (date(2026, 10, 25), datetime(2026, 10, 24, 7, 51, tzinfo=timezone.utc),
+             '2026-10-24T07:50:00+00:00'),
+            (date(2026, 11, 2), datetime(2026, 11, 1, 8, 51, tzinfo=timezone.utc),
+             '2026-11-01T08:50:00+00:00'),
+        ]:
+            with self.subTest(delivery=delivery):
+                self.conn.execute(
+                    'UPDATE raw.snapshots SET business_date=%s, retrieved_at_utc=%s',
+                    (delivery, started),
+                )
+                snapshot = audit_connection(self.conn)['snapshots'][0]
+                self.assertEqual(snapshot['cutoff_utc'], cutoff)
+                self.assertEqual(snapshot['availability_status'], 'RETRIEVAL_STARTED_AFTER_CUTOFF')
+                self.assertFalse(snapshot['model_ready'])
+
     def test_missing_tables_reported_without_creation(self):
         self.conn.execute('DROP SCHEMA raw CASCADE');self.conn.execute('DROP SCHEMA actual CASCADE')
         out=audit_connection(self.conn)

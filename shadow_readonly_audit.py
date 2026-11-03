@@ -4,6 +4,7 @@ No ambient DATABASE_URL. Never exports credentials or complete raw payloads.
 """
 from datetime import datetime,timezone
 from collections import Counter
+from shadow_asof import cutoff_for_day
 from shadow_scoring import expected_periods
 
 
@@ -30,12 +31,18 @@ def audit_connection(conn):
                     snapshots.append(dict(snapshot_id=sid,day=day.isoformat(),error='INVALID_PK5_ARRAY'));continue
                 labels=[str(r.get('period','')) for r in values if isinstance(r,dict)]
                 counts=Counter(labels)
+                cutoff = cutoff_for_day(day)
+                availability = (
+                    'RETRIEVAL_STARTED_AFTER_CUTOFF' if retrieved > cutoff
+                    else 'UNPROVEN_NO_VERIFIED_COMPLETION_TIMESTAMP'
+                )
                 snapshots.append(dict(snapshot_id=sid,day=day.isoformat(),expected_periods=len(expected_periods(day)),
                     rows=len(values),distinct_raw_labels=len(counts),repeated_raw_labels=sum(v-1 for v in counts.values()),
                     jwcd_nonnull=sum(isinstance(r,dict) and r.get('fcst_gen_unit_stor_prov') is not None for r in values),
                     publication_nonnull=sum(isinstance(r,dict) and bool(r.get('publication_ts')) for r in values),
                     retrieved_at_utc=retrieved.isoformat(),
-                    availability_status='UNPROVEN_NO_VERIFIED_COMPLETION_TIMESTAMP',
+                    cutoff_utc=cutoff.isoformat(),
+                    availability_status=availability,
                     model_ready=False))
         if present['actual.tge_fix1']:
             rows=conn.execute('''SELECT delivery_date,count(*),

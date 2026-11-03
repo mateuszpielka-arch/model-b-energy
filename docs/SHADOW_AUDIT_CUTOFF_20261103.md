@@ -1,0 +1,1 @@
+Audyt JWCD pokazuje granicę D-1 09:50 w UTC i rozpoznaje pobrania rozpoczęte po tej granicy. Wcześniejszy start nadal wymaga dowodu zakończenia pobrania i weryfikacji publikacji. Test PostgreSQL obejmuje granicę 07:50 UTC przed zmianą czasu i 08:50 UTC po zmianie. Lokalnie przeszło 106 testów. CI uruchamia 24 testy PostgreSQL. Baza zmian 1210b3f. PR #2 otwarty.
