@@ -141,3 +141,7 @@ grupy o tej samej nazwie. Lokalnie przeszło 113 testów, w tym porównanie
   z dwiema kolumnami. Test potwierdza odczyt 24 cen z oryginalnej sesji
   i odrzucenie jej kopii z powtórzonym nagłówkiem. Lokalnie przeszło
   114 testów, a 25 testów PostgreSQL pominięto.
+- Test ponownie uruchamia ekstraktor lxml na siedmiu zapisanych plikach HTML.
+  Potwierdza zgodność dat, kolejności okresów i wszystkich 168 cen z CSV
+  dla dostaw 27.10–02.11.2026. HTML i CSV pochodzą z tej samej publikacji TGE.
+  Lokalnie przeszło 115 testów, a 25 testów PostgreSQL pominięto.

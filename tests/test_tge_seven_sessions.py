@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import unittest
 from tge_parser_safe import parse_complete_standard_day
+from tools.capture_tge_validation import extract_reference
 
 FIX=Path(__file__).parent/'fixtures/tge_history_2026-10-27_2026-11-02'
 
@@ -37,3 +38,16 @@ class SevenHistoricalSessionsTests(unittest.TestCase):
     def test_wrong_delivery_date_is_rejected(self):
         e=self.manifest()['entries'][0];raw=(FIX/e['raw_file']).read_text()
         with self.assertRaises(ValueError):parse_complete_standard_day(raw,'2026-11-03')
+
+    def test_reference_extraction_reproduces_all_saved_csv_rows(self):
+        for entry in self.manifest()['entries']:
+            day = entry['delivery_date']
+            with self.subTest(day=day):
+                raw = (FIX / entry['raw_file']).read_bytes()
+                with (FIX / entry['reference_file']).open(encoding='utf-8', newline='') as reference:
+                    rows = list(csv.DictReader(reference))
+                self.assertEqual([row['delivery_date'] for row in rows], [day] * 24)
+                self.assertEqual(
+                    extract_reference(raw, day),
+                    [(row['hour'], Decimal(row['price_pln_mwh'])) for row in rows],
+                )
