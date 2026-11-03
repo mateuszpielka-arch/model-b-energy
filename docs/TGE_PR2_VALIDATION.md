@@ -182,3 +182,12 @@ potwierdzają oba przypadki. Lokalnie przeszło 119 testów, 25 pominięto.
   historyczne oznaczone jako dostępne przed emisją lub w chwili emisji
   dla własnej doby dostawy. Test OLS sprawdza obie granice. Lokalnie
   przeszły 124 testy, a 25 testów PostgreSQL pominięto.
+
+## Checkpoint 2026-11-04 — pokrycie historii do backtestu
+
+Audyt CSV liczy najdłuższą serię kolejnych dób spełniających jego kryteria
+oraz ile dób brakuje w tej serii do pierwszego porównania 30D, 60D i 90D.
+To pomiar pokrycia, a kwalifikację treningową nadal sprawdza walk-forward.
+Na zapisanych źródłach TGE dla 27.10–03.11 audyt znalazł 192 ceny w 8 dobach
+i zero dni z potwierdzonymi danymi JWCD. Test regresji potwierdza, że luka
+przerywa serię. Lokalnie przeszło 125 testów, 25 PostgreSQL pominięto.

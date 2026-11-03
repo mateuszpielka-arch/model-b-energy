@@ -63,8 +63,23 @@ def audit_rows(rows):
             valid_fix1_rows=good_prices,valid_jwcd_rows=good_jwcd,
             availability_proven_rows=available,verified_actual_rows=verified,
             model_ready=not issues,issues=sorted(issues)))
-    return dict(days=days,invalid_date_rows=invalid_dates,
-                model_ready_days=sum(d['model_ready'] for d in days))
+    longest_run = run = 0
+    previous = None
+    for entry in days:
+        if not entry['model_ready']:
+            continue
+        day = date.fromisoformat(entry['day'])
+        run = run + 1 if previous and day - previous == timedelta(days=1) else 1
+        longest_run = max(longest_run, run)
+        previous = day
+    return dict(days=days, invalid_date_rows=invalid_dates,
+                model_ready_days=sum(d['model_ready'] for d in days),
+                longest_model_ready_run=longest_run,
+                # Coverage only: the model runner checks training provenance again.
+                missing_days_for_first_comparison={
+                    f'{window}D': max(0, window + 1 - longest_run)
+                    for window in (30, 60, 90)
+                })
 
 
 def read_csv(path):

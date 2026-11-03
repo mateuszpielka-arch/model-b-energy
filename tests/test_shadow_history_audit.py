@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 import unittest
 from shadow_history_audit import audit_rows,read_csv
@@ -43,3 +43,19 @@ class HistoryAuditTests(unittest.TestCase):
         rows=self.rows();rows[0]['fix1']='NaN';rows.append({'delivery_date':'bad'})
         out=audit_rows(rows);self.assertEqual(out['invalid_date_rows'],1)
         self.assertEqual(out['days'][0]['valid_fix1_rows'],23)
+
+    def test_comparison_coverage_requires_consecutive_ready_days(self):
+        first = date(2026, 6, 1)
+        rows = []
+        for offset in (*range(30), 31):
+            day = first + timedelta(days=offset)
+            stamp = (day - timedelta(days=1)).isoformat() + 'T06:00:00Z'
+            for row in self.rows(day.isoformat()):
+                row.update(publication_ts=stamp, retrieved_at_utc=stamp,
+                           retrieval_completed_at=stamp)
+                rows.append(row)
+        out = audit_rows(reversed(rows))
+        self.assertEqual(out['model_ready_days'], 31)
+        self.assertEqual(out['longest_model_ready_run'], 30)
+        self.assertEqual(out['missing_days_for_first_comparison'],
+                         {'30D': 1, '60D': 31, '90D': 61})
