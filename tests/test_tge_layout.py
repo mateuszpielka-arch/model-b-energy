@@ -49,3 +49,9 @@ class LayoutTests(unittest.TestCase):
         html = self.html[:start] + '<td>2492,98' + self.html[volume_end:]
         with self.assertRaisesRegex(ValueError, 'row width does not match header'):
             parse_verified_layout(html, '2026-11-02')
+
+    def test_duplicate_fixing_i_group_rejected(self):
+        html = self.html.replace('>Notowania ciągłe</th>', '>Fixing I</th>', 1)
+        self.assertNotEqual(html, self.html)
+        with self.assertRaisesRegex(ValueError, 'Fixing I columns changed'):
+            parse_verified_layout(html, '2026-11-02')

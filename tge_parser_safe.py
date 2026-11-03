@@ -131,6 +131,7 @@ def _validated_rdn_rows(html: str):
         raise ValueError("Expected two RDN header rows")
     groups, columns = table.header_rows
     if (groups[:4] != ["", "", "Fixing I", "Fixing I"] or
+        groups.count("Fixing I") != 2 or
         columns[:4] != ["Data dostawy", "Typ instrumentu", "Kurs [PLN/MWh]", "Wolumen [MW]"] or
         len(groups) != len(columns)):
         raise ValueError("RDN Fixing I columns changed; admission blocked")

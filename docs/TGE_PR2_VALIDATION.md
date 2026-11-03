@@ -130,3 +130,10 @@ Parser SHADOW porównuje liczbę komórek każdego wiersza godzinowego z nagłó
 Test na zmodyfikowanym HTML rzeczywistej sesji odtwarza brak komórki ceny oraz
 liczbowy wolumen w jej miejscu. Lokalnie przeszło 112 testów, w tym porównanie
 168 cen z siedmiu zapisanych sesji. Pominięto 25 testów PostgreSQL.
+
+## Checkpoint 2026-11-03 — jednoznaczny nagłówek Fixing I
+
+Parser SHADOW wymaga dokładnie dwóch kolumn pod nagłówkiem Fixing I.
+Test na zmodyfikowanej sesji dostawy 02.11.2026 potwierdza odrzucenie drugiej
+grupy o tej samej nazwie. Lokalnie przeszło 113 testów, w tym porównanie
+168 cen z siedmiu zapisanych sesji. Pominięto 25 testów PostgreSQL.
