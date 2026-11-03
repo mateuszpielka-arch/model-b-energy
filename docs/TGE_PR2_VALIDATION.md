@@ -178,3 +178,7 @@ potwierdzają oba przypadki. Lokalnie przeszło 119 testów, 25 pominięto.
   w chwili symulowanej emisji D-1 09:50. Test potwierdza, że taka doba
   nie trafia do rankingu. Lokalnie przeszły 123 testy, a 25 testów
   PostgreSQL pominięto.
+- Wspólny dobór danych treningowych OLS i dni podobnych odrzuca ceny
+  historyczne oznaczone jako dostępne przed emisją lub w chwili emisji
+  dla własnej doby dostawy. Test OLS sprawdza obie granice. Lokalnie
+  przeszły 124 testy, a 25 testów PostgreSQL pominięto.

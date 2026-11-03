@@ -22,10 +22,13 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
     for day,p in sorted(packets.items()):
         if p.get('actual_verified') is not True or not p.get('actual_version'):
             raise ValueError('Historical actual provenance not verified')
-        if _utc(p.get('actual_available_at'))>cutoff:
+        actual_available = _utc(p.get('actual_available_at'))
+        if actual_available > cutoff:
             raise ValueError('Historical actual unavailable at target cutoff')
         selection=select_snapshot(day,p['snapshots'])
         if selection.snapshot_id is None: raise ValueError('Historical JWCD availability not proven')
+        if actual_available <= selection.cutoff_utc:
+            raise ValueError('Historical actual available at or before its simulated issuance')
         actual=_prices(p['actual'])
         if set(actual)!=set(expected_periods(day)):
             raise ValueError('Historical actual incomplete or invalid periods')
