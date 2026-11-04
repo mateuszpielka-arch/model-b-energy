@@ -246,3 +246,7 @@ Lokalnie przeszło 135 testów, a 25 testów PostgreSQL pominięto.
 Audyt rozróżnia komplet okresów UTC od błędnego przypisania godzin.
 Test potwierdza osobną diagnozę bez dopuszczenia błędnych par.
 Lokalnie przeszło 135 testów, a 25 testów PostgreSQL pominięto.
+
+Audyt CSV podaje listy brakujących, zduplikowanych i nadmiarowych okresów
+UTC. Test sprawdza oba dni zmiany czasu, bez wnioskowania o mapowaniu
+etykiet TGE. Lokalnie przeszło 136 testów, 25 PostgreSQL pominięto.

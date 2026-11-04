@@ -204,3 +204,16 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertTrue(day['complete_periods'])
         self.assertIn('HOUR_UTC_MISMATCH', day['issues'])
         self.assertNotIn('INCOMPLETE_OR_DUPLICATE_PERIODS', day['issues'])
+
+    def test_dst_coverage_lists_missing_duplicate_and_unexpected_utc_keys(self):
+        for day in ('2026-03-29', '2026-10-25'):
+            with self.subTest(day=day):
+                rows = self.rows(day)
+                first, second = (row['period_start_utc'] for row in rows[:2])
+                rows[0]['period_start_utc'] = rows[2]['period_start_utc']
+                rows[1]['period_start_utc'] = '2026-01-01T00:00:00Z'
+                result, = audit_rows(rows)['days']
+                self.assertFalse(result['complete_periods'])
+                self.assertEqual(result['missing_periods_utc'], [first, second])
+                self.assertEqual(result['duplicate_periods_utc'], [rows[2]['period_start_utc']])
+                self.assertEqual(result['unexpected_periods_utc'], ['2026-01-01T00:00:00+00:00'])

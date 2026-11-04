@@ -4,7 +4,7 @@ Supports legacy H01..H24 ONLY on standard days; DST needs explicit UTC periods.
 A structurally complete price day alone never means model-ready history.
 """
 import csv
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from shadow_asof import cutoff_for_day
@@ -88,7 +88,11 @@ def audit_rows(rows):
             else:
                 available += 1
                 retrieval_windows.add((start, end))
-        complete=len(records)==len(periods) and len(seen)==len(set(seen)) and set(seen)==expected
+        period_counts = Counter(seen)
+        missing = expected - period_counts.keys()
+        unexpected = period_counts.keys() - expected
+        duplicates = [p for p, count in period_counts.items() if count > 1]
+        complete = len(records) == len(periods) and not (missing or unexpected or duplicates)
         if not complete: issues.add('INCOMPLETE_OR_DUPLICATE_PERIODS')
         if good_prices!=len(periods): issues.add('MISSING_OR_INVALID_FIX1')
         if good_jwcd!=len(periods): issues.add('MISSING_OR_INVALID_JWCD')
@@ -108,6 +112,9 @@ def audit_rows(rows):
             issues.add("MIXED_JWCD_SNAPSHOT_IDS")
         days.append(dict(day=d.isoformat(),expected_periods=len(periods),rows=len(records),
             unique_periods=len(set(seen)),complete_periods=complete,
+            missing_periods_utc=[p.isoformat() for p in sorted(missing)],
+            unexpected_periods_utc=[p.isoformat() for p in sorted(unexpected)],
+            duplicate_periods_utc=[p.isoformat() for p in sorted(duplicates)],
             complete_pairs=(complete and "HOUR_UTC_MISMATCH" not in issues
                             and good_prices == good_jwcd == len(periods)),
             valid_fix1_rows=good_prices,valid_jwcd_rows=good_jwcd,
