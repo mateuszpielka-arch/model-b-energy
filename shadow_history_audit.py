@@ -167,7 +167,12 @@ def read_csv(path):
                             if count > 1)
         if duplicates:
             raise ValueError(f'{path}: duplicate CSV columns: {", ".join(duplicates)}')
-        return list(reader)
+        rows = []
+        for record in reader:
+            if None in record or any(value is None for value in record.values()):
+                raise ValueError(f'{path}: CSV record at line {reader.line_num} has wrong field count')
+            rows.append(record)
+        return rows
 
 
 if __name__=='__main__':

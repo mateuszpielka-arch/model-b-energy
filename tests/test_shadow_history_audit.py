@@ -228,3 +228,14 @@ class HistoryAuditTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, 'duplicate CSV columns: jwcd_mw'):
                 read_csv(path)
+
+    def test_csv_rejects_extra_or_missing_fields_but_preserves_empty_cells(self):
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / 'history.csv'
+            for record in ('2026-11-03,100,12000,extra', '2026-11-03,100'):
+                with self.subTest(record=record):
+                    path.write_text('delivery_date,fix1,jwcd_mw\n' + record + '\n', encoding='utf-8')
+                    with self.assertRaisesRegex(ValueError, 'wrong field count'):
+                        read_csv(path)
+            path.write_text('delivery_date,fix1,jwcd_mw\n2026-11-03,100,\n', encoding='utf-8')
+            self.assertEqual(read_csv(path)[0]['jwcd_mw'], '')

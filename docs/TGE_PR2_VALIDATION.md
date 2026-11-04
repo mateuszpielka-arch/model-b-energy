@@ -254,3 +254,7 @@ etykiet TGE. Lokalnie przeszło 136 testów, 25 PostgreSQL pominięto.
 Audyt odrzuca zduplikowane nagłówki CSV przed odczytem wierszy.
 Test potwierdza, że druga kolumna JWCD nie nadpisuje pierwszej.
 Lokalnie przeszło 137 testów, 25 PostgreSQL pominięto.
+
+Audyt CSV odrzuca wiersze z nadmiarem lub niedoborem pól względem
+nagłówka. Jawnie puste komórki nadal podlegają audytowi jakości.
+Lokalnie przeszło 138 testów, 25 PostgreSQL pominięto.
