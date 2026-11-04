@@ -96,5 +96,8 @@ def run_walkforward(*,history,target_days,evaluated_at):
                     wape_pct=100*t['ae']/t['denom'] if t['denom'] else None))
             ranking.sort(key=lambda r:(r['mae'],r['model']))
             for row in ranking:row['rank']=1+sum(other['mae']<row['mae'] for other in ranking)
-    return dict(simulation=True,evaluated_at=evaluated.isoformat(),requested_days=len(set(target_days)),
+    skipped_days_by_stage = {}
+    for entry in skipped:
+        skipped_days_by_stage.setdefault(entry['stage'], []).append(entry['day'])
+    return dict(skipped_days_by_stage=skipped_days_by_stage,simulation=True,evaluated_at=evaluated.isoformat(),requested_days=len(set(target_days)),
         common_days=len(accepted),common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,ranking=ranking)

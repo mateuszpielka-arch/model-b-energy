@@ -282,3 +282,7 @@ Lokalnie przeszły 142 testy, a 25 testów PostgreSQL pominięto.
 Raport walk-forward podaje liczbę okresów w każdej przyjętej dobie
 i we wspólnej próbie. Test potwierdza 49 okresów dla dób 24 i 25 h.
 Lokalnie przeszły 142 testy, a 25 testów PostgreSQL pominięto.
+
+Raport walk-forward grupuje pominięte doby według etapu odrzucenia.
+Test rozróżnia brak snapshotu JWCD i brak danych dnia docelowego.
+Lokalnie przeszły 143 testy, a 25 testów PostgreSQL pominięto.

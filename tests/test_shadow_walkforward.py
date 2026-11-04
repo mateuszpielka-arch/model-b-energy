@@ -190,3 +190,18 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual([(row['model'], row['rank']) for row in ranking[:3]], [
             ('ols30', 1), ('ols60', 1), ('ols90', 3),
         ])
+
+    def test_skipped_days_are_grouped_by_stage(self):
+        args = self.args()
+        target = args['history'][-1]
+        target['snapshots'] = []
+        missing_day = target['day'] + timedelta(days=1)
+        args['target_days'].append(missing_day)
+
+        result = run_walkforward(**args)
+
+        self.assertEqual(result['common_days'], 1)
+        self.assertEqual(result['skipped_days_by_stage'], {
+            'target_snapshot': [target['day'].isoformat()],
+            'actual': [missing_day.isoformat()],
+        })
