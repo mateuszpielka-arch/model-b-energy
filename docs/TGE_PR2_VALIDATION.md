@@ -274,3 +274,7 @@ Lokalnie przeszło 140 testów, 25 PostgreSQL pominięto.
 Test rankingu dla doby z samymi cenami zerowymi potwierdza, że wszystkie
 modele zachowują MAE i bias, a MAPE i WAPE pozostają niezdefiniowane.
 Lokalnie przeszło 141 testów, 25 PostgreSQL pominięto.
+
+Test rankingu potwierdza, że identyczne MAE daje wspólną pozycję
+i że po remisie na pierwszym miejscu następny model zajmuje trzecie.
+Lokalnie przeszły 142 testy, a 25 testów PostgreSQL pominięto.

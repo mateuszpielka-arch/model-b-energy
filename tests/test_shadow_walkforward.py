@@ -2,6 +2,7 @@ from copy import deepcopy
 from datetime import date,datetime,timedelta,timezone
 from decimal import Decimal
 import unittest
+from unittest.mock import patch
 import test_shadow_ols as fixtures
 from shadow_walkforward import run_walkforward,MODELS
 
@@ -166,3 +167,24 @@ class WalkforwardTests(unittest.TestCase):
                 self.assertIsNone(row['wape_pct'])
                 self.assertTrue(row['mae'].is_finite())
                 self.assertTrue(row['bias'].is_finite())
+
+    def test_equal_mae_shares_rank_and_next_rank_skips_tied_places(self):
+        args = self.args()
+        target = args['history'][-1]
+        args['target_days'] = [target['day']]
+
+        def forecast(error):
+            return dict(model_version='test', prices=[
+                (period, price + error) for period, price in target['actual']
+            ])
+
+        with patch('shadow_walkforward.predict_ols', side_effect=[
+            forecast(1), forecast(-1), forecast(2),
+        ]), patch('shadow_walkforward.predict_similar', return_value=forecast(3)), patch(
+            'shadow_walkforward.median_consensus', return_value=forecast(4),
+        ):
+            ranking = run_walkforward(**args)['ranking']
+
+        self.assertEqual([(row['model'], row['rank']) for row in ranking[:3]], [
+            ('ols30', 1), ('ols60', 1), ('ols90', 3),
+        ])
