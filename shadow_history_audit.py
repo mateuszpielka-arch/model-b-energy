@@ -31,6 +31,7 @@ def audit_rows(rows):
         periods=expected_periods(d); expected=set(periods); seen=[]; issues=set()
         good_prices=good_jwcd=available=verified=0
         actual_after_issuance = 0
+        actual_versions = set()
         missing_timing = invalid_timing = late_timing = 0
         cutoff=_utc(datetime.combine(d-timedelta(days=1),time(9,50),WARSAW))
         for r in records:
@@ -49,6 +50,7 @@ def audit_rows(rows):
             if _number(r.get('fix1',r.get('price_pln_mwh'))): good_prices+=1
             if _number(r.get('jwcd_mw')): good_jwcd+=1
             if r.get('actual_verified') in (True,'true','True'): verified+=1
+            actual_versions.add(str(r.get('actual_version') or '').strip())
             try:
                 if _stamp(r.get('actual_available_at')) > cutoff:
                     actual_after_issuance += 1
@@ -82,6 +84,10 @@ def audit_rows(rows):
         if verified!=len(periods): issues.add('ACTUAL_NOT_VERIFIED')
         if actual_after_issuance != len(periods):
             issues.add('ACTUAL_AVAILABILITY_NOT_PROVEN')
+        if '' in actual_versions:
+            issues.add('MISSING_ACTUAL_VERSION')
+        if len(actual_versions - {''}) > 1:
+            issues.add('CONFLICTING_ACTUAL_VERSIONS')
         days.append(dict(day=d.isoformat(),expected_periods=len(periods),rows=len(records),
             unique_periods=len(set(seen)),complete_periods=complete,
             valid_fix1_rows=good_prices,valid_jwcd_rows=good_jwcd,

@@ -205,3 +205,7 @@ Audyt CSV wymaga dowodu dostępności cen Fix1 po symulowanej emisji.
 Pole `actual_available_at` musi zawierać znacznik czasu ze strefą.
 Test potwierdza blokadę braku pola i znacznika dokładnie o 09:50.
 Lokalnie przeszło 128 testów, a 25 testów PostgreSQL pominięto.
+
+Audyt CSV wymaga jednej wspólnej wersji cen Fix1 dla wszystkich godzin doby.
+Test wykrywa brak wersji i mieszanie wersji. Lokalnie przeszło 129 testów,
+a 25 testów PostgreSQL pominięto.
