@@ -209,3 +209,8 @@ Lokalnie przeszło 128 testów, a 25 testów PostgreSQL pominięto.
 Audyt CSV wymaga jednej wspólnej wersji cen Fix1 dla wszystkich godzin doby.
 Test wykrywa brak wersji i mieszanie wersji. Lokalnie przeszło 129 testów,
 a 25 testów PostgreSQL pominięto.
+
+Audyt CSV wskazuje pierwszą możliwą dobę porównania dla 30D, 60D i 90D.
+Wymaga dostępności wszystkich cen treningowych do emisji dnia docelowego.
+Test potwierdza, że spóźnienie ceny o sekundę eliminuje kandydata pomimo
+31 kolejnych kompletnych dób. Lokalnie przeszło 130 testów, 25 pominięto.

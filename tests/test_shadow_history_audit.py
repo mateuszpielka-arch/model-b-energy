@@ -121,3 +121,21 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(day['issues'], [
             'CONFLICTING_ACTUAL_VERSIONS', 'MISSING_ACTUAL_VERSION',
         ])
+
+    def test_first_candidate_requires_training_prices_available_by_target_cutoff(self):
+        first = date(2026, 6, 1)
+        rows = []
+        for offset in range(31):
+            day = first + timedelta(days=offset)
+            prior = (day - timedelta(days=1)).isoformat()
+            for row in self.rows(day.isoformat()):
+                stamp = prior + 'T06:00:00Z'
+                row.update(publication_ts=stamp, retrieved_at_utc=stamp,
+                           retrieval_completed_at=stamp,
+                           actual_available_at=prior + 'T11:00:00Z')
+                rows.append(row)
+        self.assertEqual(audit_rows(rows)['first_comparison_candidate']['30D'], '2026-07-01')
+        rows[0]['actual_available_at'] = '2026-06-30T07:50:01Z'
+        result = audit_rows(rows)
+        self.assertEqual(result['longest_model_ready_run'], 31)
+        self.assertIsNone(result['first_comparison_candidate']['30D'])
