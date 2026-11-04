@@ -1,6 +1,7 @@
 from copy import deepcopy
 from datetime import date, timedelta
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 from shadow_history_audit import audit_rows,read_csv
 from shadow_scoring import expected_periods
@@ -217,3 +218,13 @@ class HistoryAuditTests(unittest.TestCase):
                 self.assertEqual(result['missing_periods_utc'], [first, second])
                 self.assertEqual(result['duplicate_periods_utc'], [rows[2]['period_start_utc']])
                 self.assertEqual(result['unexpected_periods_utc'], ['2026-01-01T00:00:00+00:00'])
+
+    def test_duplicate_csv_column_is_rejected(self):
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / 'history.csv'
+            path.write_text(
+                '# metadata\ndelivery_date,jwcd_mw,jwcd_mw\n2026-11-03,12000,13000\n',
+                encoding='utf-8',
+            )
+            with self.assertRaisesRegex(ValueError, 'duplicate CSV columns: jwcd_mw'):
+                read_csv(path)

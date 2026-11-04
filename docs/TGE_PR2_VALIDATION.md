@@ -250,3 +250,7 @@ Lokalnie przeszło 135 testów, a 25 testów PostgreSQL pominięto.
 Audyt CSV podaje listy brakujących, zduplikowanych i nadmiarowych okresów
 UTC. Test sprawdza oba dni zmiany czasu, bez wnioskowania o mapowaniu
 etykiet TGE. Lokalnie przeszło 136 testów, 25 PostgreSQL pominięto.
+
+Audyt odrzuca zduplikowane nagłówki CSV przed odczytem wierszy.
+Test potwierdza, że druga kolumna JWCD nie nadpisuje pierwszej.
+Lokalnie przeszło 137 testów, 25 PostgreSQL pominięto.

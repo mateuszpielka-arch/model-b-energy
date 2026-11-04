@@ -162,7 +162,12 @@ def audit_rows(rows):
 
 def read_csv(path):
     with open(path,encoding='utf-8-sig',newline='') as f:
-        return list(csv.DictReader(line for line in f if not line.startswith('#')))
+        reader = csv.DictReader(line for line in f if not line.startswith('#'))
+        duplicates = sorted(name for name, count in Counter(reader.fieldnames or ()).items()
+                            if count > 1)
+        if duplicates:
+            raise ValueError(f'{path}: duplicate CSV columns: {", ".join(duplicates)}')
+        return list(reader)
 
 
 if __name__=='__main__':
