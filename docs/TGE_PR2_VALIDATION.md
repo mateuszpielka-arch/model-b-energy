@@ -286,3 +286,7 @@ Lokalnie przeszły 142 testy, a 25 testów PostgreSQL pominięto.
 Raport walk-forward grupuje pominięte doby według etapu odrzucenia.
 Test rozróżnia brak snapshotu JWCD i brak danych dnia docelowego.
 Lokalnie przeszły 143 testy, a 25 testów PostgreSQL pominięto.
+
+Brak pola snapshotów JWCD skutkuje pominięciem odpowiedniej doby
+w walk-forward. Testy obejmują brak danych docelowych i treningowych.
+Lokalnie przeszły 144 testy, 25 testów PostgreSQL pominięto.

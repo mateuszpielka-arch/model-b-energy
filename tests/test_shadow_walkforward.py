@@ -194,7 +194,7 @@ class WalkforwardTests(unittest.TestCase):
     def test_skipped_days_are_grouped_by_stage(self):
         args = self.args()
         target = args['history'][-1]
-        target['snapshots'] = []
+        del target['snapshots']
         missing_day = target['day'] + timedelta(days=1)
         args['target_days'].append(missing_day)
 
@@ -205,3 +205,15 @@ class WalkforwardTests(unittest.TestCase):
             'target_snapshot': [target['day'].isoformat()],
             'actual': [missing_day.isoformat()],
         })
+
+    def test_missing_historical_snapshots_skip_affected_target(self):
+        args = self.args()
+        args['target_days'] = args['target_days'][-1:]
+        del args['history'][-2]['snapshots']
+
+        result = run_walkforward(**args)
+
+        self.assertEqual(result['ranking'], [])
+        skipped, = result['skipped']
+        self.assertEqual(skipped['stage'], 'ols30')
+        self.assertEqual(skipped['reason'], 'Historical JWCD availability not proven')

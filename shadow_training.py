@@ -25,7 +25,7 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
         actual_available = _utc(p.get('actual_available_at'))
         if actual_available > cutoff:
             raise ValueError('Historical actual unavailable at target cutoff')
-        selection=select_snapshot(day,p['snapshots'])
+        selection=select_snapshot(day, p.get('snapshots') or ())
         if selection.snapshot_id is None: raise ValueError('Historical JWCD availability not proven')
         if actual_available <= selection.cutoff_utc:
             raise ValueError('Historical actual available at or before its simulated issuance')
