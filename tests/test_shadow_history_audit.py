@@ -180,3 +180,12 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(audit_rows(rows)['complete_pair_days'], 1)
         rows[0]['jwcd_mw'] = ''
         self.assertEqual(audit_rows(rows)['complete_pair_days'], 0)
+
+    def test_archive_price_column_counts_pairs_without_proving_availability(self):
+        rows = self.rows()
+        for row in rows:
+            row['fix1_pln_mwh'] = row.pop('fix1')
+            del row['publication_ts']
+        report = audit_rows(rows)
+        self.assertEqual(report['complete_pair_days'], 1)
+        self.assertEqual(report['model_ready_days'], 0)

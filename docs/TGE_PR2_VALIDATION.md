@@ -235,3 +235,7 @@ backtestu. Po odczycie 51 705 wierszy arkusza KSEdo10 potwierdził 2 122
 kompletne doby i zero kandydatów do porównania 30D/60D/90D ze względu
 na brak dowodów dostępności. Arkusz i wartości pozostają poza repozytorium.
 Lokalnie przeszły 133 testy, a 25 testów PostgreSQL pominięto.
+
+Audyt przyjmuje kolumnę `fix1_pln_mwh` z prywatnego eksportu. Na tym
+CSV potwierdził 2 122 kompletne doby oraz zero dób z udokumentowaną
+dostępnością. Lokalnie przeszły 134 testy, 25 PostgreSQL pominięto.

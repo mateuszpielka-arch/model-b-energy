@@ -51,7 +51,7 @@ def audit_rows(rows):
                     raise ValueError('DST_REQUIRES_UTC_PERIODS')
                 seen.append(p)
             except (ValueError,TypeError,IndexError): issues.add('INVALID_OR_AMBIGUOUS_PERIOD')
-            if _number(r.get('fix1',r.get('price_pln_mwh'))): good_prices+=1
+            if _number(r.get('fix1', r.get('price_pln_mwh', r.get('fix1_pln_mwh')))): good_prices+=1
             if _number(r.get('jwcd_mw')): good_jwcd+=1
             if r.get('actual_verified') in (True,'true','True'): verified+=1
             actual_versions.add(str(r.get('actual_version') or '').strip())
