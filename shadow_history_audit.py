@@ -42,6 +42,11 @@ def audit_rows(rows):
             try:
                 if r.get('period_start_utc'):
                     p=_stamp(r['period_start_utc'])
+                    if len(periods) == 24 and r.get("hour") not in (None, ""):
+                        label = str(r["hour"]).removeprefix("H")
+                        hour = int(label)
+                        if not 1 <= hour <= 24 or p != periods[hour - 1]:
+                            issues.add("HOUR_UTC_MISMATCH")
                 elif len(periods)==24:
                     label=str(r.get('hour','')).removeprefix('H')
                     h=int(label)
@@ -83,7 +88,7 @@ def audit_rows(rows):
             else:
                 available += 1
                 retrieval_windows.add((start, end))
-        complete=len(records)==len(periods) and len(seen)==len(set(seen)) and set(seen)==expected
+        complete="HOUR_UTC_MISMATCH" not in issues and len(records)==len(periods) and len(seen)==len(set(seen)) and set(seen)==expected
         if not complete: issues.add('INCOMPLETE_OR_DUPLICATE_PERIODS')
         if good_prices!=len(periods): issues.add('MISSING_OR_INVALID_FIX1')
         if good_jwcd!=len(periods): issues.add('MISSING_OR_INVALID_JWCD')

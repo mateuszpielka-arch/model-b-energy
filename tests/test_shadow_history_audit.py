@@ -189,3 +189,16 @@ class HistoryAuditTests(unittest.TestCase):
         report = audit_rows(rows)
         self.assertEqual(report['complete_pair_days'], 1)
         self.assertEqual(report['model_ready_days'], 0)
+
+    def test_swapped_utc_periods_block_complete_pairs_when_labels_are_present(self):
+        rows = self.rows()
+        for hour, row in enumerate(rows, 1):
+            row['hour'] = f'H{hour:02d}'
+        self.assertEqual(audit_rows(rows)['complete_pair_days'], 1)
+        rows[0]['period_start_utc'], rows[1]['period_start_utc'] = (
+            rows[1]['period_start_utc'], rows[0]['period_start_utc']
+        )
+        day, = audit_rows(rows)['days']
+        self.assertEqual(day['unique_periods'], 24)
+        self.assertFalse(day['complete_pairs'])
+        self.assertIn('HOUR_UTC_MISMATCH', day['issues'])

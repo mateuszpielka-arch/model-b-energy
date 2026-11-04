@@ -239,3 +239,7 @@ Lokalnie przeszły 133 testy, a 25 testów PostgreSQL pominięto.
 Audyt przyjmuje kolumnę `fix1_pln_mwh` z prywatnego eksportu. Na tym
 CSV potwierdził 2 122 kompletne doby oraz zero dób z udokumentowaną
 dostępnością. Lokalnie przeszły 134 testy, 25 PostgreSQL pominięto.
+
+Audyt CSV porównuje etykietę godziny z okresem UTC dla dób 24-godzinnych.
+Test wykrywa zamianę okresów pomimo kompletu 24 odrębnych kluczy.
+Lokalnie przeszło 135 testów, a 25 testów PostgreSQL pominięto.
