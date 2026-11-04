@@ -278,3 +278,7 @@ Lokalnie przeszło 141 testów, 25 PostgreSQL pominięto.
 Test rankingu potwierdza, że identyczne MAE daje wspólną pozycję
 i że po remisie na pierwszym miejscu następny model zajmuje trzecie.
 Lokalnie przeszły 142 testy, a 25 testów PostgreSQL pominięto.
+
+Raport walk-forward podaje liczbę okresów w każdej przyjętej dobie
+i we wspólnej próbie. Test potwierdza 49 okresów dla dób 24 i 25 h.
+Lokalnie przeszły 142 testy, a 25 testów PostgreSQL pominięto.

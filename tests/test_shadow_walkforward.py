@@ -61,6 +61,8 @@ class WalkforwardTests(unittest.TestCase):
             evaluated_at=datetime(2026,11,5,tzinfo=timezone.utc))
         self.assertEqual(out['common_days'],2)
         self.assertTrue(all(r['periods']==49 for r in out['ranking']))
+        self.assertEqual(out['common_periods'], 49)
+        self.assertEqual([day['periods'] for day in out['accepted']], [24, 25])
         total=Decimal(0);denom=Decimal(0)
         packets={p['day'].isoformat():p for p in history}
         for d in out['accepted']:
