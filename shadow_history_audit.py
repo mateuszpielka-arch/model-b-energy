@@ -30,6 +30,7 @@ def audit_rows(rows):
     for d,records in sorted(groups.items()):
         periods=expected_periods(d); expected=set(periods); seen=[]; issues=set()
         good_prices=good_jwcd=available=verified=0
+        actual_after_issuance = 0
         missing_timing = invalid_timing = late_timing = 0
         cutoff=_utc(datetime.combine(d-timedelta(days=1),time(9,50),WARSAW))
         for r in records:
@@ -48,6 +49,11 @@ def audit_rows(rows):
             if _number(r.get('fix1',r.get('price_pln_mwh'))): good_prices+=1
             if _number(r.get('jwcd_mw')): good_jwcd+=1
             if r.get('actual_verified') in (True,'true','True'): verified+=1
+            try:
+                if _stamp(r.get('actual_available_at')) > cutoff:
+                    actual_after_issuance += 1
+            except (ValueError, TypeError):
+                pass
             canonical_start = r.get('retrieved_at')
             legacy_start = r.get('retrieved_at_utc')
             stamps = (r.get('publication_ts'), canonical_start or legacy_start,
@@ -74,9 +80,12 @@ def audit_rows(rows):
         if good_jwcd!=len(periods): issues.add('MISSING_OR_INVALID_JWCD')
         if available!=len(periods): issues.add('AVAILABILITY_NOT_PROVEN')
         if verified!=len(periods): issues.add('ACTUAL_NOT_VERIFIED')
+        if actual_after_issuance != len(periods):
+            issues.add('ACTUAL_AVAILABILITY_NOT_PROVEN')
         days.append(dict(day=d.isoformat(),expected_periods=len(periods),rows=len(records),
             unique_periods=len(set(seen)),complete_periods=complete,
             valid_fix1_rows=good_prices,valid_jwcd_rows=good_jwcd,
+            actual_after_issuance_rows=actual_after_issuance,
             availability_proven_rows=available,verified_actual_rows=verified,
             availability_missing_timestamp_rows=missing_timing,
             availability_invalid_timestamp_rows=invalid_timing,

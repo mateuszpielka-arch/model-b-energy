@@ -200,3 +200,8 @@ i dopuszczenie pobrania zakończonego dokładnie o 09:50. Lokalnie przeszło
 Audyt CSV obsługuje również pole `retrieved_at`. Jeżeli oba warianty
 nazwy są obecne, muszą wskazywać ten sam moment. Test obejmuje równoważne
 offsety i konflikt. Lokalnie przeszło 127 testów, 25 PostgreSQL pominięto.
+
+Audyt CSV wymaga dowodu dostępności cen Fix1 po symulowanej emisji.
+Pole `actual_available_at` musi zawierać znacznik czasu ze strefą.
+Test potwierdza blokadę braku pola i znacznika dokładnie o 09:50.
+Lokalnie przeszło 128 testów, a 25 testów PostgreSQL pominięto.

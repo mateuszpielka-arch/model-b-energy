@@ -8,7 +8,7 @@ from shadow_scoring import expected_periods
 class HistoryAuditTests(unittest.TestCase):
     def rows(self,day='2026-11-03'):
         return [dict(delivery_date=day,period_start_utc=p.isoformat(),fix1='100',jwcd_mw='10000',
-            actual_verified='true',publication_ts=day+'T00:00:00Z',retrieved_at_utc=day+'T00:00:00Z',
+            actual_verified='true',actual_available_at=day+'T00:00:00Z',publication_ts=day+'T00:00:00Z',retrieved_at_utc=day+'T00:00:00Z',
             retrieval_completed_at=day+'T00:00:00Z') for p in expected_periods(date.fromisoformat(day))]
 
     def test_real_reference_days_are_not_training_ready(self):
@@ -89,4 +89,19 @@ class HistoryAuditTests(unittest.TestCase):
         rows[0]['retrieved_at_utc'] = '2026-11-02T08:44:00Z'
         day, = audit_rows(rows)['days']
         self.assertEqual(day['availability_invalid_timestamp_rows'], 1)
+        self.assertFalse(day['model_ready'])
+
+
+    def test_fix1_requires_timestamp_strictly_after_issuance(self):
+        rows = self.rows()
+        for row in rows:
+            row.update(publication_ts='2026-11-02T08:00:00Z',
+                       retrieved_at_utc='2026-11-02T08:45:00Z',
+                       retrieval_completed_at='2026-11-02T08:50:00Z')
+        self.assertTrue(audit_rows(rows)['days'][0]['model_ready'])
+        rows[0]['actual_available_at'] = '2026-11-02T09:50:00+01:00'
+        del rows[1]['actual_available_at']
+        day, = audit_rows(rows)['days']
+        self.assertEqual(day['actual_after_issuance_rows'], 22)
+        self.assertIn('ACTUAL_AVAILABILITY_NOT_PROVEN', day['issues'])
         self.assertFalse(day['model_ready'])
