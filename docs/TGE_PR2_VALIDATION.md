@@ -227,3 +227,11 @@ Zgodne czasy same nie dowodzą tożsamości snapshotu. Lokalnie przeszło
 Audyt CSV wymaga jednej niepustej wartości `jwcd_snapshot_id` w całej dobie.
 Test wykrywa brak i mieszanie identyfikatorów mimo zgodnych czasów.
 Lokalnie przeszły 132 testy, a 25 testów PostgreSQL pominięto.
+
+## Checkpoint 2026-11-04 — audyt przekazanej historii
+
+Audyt rozdziela doby z kompletem par JWCD/Fix1 od dób gotowych do
+backtestu. Po odczycie 51 705 wierszy arkusza KSEdo10 potwierdził 2 122
+kompletne doby i zero kandydatów do porównania 30D/60D/90D ze względu
+na brak dowodów dostępności. Arkusz i wartości pozostają poza repozytorium.
+Lokalnie przeszły 133 testy, a 25 testów PostgreSQL pominięto.

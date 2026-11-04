@@ -171,3 +171,12 @@ class HistoryAuditTests(unittest.TestCase):
             'MISSING_JWCD_SNAPSHOT_ID', 'MIXED_JWCD_SNAPSHOT_IDS',
         ])
         self.assertFalse(day['model_ready'])
+
+    def test_complete_pairs_are_counted_separately_from_backtest_ready_days(self):
+        rows = self.rows()
+        day, = audit_rows(rows)['days']
+        self.assertTrue(day['complete_pairs'])
+        self.assertFalse(day['model_ready'])
+        self.assertEqual(audit_rows(rows)['complete_pair_days'], 1)
+        rows[0]['jwcd_mw'] = ''
+        self.assertEqual(audit_rows(rows)['complete_pair_days'], 0)

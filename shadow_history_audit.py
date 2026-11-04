@@ -103,6 +103,7 @@ def audit_rows(rows):
             issues.add("MIXED_JWCD_SNAPSHOT_IDS")
         days.append(dict(day=d.isoformat(),expected_periods=len(periods),rows=len(records),
             unique_periods=len(set(seen)),complete_periods=complete,
+            complete_pairs=complete and good_prices == good_jwcd == len(periods),
             valid_fix1_rows=good_prices,valid_jwcd_rows=good_jwcd,
             actual_after_issuance_rows=len(actual_times),
             availability_proven_rows=available,verified_actual_rows=verified,
@@ -134,6 +135,7 @@ def audit_rows(rows):
         for window, dates in comparison_candidates.items()
     }
     return dict(days=days, invalid_date_rows=invalid_dates,
+                complete_pair_days=sum(d['complete_pairs'] for d in days),
                 model_ready_days=sum(d['model_ready'] for d in days),
                 longest_model_ready_run=longest_run,
                 first_comparison_candidate=first_candidate,
