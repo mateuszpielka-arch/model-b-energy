@@ -125,7 +125,7 @@ class HistoryAuditTests(unittest.TestCase):
     def test_first_candidate_requires_training_prices_available_by_target_cutoff(self):
         first = date(2026, 6, 1)
         rows = []
-        for offset in range(31):
+        for offset in range(32):
             day = first + timedelta(days=offset)
             prior = (day - timedelta(days=1)).isoformat()
             for row in self.rows(day.isoformat()):
@@ -134,8 +134,12 @@ class HistoryAuditTests(unittest.TestCase):
                            retrieval_completed_at=stamp,
                            actual_available_at=prior + 'T11:00:00Z')
                 rows.append(row)
-        self.assertEqual(audit_rows(rows)['first_comparison_candidate']['30D'], '2026-07-01')
+        result = audit_rows(rows)
+        self.assertEqual(result['first_comparison_candidate']['30D'], '2026-07-01')
+        self.assertEqual(result['comparison_candidates'],
+                         {'30D': ['2026-07-01', '2026-07-02'], '60D': [], '90D': []})
         rows[0]['actual_available_at'] = '2026-06-30T07:50:01Z'
         result = audit_rows(rows)
-        self.assertEqual(result['longest_model_ready_run'], 31)
-        self.assertIsNone(result['first_comparison_candidate']['30D'])
+        self.assertEqual(result['longest_model_ready_run'], 32)
+        self.assertEqual(result['first_comparison_candidate']['30D'], '2026-07-02')
+        self.assertEqual(result['comparison_candidates']['30D'], ['2026-07-02'])

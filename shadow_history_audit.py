@@ -112,18 +112,22 @@ def audit_rows(rows):
         longest_run = max(longest_run, run)
         previous = day
     unavailable = datetime.max.replace(tzinfo=timezone.utc)
-    first_candidate = {}
-    for window in (30, 60, 90):
-        first_candidate[f'{window}D'] = next(
-            (day.isoformat() for day in ready_at
-             if all(ready_at.get(day - timedelta(days=i), unavailable)
-                    <= cutoff_for_day(day) for i in range(1, window + 1))),
-            None,
-        )
+    comparison_candidates = {f'{window}D': [] for window in (30, 60, 90)}
+    for day in ready_at:
+        cutoff = cutoff_for_day(day)
+        for window in (30, 60, 90):
+            if all(ready_at.get(day - timedelta(days=i), unavailable) <= cutoff
+                   for i in range(1, window + 1)):
+                comparison_candidates[f'{window}D'].append(day.isoformat())
+    first_candidate = {
+        window: dates[0] if dates else None
+        for window, dates in comparison_candidates.items()
+    }
     return dict(days=days, invalid_date_rows=invalid_dates,
                 model_ready_days=sum(d['model_ready'] for d in days),
                 longest_model_ready_run=longest_run,
                 first_comparison_candidate=first_candidate,
+                comparison_candidates=comparison_candidates,
                 # Coverage only: the model runner checks training provenance again.
                 missing_days_for_first_comparison={
                     f'{window}D': max(0, window + 1 - longest_run)

@@ -214,3 +214,7 @@ Audyt CSV wskazuje pierwszą możliwą dobę porównania dla 30D, 60D i 90D.
 Wymaga dostępności wszystkich cen treningowych do emisji dnia docelowego.
 Test potwierdza, że spóźnienie ceny o sekundę eliminuje kandydata pomimo
 31 kolejnych kompletnych dób. Lokalnie przeszło 130 testów, 25 pominięto.
+
+Audyt CSV zwraca wszystkie daty spełniające kryteria pokrycia i czasu
+dla 30D, 60D i 90D. Test wykazuje, że opóźniona cena usuwa tylko datę,
+której okno zależy od tej ceny. Lokalnie przeszło 130 testów, 25 pominięto.
