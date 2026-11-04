@@ -270,3 +270,7 @@ Lokalnie przeszło 140 testów, 25 PostgreSQL pominięto.
 Audyt CSV podaje okresy UTC z konfliktem między kolumnami cen Fix1,
 jeżeli okres da się odczytać. Test potwierdza wskazanie właściwej godziny.
 Lokalnie przeszło 140 testów, 25 PostgreSQL pominięto.
+
+Test rankingu dla doby z samymi cenami zerowymi potwierdza, że wszystkie
+modele zachowują MAE i bias, a MAPE i WAPE pozostają niezdefiniowane.
+Lokalnie przeszło 141 testów, 25 PostgreSQL pominięto.

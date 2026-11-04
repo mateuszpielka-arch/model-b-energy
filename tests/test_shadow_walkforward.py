@@ -147,3 +147,22 @@ class WalkforwardTests(unittest.TestCase):
         result = run_walkforward(**args)
         self.assertEqual(result['ranking'], [])
         self.assertIn('coincides', result['skipped'][0]['reason'])
+
+    def test_all_zero_actuals_keep_absolute_metrics_and_undefined_percentages(self):
+        args = self.args()
+        target = args['history'][-1]
+        args['target_days'] = [target['day']]
+        target['actual'] = [(period, Decimal(0)) for period, _ in target['actual']]
+
+        result = run_walkforward(**args)
+
+        self.assertEqual(result['common_days'], 1)
+        self.assertEqual(len(result['ranking']), len(MODELS))
+        for row in result['ranking']:
+            with self.subTest(model=row['model']):
+                self.assertEqual(row['zero_actual_periods'], 24)
+                self.assertEqual(row['mape_periods'], 0)
+                self.assertIsNone(row['mape_pct'])
+                self.assertIsNone(row['wape_pct'])
+                self.assertTrue(row['mae'].is_finite())
+                self.assertTrue(row['bias'].is_finite())
