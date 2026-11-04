@@ -191,3 +191,8 @@ To pomiar pokrycia, a kwalifikację treningową nadal sprawdza walk-forward.
 Na zapisanych źródłach TGE dla 27.10–03.11 audyt znalazł 192 ceny w 8 dobach
 i zero dni z potwierdzonymi danymi JWCD. Test regresji potwierdza, że luka
 przerywa serię. Lokalnie przeszło 125 testów, 25 PostgreSQL pominięto.
+
+Audyt CSV rozdziela brak znaczników czasu, błędny format lub kolejność
+oraz zakończenie pobrania po D-1 09:50. Test potwierdza wszystkie kategorie
+i dopuszczenie pobrania zakończonego dokładnie o 09:50. Lokalnie przeszło
+126 testów, a 25 testów PostgreSQL pominięto.

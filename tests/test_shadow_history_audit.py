@@ -59,3 +59,20 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(out['longest_model_ready_run'], 30)
         self.assertEqual(out['missing_days_for_first_comparison'],
                          {'30D': 1, '60D': 31, '90D': 61})
+
+    def test_distinguishes_missing_invalid_and_late_availability(self):
+        rows = self.rows()
+        for row in rows:
+            row.update(publication_ts='2026-11-02T08:00:00Z',
+                       retrieved_at_utc='2026-11-02T08:45:00Z',
+                       retrieval_completed_at='2026-11-02T08:50:00Z')
+        del rows[0]['retrieval_completed_at']
+        rows[1]['publication_ts'] = '2026-11-02T08:00:00'
+        rows[2]['retrieval_completed_at'] = '2026-11-02T08:50:01Z'
+        rows[3]['publication_ts'] = '2026-11-02T08:51:00Z'
+        day, = audit_rows(rows)['days']
+        self.assertEqual(day['availability_proven_rows'], 20)
+        self.assertEqual(day['availability_missing_timestamp_rows'], 1)
+        self.assertEqual(day['availability_invalid_timestamp_rows'], 2)
+        self.assertEqual(day['availability_after_cutoff_rows'], 1)
+        self.assertFalse(day['model_ready'])

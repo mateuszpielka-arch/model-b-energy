@@ -30,6 +30,7 @@ def audit_rows(rows):
     for d,records in sorted(groups.items()):
         periods=expected_periods(d); expected=set(periods); seen=[]; issues=set()
         good_prices=good_jwcd=available=verified=0
+        missing_timing = invalid_timing = late_timing = 0
         cutoff=_utc(datetime.combine(d-timedelta(days=1),time(9,50),WARSAW))
         for r in records:
             try:
@@ -47,11 +48,22 @@ def audit_rows(rows):
             if _number(r.get('fix1',r.get('price_pln_mwh'))): good_prices+=1
             if _number(r.get('jwcd_mw')): good_jwcd+=1
             if r.get('actual_verified') in (True,'true','True'): verified+=1
+            stamps = (r.get('publication_ts'), r.get('retrieved_at_utc'),
+                      r.get('retrieval_completed_at'))
+            if any(stamp in (None, '') for stamp in stamps):
+                missing_timing += 1
+                continue
             try:
-                pub=_stamp(r.get('publication_ts')); start=_stamp(r.get('retrieved_at_utc'))
-                end=_stamp(r.get('retrieval_completed_at'))
-                if start<=end<=cutoff and pub<=end: available+=1
-            except (ValueError,TypeError): pass
+                pub, start, end = map(_stamp, stamps)
+            except (ValueError, TypeError):
+                invalid_timing += 1
+                continue
+            if start > end or pub > end:
+                invalid_timing += 1
+            elif end > cutoff:
+                late_timing += 1
+            else:
+                available += 1
         complete=len(records)==len(periods) and len(seen)==len(set(seen)) and set(seen)==expected
         if not complete: issues.add('INCOMPLETE_OR_DUPLICATE_PERIODS')
         if good_prices!=len(periods): issues.add('MISSING_OR_INVALID_FIX1')
@@ -62,6 +74,9 @@ def audit_rows(rows):
             unique_periods=len(set(seen)),complete_periods=complete,
             valid_fix1_rows=good_prices,valid_jwcd_rows=good_jwcd,
             availability_proven_rows=available,verified_actual_rows=verified,
+            availability_missing_timestamp_rows=missing_timing,
+            availability_invalid_timestamp_rows=invalid_timing,
+            availability_after_cutoff_rows=late_timing,
             model_ready=not issues,issues=sorted(issues)))
     longest_run = run = 0
     previous = None
