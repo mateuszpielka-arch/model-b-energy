@@ -243,3 +243,6 @@ dostępnością. Lokalnie przeszły 134 testy, 25 PostgreSQL pominięto.
 Audyt CSV porównuje etykietę godziny z okresem UTC dla dób 24-godzinnych.
 Test wykrywa zamianę okresów pomimo kompletu 24 odrębnych kluczy.
 Lokalnie przeszło 135 testów, a 25 testów PostgreSQL pominięto.
+Audyt rozróżnia komplet okresów UTC od błędnego przypisania godzin.
+Test potwierdza osobną diagnozę bez dopuszczenia błędnych par.
+Lokalnie przeszło 135 testów, a 25 testów PostgreSQL pominięto.

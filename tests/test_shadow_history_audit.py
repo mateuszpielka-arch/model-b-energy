@@ -201,4 +201,6 @@ class HistoryAuditTests(unittest.TestCase):
         day, = audit_rows(rows)['days']
         self.assertEqual(day['unique_periods'], 24)
         self.assertFalse(day['complete_pairs'])
+        self.assertTrue(day['complete_periods'])
         self.assertIn('HOUR_UTC_MISMATCH', day['issues'])
+        self.assertNotIn('INCOMPLETE_OR_DUPLICATE_PERIODS', day['issues'])

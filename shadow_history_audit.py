@@ -88,7 +88,7 @@ def audit_rows(rows):
             else:
                 available += 1
                 retrieval_windows.add((start, end))
-        complete="HOUR_UTC_MISMATCH" not in issues and len(records)==len(periods) and len(seen)==len(set(seen)) and set(seen)==expected
+        complete=len(records)==len(periods) and len(seen)==len(set(seen)) and set(seen)==expected
         if not complete: issues.add('INCOMPLETE_OR_DUPLICATE_PERIODS')
         if good_prices!=len(periods): issues.add('MISSING_OR_INVALID_FIX1')
         if good_jwcd!=len(periods): issues.add('MISSING_OR_INVALID_JWCD')
@@ -108,7 +108,8 @@ def audit_rows(rows):
             issues.add("MIXED_JWCD_SNAPSHOT_IDS")
         days.append(dict(day=d.isoformat(),expected_periods=len(periods),rows=len(records),
             unique_periods=len(set(seen)),complete_periods=complete,
-            complete_pairs=complete and good_prices == good_jwcd == len(periods),
+            complete_pairs=(complete and "HOUR_UTC_MISMATCH" not in issues
+                            and good_prices == good_jwcd == len(periods)),
             valid_fix1_rows=good_prices,valid_jwcd_rows=good_jwcd,
             actual_after_issuance_rows=len(actual_times),
             availability_proven_rows=available,verified_actual_rows=verified,
