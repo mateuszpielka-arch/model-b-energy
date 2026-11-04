@@ -34,6 +34,7 @@ def audit_rows(rows):
         good_prices=good_jwcd=available=verified=0
         actual_times = []
         actual_versions = set()
+        retrieval_windows = set()
         missing_timing = invalid_timing = late_timing = 0
         cutoff = cutoff_for_day(d)
         for r in records:
@@ -79,11 +80,14 @@ def audit_rows(rows):
                 late_timing += 1
             else:
                 available += 1
+                retrieval_windows.add((start, end))
         complete=len(records)==len(periods) and len(seen)==len(set(seen)) and set(seen)==expected
         if not complete: issues.add('INCOMPLETE_OR_DUPLICATE_PERIODS')
         if good_prices!=len(periods): issues.add('MISSING_OR_INVALID_FIX1')
         if good_jwcd!=len(periods): issues.add('MISSING_OR_INVALID_JWCD')
         if available!=len(periods): issues.add('AVAILABILITY_NOT_PROVEN')
+        if len(retrieval_windows) > 1:
+            issues.add("MIXED_JWCD_RETRIEVAL_WINDOWS")
         if verified!=len(periods): issues.add('ACTUAL_NOT_VERIFIED')
         if len(actual_times) != len(periods):
             issues.add('ACTUAL_AVAILABILITY_NOT_PROVEN')

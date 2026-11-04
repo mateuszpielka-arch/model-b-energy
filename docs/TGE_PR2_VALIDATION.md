@@ -218,3 +218,8 @@ Test potwierdza, że spóźnienie ceny o sekundę eliminuje kandydata pomimo
 Audyt CSV zwraca wszystkie daty spełniające kryteria pokrycia i czasu
 dla 30D, 60D i 90D. Test wykazuje, że opóźniona cena usuwa tylko datę,
 której okno zależy od tej ceny. Lokalnie przeszło 130 testów, 25 pominięto.
+
+Audyt CSV wykrywa mieszanie różnych okien pobrania JWCD w jednej dobie.
+Test potwierdza blokadę mimo 24 okresów dostępnych do D-1 09:50.
+Zgodne czasy same nie dowodzą tożsamości snapshotu. Lokalnie przeszło
+131 testów, a 25 testów PostgreSQL pominięto.

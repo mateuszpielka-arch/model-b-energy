@@ -143,3 +143,16 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(result['longest_model_ready_run'], 32)
         self.assertEqual(result['first_comparison_candidate']['30D'], '2026-07-02')
         self.assertEqual(result['comparison_candidates']['30D'], ['2026-07-02'])
+
+    def test_mixed_jwcd_retrieval_windows_block_ready_day(self):
+        rows = self.rows()
+        for row in rows:
+            row.update(publication_ts='2026-11-02T08:00:00Z',
+                       retrieved_at_utc='2026-11-02T08:45:00Z',
+                       retrieval_completed_at='2026-11-02T08:49:00Z')
+        self.assertTrue(audit_rows(rows)['days'][0]['model_ready'])
+        rows[0]['retrieval_completed_at'] = '2026-11-02T08:50:00Z'
+        day, = audit_rows(rows)['days']
+        self.assertEqual(day['availability_proven_rows'], 24)
+        self.assertEqual(day['issues'], ['MIXED_JWCD_RETRIEVAL_WINDOWS'])
+        self.assertFalse(day['model_ready'])
