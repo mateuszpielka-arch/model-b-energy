@@ -35,6 +35,7 @@ def audit_rows(rows):
         actual_times = []
         actual_versions = set()
         retrieval_windows = set()
+        snapshot_ids = set()
         missing_timing = invalid_timing = late_timing = 0
         cutoff = cutoff_for_day(d)
         for r in records:
@@ -54,6 +55,7 @@ def audit_rows(rows):
             if _number(r.get('jwcd_mw')): good_jwcd+=1
             if r.get('actual_verified') in (True,'true','True'): verified+=1
             actual_versions.add(str(r.get('actual_version') or '').strip())
+            snapshot_ids.add(str(r.get("jwcd_snapshot_id") or "").strip())
             try:
                 actual_time = _stamp(r.get('actual_available_at'))
                 if actual_time > cutoff:
@@ -95,6 +97,10 @@ def audit_rows(rows):
             issues.add('MISSING_ACTUAL_VERSION')
         if len(actual_versions - {''}) > 1:
             issues.add('CONFLICTING_ACTUAL_VERSIONS')
+        if "" in snapshot_ids:
+            issues.add("MISSING_JWCD_SNAPSHOT_ID")
+        if len(snapshot_ids - {""}) > 1:
+            issues.add("MIXED_JWCD_SNAPSHOT_IDS")
         days.append(dict(day=d.isoformat(),expected_periods=len(periods),rows=len(records),
             unique_periods=len(set(seen)),complete_periods=complete,
             valid_fix1_rows=good_prices,valid_jwcd_rows=good_jwcd,

@@ -8,7 +8,7 @@ from shadow_scoring import expected_periods
 class HistoryAuditTests(unittest.TestCase):
     def rows(self,day='2026-11-03'):
         return [dict(delivery_date=day,period_start_utc=p.isoformat(),fix1='100',jwcd_mw='10000',
-            actual_verified='true',actual_version='v1',actual_available_at=day+'T00:00:00Z',publication_ts=day+'T00:00:00Z',retrieved_at_utc=day+'T00:00:00Z',
+            actual_verified='true',actual_version='v1',jwcd_snapshot_id=day,actual_available_at=day+'T00:00:00Z',publication_ts=day+'T00:00:00Z',retrieved_at_utc=day+'T00:00:00Z',
             retrieval_completed_at=day+'T00:00:00Z') for p in expected_periods(date.fromisoformat(day))]
 
     def test_real_reference_days_are_not_training_ready(self):
@@ -155,4 +155,19 @@ class HistoryAuditTests(unittest.TestCase):
         day, = audit_rows(rows)['days']
         self.assertEqual(day['availability_proven_rows'], 24)
         self.assertEqual(day['issues'], ['MIXED_JWCD_RETRIEVAL_WINDOWS'])
+        self.assertFalse(day['model_ready'])
+
+    def test_missing_or_mixed_snapshot_ids_block_ready_day(self):
+        rows = self.rows()
+        for row in rows:
+            row.update(publication_ts='2026-11-02T08:00:00Z',
+                       retrieved_at_utc='2026-11-02T08:45:00Z',
+                       retrieval_completed_at='2026-11-02T08:49:00Z')
+        rows[0]['jwcd_snapshot_id'] = 'different-snapshot'
+        del rows[1]['jwcd_snapshot_id']
+        day, = audit_rows(rows)['days']
+        self.assertEqual(day['availability_proven_rows'], 24)
+        self.assertEqual(day['issues'], [
+            'MISSING_JWCD_SNAPSHOT_ID', 'MIXED_JWCD_SNAPSHOT_IDS',
+        ])
         self.assertFalse(day['model_ready'])

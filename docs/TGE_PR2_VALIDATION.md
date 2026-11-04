@@ -223,3 +223,7 @@ Audyt CSV wykrywa mieszanie różnych okien pobrania JWCD w jednej dobie.
 Test potwierdza blokadę mimo 24 okresów dostępnych do D-1 09:50.
 Zgodne czasy same nie dowodzą tożsamości snapshotu. Lokalnie przeszło
 131 testów, a 25 testów PostgreSQL pominięto.
+
+Audyt CSV wymaga jednej niepustej wartości `jwcd_snapshot_id` w całej dobie.
+Test wykrywa brak i mieszanie identyfikatorów mimo zgodnych czasów.
+Lokalnie przeszły 132 testy, a 25 testów PostgreSQL pominięto.
