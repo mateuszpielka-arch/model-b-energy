@@ -48,13 +48,17 @@ def audit_rows(rows):
             if _number(r.get('fix1',r.get('price_pln_mwh'))): good_prices+=1
             if _number(r.get('jwcd_mw')): good_jwcd+=1
             if r.get('actual_verified') in (True,'true','True'): verified+=1
-            stamps = (r.get('publication_ts'), r.get('retrieved_at_utc'),
+            canonical_start = r.get('retrieved_at')
+            legacy_start = r.get('retrieved_at_utc')
+            stamps = (r.get('publication_ts'), canonical_start or legacy_start,
                       r.get('retrieval_completed_at'))
             if any(stamp in (None, '') for stamp in stamps):
                 missing_timing += 1
                 continue
             try:
                 pub, start, end = map(_stamp, stamps)
+                if canonical_start and legacy_start and _stamp(legacy_start) != start:
+                    raise ValueError('Conflicting retrieval timestamps')
             except (ValueError, TypeError):
                 invalid_timing += 1
                 continue

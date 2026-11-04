@@ -196,3 +196,7 @@ Audyt CSV rozdziela brak znaczników czasu, błędny format lub kolejność
 oraz zakończenie pobrania po D-1 09:50. Test potwierdza wszystkie kategorie
 i dopuszczenie pobrania zakończonego dokładnie o 09:50. Lokalnie przeszło
 126 testów, a 25 testów PostgreSQL pominięto.
+
+Audyt CSV obsługuje również pole `retrieved_at`. Jeżeli oba warianty
+nazwy są obecne, muszą wskazywać ten sam moment. Test obejmuje równoważne
+offsety i konflikt. Lokalnie przeszło 127 testów, 25 PostgreSQL pominięto.

@@ -76,3 +76,17 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(day['availability_invalid_timestamp_rows'], 2)
         self.assertEqual(day['availability_after_cutoff_rows'], 1)
         self.assertFalse(day['model_ready'])
+
+    def test_accepts_canonical_retrieved_at_and_rejects_conflicting_legacy_alias(self):
+        rows = self.rows()
+        for row in rows:
+            del row['retrieved_at_utc']
+            row.update(publication_ts='2026-11-02T08:00:00Z',
+                       retrieved_at='2026-11-02T09:45:00+01:00',
+                       retrieval_completed_at='2026-11-02T08:50:00Z')
+        rows[0]['retrieved_at_utc'] = '2026-11-02T08:45:00Z'
+        self.assertTrue(audit_rows(rows)['days'][0]['model_ready'])
+        rows[0]['retrieved_at_utc'] = '2026-11-02T08:44:00Z'
+        day, = audit_rows(rows)['days']
+        self.assertEqual(day['availability_invalid_timestamp_rows'], 1)
+        self.assertFalse(day['model_ready'])
