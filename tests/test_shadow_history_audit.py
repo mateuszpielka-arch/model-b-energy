@@ -258,3 +258,4 @@ class HistoryAuditTests(unittest.TestCase):
         day, = audit_rows(rows)['days']
         self.assertFalse(day['complete_pairs'])
         self.assertIn('CONFLICTING_FIX1_COLUMNS', day['issues'])
+        self.assertEqual(day['conflicting_fix1_periods_utc'], [rows[0]['period_start_utc']])

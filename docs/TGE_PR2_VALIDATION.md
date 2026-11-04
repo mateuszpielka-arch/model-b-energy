@@ -266,3 +266,7 @@ niedomkniętego cudzysłowu. Lokalnie przeszło 139 testów,
 Audyt CSV sprawdza zgodność wypełnionych kolumn cen Fix1. Test obejmuje
 równoważne zapisy liczbowe, pustą kolumnę alternatywną oraz konflikt.
 Lokalnie przeszło 140 testów, 25 PostgreSQL pominięto.
+
+Audyt CSV podaje okresy UTC z konfliktem między kolumnami cen Fix1,
+jeżeli okres da się odczytać. Test potwierdza wskazanie właściwej godziny.
+Lokalnie przeszło 140 testów, 25 PostgreSQL pominięto.

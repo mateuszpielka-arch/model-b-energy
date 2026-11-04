@@ -38,7 +38,9 @@ def audit_rows(rows):
         snapshot_ids = set()
         missing_timing = invalid_timing = late_timing = 0
         cutoff = cutoff_for_day(d)
+        conflicting_price_periods = set()
         for r in records:
+            p = None
             try:
                 if r.get('period_start_utc'):
                     p=_stamp(r['period_start_utc'])
@@ -63,6 +65,8 @@ def audit_rows(rows):
                     good_prices += 1
                 else:
                     issues.add('CONFLICTING_FIX1_COLUMNS')
+                    if p is not None:
+                        conflicting_price_periods.add(p)
             if _number(r.get('jwcd_mw')): good_jwcd+=1
             if r.get('actual_verified') in (True,'true','True'): verified+=1
             actual_versions.add(str(r.get('actual_version') or '').strip())
@@ -121,6 +125,7 @@ def audit_rows(rows):
             missing_periods_utc=[p.isoformat() for p in sorted(missing)],
             unexpected_periods_utc=[p.isoformat() for p in sorted(unexpected)],
             duplicate_periods_utc=[p.isoformat() for p in sorted(duplicates)],
+            conflicting_fix1_periods_utc=[p.isoformat() for p in sorted(conflicting_price_periods)],
             complete_pairs=(complete and "HOUR_UTC_MISMATCH" not in issues
                             and good_prices == good_jwcd == len(periods)),
             valid_fix1_rows=good_prices,valid_jwcd_rows=good_jwcd,
