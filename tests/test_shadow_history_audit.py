@@ -1,3 +1,4 @@
+import csv
 from copy import deepcopy
 from datetime import date, timedelta
 from pathlib import Path
@@ -239,3 +240,10 @@ class HistoryAuditTests(unittest.TestCase):
                         read_csv(path)
             path.write_text('delivery_date,fix1,jwcd_mw\n2026-11-03,100,\n', encoding='utf-8')
             self.assertEqual(read_csv(path)[0]['jwcd_mw'], '')
+
+    def test_csv_rejects_unclosed_quoted_value(self):
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / 'history.csv'
+            path.write_text('delivery_date,jwcd_mw\n2026-11-03,"12000\n', encoding='utf-8')
+            with self.assertRaises(csv.Error):
+                read_csv(path)
