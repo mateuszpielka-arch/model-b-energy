@@ -247,3 +247,14 @@ class HistoryAuditTests(unittest.TestCase):
             path.write_text('delivery_date,jwcd_mw\n2026-11-03,"12000\n', encoding='utf-8')
             with self.assertRaises(csv.Error):
                 read_csv(path)
+
+    def test_price_aliases_must_agree_when_both_populated(self):
+        rows = self.rows()
+        rows[0]['fix1_pln_mwh'] = '100.00'
+        rows[1]['fix1'] = ''
+        rows[1]['fix1_pln_mwh'] = '100'
+        self.assertEqual(audit_rows(rows)['complete_pair_days'], 1)
+        rows[0]['fix1_pln_mwh'] = '101'
+        day, = audit_rows(rows)['days']
+        self.assertFalse(day['complete_pairs'])
+        self.assertIn('CONFLICTING_FIX1_COLUMNS', day['issues'])

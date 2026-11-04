@@ -262,3 +262,7 @@ Lokalnie przeszło 138 testów, 25 PostgreSQL pominięto.
 Audyt używa ścisłego odczytu CSV. Test potwierdza odrzucenie
 niedomkniętego cudzysłowu. Lokalnie przeszło 139 testów,
 25 testów PostgreSQL pominięto.
+
+Audyt CSV sprawdza zgodność wypełnionych kolumn cen Fix1. Test obejmuje
+równoważne zapisy liczbowe, pustą kolumnę alternatywną oraz konflikt.
+Lokalnie przeszło 140 testów, 25 PostgreSQL pominięto.
