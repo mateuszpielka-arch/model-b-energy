@@ -446,3 +446,11 @@ ujawniania adresów ani odcisków. To kontrola zapisanych metadanych. Zgodność
 z zawartością źródła nadal wymaga odrębnego sprawdzenia. Test na izolowanym
 PostgreSQL obejmuje schemat legacy, jednolite i mieszane metadane oraz
 nieprawidłowy odcisk.
+
+Audyt Fix1 pokazuje, czy najpóźniejsze pobranie aktualnie zapisanej ceny
+mieści się po granicy 09:50 dla prognozy ocenianej doby i do granicy
+09:50 dla prognozy kolejnej doby. Braki lub błędna kolejność znaczników
+oraz niekompletne godziny lub ceny wykluczają kandydata czasowego. Test
+PostgreSQL sprawdza obie granice, brak znacznika i jesienną zmianę czasu.
+Wynik jest diagnostyką czasu pobrania, a weryfikacja pochodzenia cen
+i mapowania godzin nadal warunkuje ich użycie w walk-forward.

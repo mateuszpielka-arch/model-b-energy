@@ -396,3 +396,35 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertFalse(actual['single_recorded_source'])
         self.assertEqual(actual['distinct_recorded_sources'], 3)
         self.assertEqual(actual['rows_without_usable_source_metadata'], 1)
+
+    def test_fix1_training_timing_uses_latest_retrieval_and_warsaw_dst(self):
+        day = date(2026, 10, 25)
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN first_seen_at_utc timestamptz')
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN retrieved_at_utc timestamptz')
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,100,%s,%s)',
+                [(day, hour, '2026-10-24T08:00:00Z', '2026-10-25T08:50:00Z')
+                 for hour in range(1, 26)],
+            )
+
+        def timing():
+            actual, = audit_connection(self.conn)['actual_days']
+            self.assertEqual(actual['next_delivery_issue_cutoff_utc'], '2026-10-25T08:50:00+00:00')
+            self.assertEqual(actual['quality_status'], 'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')
+            return actual['next_delivery_training_timing']
+
+        self.assertEqual(timing(), 'TIMING_CANDIDATE')
+        self.conn.execute(
+            'UPDATE actual.tge_fix1 SET retrieved_at_utc=%s WHERE hour=25',
+            ('2026-10-25T08:50:01Z',),
+        )
+        self.assertEqual(timing(), 'AFTER_NEXT_ISSUE_CUTOFF')
+        self.conn.execute('UPDATE actual.tge_fix1 SET retrieved_at_utc=NULL WHERE hour=25')
+        self.assertEqual(timing(), 'UNPROVEN')
+
+        self.conn.execute(
+            'UPDATE actual.tge_fix1 SET retrieved_at_utc=%s, first_seen_at_utc=%s',
+            ('2026-10-24T07:50:00Z', '2026-10-24T07:50:00Z'),
+        )
+        self.assertEqual(timing(), 'AT_OR_BEFORE_OWN_ISSUE_CUTOFF')

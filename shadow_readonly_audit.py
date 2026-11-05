@@ -2,7 +2,7 @@
 
 No ambient DATABASE_URL. Never exports credentials or complete raw payloads.
 """
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from collections import Counter, defaultdict
 from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_history_audit import _number, _stamp
@@ -218,11 +218,23 @@ def audit_connection(conn, *, start_day=None, end_day=None):
                 observed = set(hours or [])
                 required = set(range(1, expected + 1))
                 structurally_complete = n == expected and observed == required
+                complete_prices = structurally_complete and missing_prices == nonfinite_prices == 0
+                next_cutoff = cutoff_for_day(day + timedelta(days=1))
+                if not complete_prices or missing_timing or invalid_timing:
+                    training_timing = 'UNPROVEN'
+                elif latest_retrieved <= cutoff_for_day(day):
+                    training_timing = 'AT_OR_BEFORE_OWN_ISSUE_CUTOFF'
+                elif latest_retrieved > next_cutoff:
+                    training_timing = 'AFTER_NEXT_ISSUE_CUTOFF'
+                else:
+                    training_timing = 'TIMING_CANDIDATE'
                 actuals.append(dict(day=day.isoformat(),rows=n,distinct_legacy_hours=len(observed),
                     expected_periods=expected,structurally_complete=structurally_complete,
                     missing_price_rows=missing_prices,
                     nonfinite_price_rows=nonfinite_prices,
-                    complete_finite_prices=structurally_complete and missing_prices == nonfinite_prices == 0,
+                    complete_finite_prices=complete_prices,
+                    next_delivery_issue_cutoff_utc=next_cutoff.isoformat(),
+                    next_delivery_training_timing=training_timing,
                     latest_first_seen_at_utc=latest_first_seen.astimezone(timezone.utc).isoformat()
                     if latest_first_seen is not None else None,
                     latest_retrieved_at_utc=latest_retrieved.astimezone(timezone.utc).isoformat()
