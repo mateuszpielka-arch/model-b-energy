@@ -454,3 +454,12 @@ oraz niekompletne godziny lub ceny wykluczają kandydata czasowego. Test
 PostgreSQL sprawdza obie granice, brak znacznika i jesienną zmianę czasu.
 Wynik jest diagnostyką czasu pobrania, a weryfikacja pochodzenia cen
 i mapowania godzin nadal warunkuje ich użycie w walk-forward.
+
+Audyt SQL wylicza wstępne pokrycie wspólnych danych PK5/Fix1: liczbę
+sparowanych dób, najdłuższą serię i możliwe daty porównania 30/60/90D.
+Wymaga wstępnego wyboru JWCD, jednego zapisanego źródła kompletu Fix1
+oraz spójnego czasu pobrania cen po granicy własnej prognozy. Każda doba
+treningowa musi być dostępna do D-1 09:50 ocenianej prognozy. Test na 91
+syntetycznych dobach sprawdza kompletne okna, spóźnioną cenę i lukę.
+Pokrycie jest diagnostyką, a dopuszczenie danych nadal wymaga odrębnej
+weryfikacji źródeł i mapowania godzin.

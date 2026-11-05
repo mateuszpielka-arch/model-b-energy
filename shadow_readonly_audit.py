@@ -5,7 +5,7 @@ No ambient DATABASE_URL. Never exports credentials or complete raw payloads.
 from datetime import date, datetime, timedelta, timezone
 from collections import Counter, defaultdict
 from shadow_asof import cutoff_for_day, select_snapshot
-from shadow_history_audit import _number, _stamp
+from shadow_history_audit import _number, _stamp, comparison_coverage
 from shadow_scoring import expected_periods
 
 
@@ -93,6 +93,20 @@ def missing_delivery_ranges(coverage, start_day, end_day):
             ))
         cursor = boundary + 1
     return gaps
+
+
+def provisional_comparison_coverage(actuals, candidate_selection):
+    """Estimate coverage from legacy metadata without admitting model inputs."""
+    ready_at = {
+        date.fromisoformat(actual['day']): _stamp(actual['latest_retrieved_at_utc'])
+        for actual in actuals
+        if actual['single_recorded_source']
+        and actual['next_delivery_training_timing'] in ('TIMING_CANDIDATE', 'AFTER_NEXT_ISSUE_CUTOFF')
+        and candidate_selection.get(actual['day'], {}).get('provisional_snapshot_id')
+    }
+    longest_run, candidates = comparison_coverage(ready_at)
+    return dict(paired_days=len(ready_at), longest_paired_run=longest_run,
+                comparison_candidates=candidates)
 
 
 def table_columns(conn, table):
@@ -266,6 +280,7 @@ def audit_connection(conn, *, start_day=None, end_day=None):
                     }),
                     archive_hourly_candidate_selection=candidate_selection,
                     delivery_coverage=coverage,
+                    provisional_comparison_coverage=provisional_comparison_coverage(actuals, candidate_selection),
                     missing_delivery_ranges=missing_delivery_ranges(coverage, start_day, end_day),
                     archive_hourly_candidate_days=sorted({
                         s['day'] for s in snapshots if s.get('archive_hourly_candidate')

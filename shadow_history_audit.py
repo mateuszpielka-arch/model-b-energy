@@ -140,23 +140,7 @@ def audit_rows(rows):
             model_ready=not issues,issues=sorted(issues)))
         if not issues:
             ready_at[d] = max(actual_times)
-    longest_run = run = 0
-    previous = None
-    for entry in days:
-        if not entry['model_ready']:
-            continue
-        day = date.fromisoformat(entry['day'])
-        run = run + 1 if previous and day - previous == timedelta(days=1) else 1
-        longest_run = max(longest_run, run)
-        previous = day
-    unavailable = datetime.max.replace(tzinfo=timezone.utc)
-    comparison_candidates = {f'{window}D': [] for window in (30, 60, 90)}
-    for day in ready_at:
-        cutoff = cutoff_for_day(day)
-        for window in (30, 60, 90):
-            if all(ready_at.get(day - timedelta(days=i), unavailable) <= cutoff
-                   for i in range(1, window + 1)):
-                comparison_candidates[f'{window}D'].append(day.isoformat())
+    longest_run, comparison_candidates = comparison_coverage(ready_at)
     first_candidate = {
         window: dates[0] if dates else None
         for window, dates in comparison_candidates.items()
@@ -172,6 +156,26 @@ def audit_rows(rows):
                     f'{window}D': max(0, window + 1 - longest_run)
                     for window in (30, 60, 90)
                 })
+
+
+def comparison_coverage(ready_at):
+    """Measure contiguous calendar coverage and respect each target cutoff."""
+    longest_run = run = 0
+    previous = None
+    dates = sorted(ready_at)
+    for day in dates:
+        run = run + 1 if previous and day - previous == timedelta(days=1) else 1
+        longest_run = max(longest_run, run)
+        previous = day
+    unavailable = datetime.max.replace(tzinfo=timezone.utc)
+    comparison_candidates = {f'{window}D': [] for window in (30, 60, 90)}
+    for day in dates:
+        cutoff = cutoff_for_day(day)
+        for window in (30, 60, 90):
+            if all(ready_at.get(day - timedelta(days=i), unavailable) <= cutoff
+                   for i in range(1, window + 1)):
+                comparison_candidates[f'{window}D'].append(day.isoformat())
+    return longest_run, comparison_candidates
 
 
 def read_csv_rows(lines, *, source):

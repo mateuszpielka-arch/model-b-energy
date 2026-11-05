@@ -1,9 +1,12 @@
 import os
 from copy import deepcopy
-from datetime import date,datetime,timezone
+from datetime import date,datetime,timedelta,timezone
 import unittest
 from shadow_postgres_archive import connect_test_database
-from shadow_readonly_audit import audit_connection,audit_pk5_utc_hours,connect_readonly
+from shadow_asof import cutoff_for_day
+from shadow_readonly_audit import (
+    audit_connection, audit_pk5_utc_hours, connect_readonly, provisional_comparison_coverage,
+)
 from shadow_scoring import expected_periods
 
 DSN=os.environ.get('FIX1_SHADOW_TEST_DSN')
@@ -34,6 +37,38 @@ class PK5UtcHoursTests(unittest.TestCase):
         self.assertEqual(result['valid_jwcd_rows'], 1)
 
 
+class ProvisionalCoverageTests(unittest.TestCase):
+    def test_calendar_windows_use_target_cutoff_and_never_fill_missing_days(self):
+        first = date(2026, 8, 1)
+        days = [first + timedelta(days=i) for i in range(91)]
+        actuals = [dict(
+            day=day.isoformat(), single_recorded_source=True,
+            next_delivery_training_timing='TIMING_CANDIDATE',
+            latest_retrieved_at_utc=cutoff_for_day(day + timedelta(days=1)).isoformat(),
+        ) for day in days]
+        selections = {day.isoformat(): {'provisional_snapshot_id': str(i + 1)}
+                      for i, day in enumerate(days)}
+        result = provisional_comparison_coverage(actuals, selections)
+        self.assertEqual(result['paired_days'], 91)
+        self.assertEqual(result['longest_paired_run'], 91)
+        for window in (30, 60, 90):
+            self.assertEqual(result['comparison_candidates'][f'{window}D'],
+                             [day.isoformat() for day in days[window:]])
+
+        actuals[-2]['latest_retrieved_at_utc'] = (
+            cutoff_for_day(days[-1]) + timedelta(seconds=1)
+        ).isoformat()
+        actuals[-2]['next_delivery_training_timing'] = 'AFTER_NEXT_ISSUE_CUTOFF'
+        result = provisional_comparison_coverage(actuals, selections)
+        self.assertEqual(result['longest_paired_run'], 91)
+        self.assertEqual(result['comparison_candidates']['90D'], [])
+
+        selections[days[45].isoformat()]['provisional_snapshot_id'] = None
+        result = provisional_comparison_coverage(actuals, selections)
+        self.assertEqual(result['longest_paired_run'], 45)
+        self.assertEqual(result['comparison_candidates']['60D'], [])
+
+
 @unittest.skipUnless(DSN,'Set explicit disposable PostgreSQL DSN')
 class ReadonlyAuditTests(unittest.TestCase):
     def setUp(self):
@@ -55,6 +90,7 @@ class ReadonlyAuditTests(unittest.TestCase):
     def test_dst_incompleteness_and_unproven_availability_are_explicit(self):
         self.seed_dst();out=audit_connection(self.conn)
         self.assertTrue(out['transaction_read_only'])
+        self.assertEqual(out['provisional_comparison_coverage']['paired_days'], 0)
         self.assertEqual(out['delivery_coverage'], [{
             'day': '2026-10-25', 'pk5_status': 'NO_HOURLY_CANDIDATE', 'fix1_status': 'INCOMPLETE',
         }])
