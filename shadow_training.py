@@ -14,8 +14,9 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
         if d not in required: continue  # Future or outside-window records cannot affect fit.
         if d in packets: raise ValueError('Duplicate historical delivery date')
         packets[d]=packet
-    if set(packets)!=required:
-        raise ValueError('Incomplete calendar training window')
+    missing = required - packets.keys()
+    if missing:
+        raise ValueError(f'Incomplete calendar training window: first missing day {min(missing)}')
     target=select_snapshot(target_day,target_snapshots)
     if target.snapshot_id is None: raise ValueError('No complete pre-cutoff target JWCD')
     prepared=[]; evidence=[]
@@ -24,14 +25,14 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
             raise ValueError('Historical actual provenance not verified')
         actual_available = _utc(p.get('actual_available_at'))
         if actual_available > cutoff:
-            raise ValueError('Historical actual unavailable at target cutoff')
+            raise ValueError(f'Historical actual unavailable at target cutoff: {day}')
         selection=select_snapshot(day, p.get('snapshots', ()))
-        if selection.snapshot_id is None: raise ValueError('Historical JWCD availability not proven')
+        if selection.snapshot_id is None: raise ValueError(f'Historical JWCD availability not proven: {day}')
         if actual_available <= selection.cutoff_utc:
             raise ValueError('Historical actual available at or before its simulated issuance')
         actual=_prices(p.get('actual', ()))
         if set(actual)!=set(expected_periods(day)):
-            raise ValueError('Historical actual incomplete or invalid periods')
+            raise ValueError(f'Historical actual incomplete or invalid periods: {day}')
         prepared.append((day,selection.rows,actual))
         evidence.append((day.isoformat(),selection.snapshot_id,p['actual_version']))
     return cutoff,target,tuple(prepared),tuple(evidence)

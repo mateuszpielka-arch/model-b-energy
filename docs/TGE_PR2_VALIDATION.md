@@ -302,3 +302,8 @@ Lokalnie przeszło 147 testów, 25 PostgreSQL pominięto.
 Walidacja cen odróżnia błędną kolekcję od błędnego wiersza. Test
 walk-forward potwierdza pominięcie wadliwej doby i ocenę poprawnej.
 Lokalnie przeszło 148 testów, 25 PostgreSQL pominięto.
+
+Raport walk-forward wskazuje datę doby treningowej z brakującym JWCD,
+brakującymi lub spóźnionymi cenami Fix1 oraz pierwszy brak w oknie.
+Testy potwierdzają wskazanie daty dla obu brakujących zestawów.
+Lokalnie przeszło 148 testów, 25 PostgreSQL pominięto.

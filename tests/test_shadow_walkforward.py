@@ -216,7 +216,8 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(result['ranking'], [])
         skipped, = result['skipped']
         self.assertEqual(skipped['stage'], 'ols30')
-        self.assertEqual(skipped['reason'], 'Historical JWCD availability not proven')
+        self.assertEqual(skipped['reason'],
+                         f"Historical JWCD availability not proven: {args['history'][-2]['day']}")
 
     def test_invalid_snapshot_collection_does_not_abort_backtest(self):
         args = self.args()
@@ -245,7 +246,8 @@ class WalkforwardTests(unittest.TestCase):
         result = run_walkforward(**args)
         self.assertEqual(result['ranking'], [])
         skipped, = result['skipped']
-        self.assertEqual(skipped['reason'], 'Historical actual incomplete or invalid periods')
+        self.assertEqual(skipped['reason'],
+                         f"Historical actual incomplete or invalid periods: {args['history'][-2]['day']}")
 
     def test_malformed_target_prices_skip_only_affected_day(self):
         for prices, reason in ((None, 'Invalid price collection'),
