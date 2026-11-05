@@ -320,3 +320,20 @@ Walk-forward zachowuje snapshoty JWCD przekazane jako jednorazowy iterator
 do wielokrotnego odczytu przez selekcję, trening i scoring. Test dla dwóch
 dób porównuje cały raport wszystkich sześciu modeli z wynikiem dla list.
 Lokalnie przeszło 151 testów, 25 PostgreSQL pominięto.
+
+### Wejście CSV do walk-forward SHADOW
+
+`python shadow_walkforward_csv.py --evaluated-at 2026-11-05T07:00:00Z historia.csv`
+uruchamia audyt i zwraca JSON z gotowością poszczególnych dób oraz rankingiem
+na wspólnej próbie. CSV musi zawierać ceny Fix1, JWCD, wersję i czas dostępności
+Fix1 oraz identyfikator snapshotu JWCD i czasy publikacji, rozpoczęcia i
+zakończenia pobrania. Na dobach DST wymagane są jawne okresy UTC. Audyt
+sprawdza spójność deklarowanych metadanych, a ich pochodzenie wymaga dowodu
+ze źródła. Runner ponownie sprawdza dostępność przy granicy D-1 09:50.
+
+Test syntetyczny przeszedł od 91 dób CSV do rankingu sześciu modeli dla doby
+25h. Spóźnione pobranie w oknie 90D wykluczyło ranking. Osobny przebieg CLI
+na ośmiu rzeczywistych referencjach TGE (27.10–03.11.2026) potwierdził 192
+poprawne ceny godzinowe, zero dób gotowych do porównania z powodu braku
+danych i metadanych JWCD oraz pusty ranking. Lokalnie przeszły 153 testy,
+25 integracyjnych testów PostgreSQL pominięto.

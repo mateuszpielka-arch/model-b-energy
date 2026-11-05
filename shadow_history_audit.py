@@ -11,6 +11,9 @@ from shadow_asof import cutoff_for_day
 from shadow_scoring import _utc, expected_periods
 
 
+FIX1_COLUMNS = ('fix1', 'price_pln_mwh', 'fix1_pln_mwh')
+
+
 def _number(value):
     try: return value not in (None,'') and Decimal(str(value)).is_finite()
     except InvalidOperation: return False
@@ -58,7 +61,7 @@ def audit_rows(rows):
                     raise ValueError('DST_REQUIRES_UTC_PERIODS')
                 seen.append(p)
             except (ValueError,TypeError,IndexError): issues.add('INVALID_OR_AMBIGUOUS_PERIOD')
-            price_fields = [r[name] for name in ('fix1', 'price_pln_mwh', 'fix1_pln_mwh')
+            price_fields = [r[name] for name in FIX1_COLUMNS
                             if r.get(name) not in (None, '')]
             if price_fields and all(_number(value) for value in price_fields):
                 if len({Decimal(str(value)) for value in price_fields}) == 1:
