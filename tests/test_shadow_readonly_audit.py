@@ -121,3 +121,32 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertFalse(out['tables']['raw.snapshots']);self.assertEqual(out['snapshots'],[])
         self.assertIsNone(self.conn.execute("SELECT to_regclass('raw.snapshots')").fetchone()[0])
         self.conn.execute('CREATE SCHEMA raw');self.conn.execute('CREATE SCHEMA actual')
+
+    def test_v3_archive_time_identifies_candidates_without_admitting_history(self):
+        from psycopg.types.json import Jsonb
+
+        self.conn.execute('ALTER TABLE raw.snapshots ADD COLUMN created_at timestamptz')
+        self.conn.execute('ALTER TABLE raw.snapshots ADD COLUMN source_version text')
+        day = date(2026, 10, 25)
+        retrieved = datetime.fromisoformat('2026-10-24T07:30:00+00:00')
+        cutoff = '2026-10-24T07:50:00+00:00'
+        rows = [{'period': str(h), 'publication_ts': '2026-10-24T07:20:00Z'}
+                for h in range(1, 26)]
+        for archive_time, source, publications, eligible in (
+            (cutoff, 'energy-collector-v3', rows, True),
+            ('2026-10-24T07:50:01+00:00', 'energy-collector-v3', rows, False),
+            ('2026-10-24T07:29:00+00:00', 'energy-collector-v3', rows, False),
+            (cutoff, 'imported', rows, False),
+            (cutoff, 'energy-collector-v3', [*rows[:-1], {'period': '25'}], False),
+        ):
+            with self.subTest(archive_time=archive_time, source=source, eligible=eligible):
+                self.conn.execute('DELETE FROM raw.snapshots')
+                self.conn.execute(
+                    'INSERT INTO raw.snapshots VALUES (%s,%s,%s,%s,%s,%s)',
+                    (1, day, retrieved, Jsonb({'pk5l-wp': publications}), archive_time, source),
+                )
+                result = audit_connection(self.conn)
+                snapshot, = result['snapshots']
+                self.assertEqual(snapshot['archive_timing_candidate'], eligible)
+                self.assertEqual(result['archive_timing_candidate_days'], [day.isoformat()] if eligible else [])
+                self.assertFalse(snapshot['model_ready'])

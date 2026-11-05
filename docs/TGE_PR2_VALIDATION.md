@@ -364,3 +364,13 @@ Zgodność wartości nie ustala historycznych czasów publikacji lub pobrania
 i nie odblokowuje rankingu. Test regresji wykrył zmienioną cenę, brak doby
 i powielony okres referencyjny. Lokalnie przeszło 156 testów, a 25
 integracyjnych testów PostgreSQL pominięto.
+
+Audyt SQL w trybie read-only pokazuje dla raw.snapshots czas zapisu i wersję
+źródła, o ile kolumny istnieją. Wskazuje daty z potencjalnym dowodem zakończenia
+pobrania: energy-collector-v3 otwiera transakcję zapisu po zakończeniu pobierania.
+Kandydat wymaga startu i zapisu do D-1 09:50 oraz jawnych znaczników publikacji
+we wszystkich wierszach, najpóźniej w chwili zapisu. Pole created_at jest
+wskazówką wymagającą weryfikacji pochodzenia rekordu (np. brak późnego importu
+z historycznym timestampem). Nie zastępuje tej weryfikacji ani mapowania godzin
+UTC. Test PostgreSQL obejmuje zapis na granicy, po granicy, przed startem,
+obcą wersję i brak czasu publikacji. Kod sprawdzono bez połączenia z produkcją.

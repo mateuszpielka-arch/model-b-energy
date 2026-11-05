@@ -24,8 +24,18 @@ def audit_connection(conn):
                  for name in ('raw.snapshots','actual.tge_fix1','history.hourly')}
         snapshots=[];actuals=[]
         if present['raw.snapshots']:
-            rows=conn.execute('SELECT id,business_date,retrieved_at_utc,payload FROM raw.snapshots ORDER BY business_date,retrieved_at_utc,id').fetchall()
-            for sid,day,retrieved,payload in rows:
+            columns = {name for (name,) in conn.execute(
+                "SELECT attname FROM pg_attribute WHERE attrelid = 'raw.snapshots'::regclass "
+                "AND attnum > 0 AND NOT attisdropped"
+            )}
+            # Both expressions are fixed identifiers or NULL for older schemas.
+            archived_column = 'created_at' if 'created_at' in columns else 'NULL'
+            source_column = 'source_version' if 'source_version' in columns else 'NULL'
+            rows = conn.execute(
+                f'SELECT id,business_date,retrieved_at_utc,payload,{archived_column},{source_column} '
+                'FROM raw.snapshots ORDER BY business_date,retrieved_at_utc,id'
+            ).fetchall()
+            for sid,day,retrieved,payload,archived,source_version in rows:
                 values=payload.get('pk5l-wp',[]) if isinstance(payload,dict) else None
                 if not isinstance(values,list):
                     snapshots.append(dict(snapshot_id=sid,day=day.isoformat(),error='INVALID_PK5_ARRAY'));continue
@@ -53,6 +63,15 @@ def audit_connection(conn):
                     availability = 'PUBLICATION_AFTER_CUTOFF'
                 else:
                     availability = 'UNPROVEN_NO_VERIFIED_COMPLETION_TIMESTAMP'
+                # v3 fetches all pages before opening the insert transaction.
+                # A recorded archive timestamp is a candidate bound, pending provenance review.
+                archive_timing_candidate = (
+                    source_version == 'energy-collector-v3'
+                    and isinstance(archived, datetime) and archived.utcoffset() is not None
+                    and retrieved <= archived <= cutoff
+                    and bool(publications) and len(publications) == len(values)
+                    and max(publications) <= archived
+                )
                 snapshots.append(dict(snapshot_id=sid,day=day.isoformat(),expected_periods=len(expected_periods(day)),
                     rows=len(values),distinct_raw_labels=len(counts),repeated_raw_labels=sum(v-1 for v in counts.values()),
                     jwcd_nonnull=sum(isinstance(r,dict) and r.get('fcst_gen_unit_stor_prov') is not None for r in values),
@@ -61,6 +80,10 @@ def audit_connection(conn):
                     publication_after_cutoff=late_publications,
                     retrieved_at_utc=retrieved.isoformat(),
                     cutoff_utc=cutoff.isoformat(),
+                    archived_at_utc=archived.astimezone(timezone.utc).isoformat()
+                    if isinstance(archived, datetime) and archived.utcoffset() is not None else None,
+                    source_version=source_version,
+                    archive_timing_candidate=archive_timing_candidate,
                     availability_status=availability,
                     model_ready=False))
         if present['actual.tge_fix1']:
@@ -80,6 +103,9 @@ def audit_connection(conn):
                     quality_status='UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION'))
         return dict(generated_at_utc=datetime.now(timezone.utc).isoformat(),transaction_read_only=True,
                     tables=present,snapshots=snapshots,actual_days=actuals,
+                    archive_timing_candidate_days=sorted({
+                        s['day'] for s in snapshots if s.get('archive_timing_candidate')
+                    }),
                     note='60/2026 are diagnostics, not proof of invalid price. Legacy retrieval time is not completion evidence.')
 
 
