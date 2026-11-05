@@ -5,7 +5,8 @@ No ambient DATABASE_URL. Never exports credentials or complete raw payloads.
 from datetime import date, datetime, timedelta, timezone
 from collections import Counter, defaultdict
 from shadow_asof import cutoff_for_day, select_snapshot
-from shadow_history_audit import _number, _stamp, comparison_coverage
+from shadow_history_audit import _number, _stamp, audit_rows, comparison_coverage, read_csv
+from shadow_history_bundle import compare_fix1_reference
 from shadow_scoring import expected_periods
 
 
@@ -116,10 +117,19 @@ def table_columns(conn, table):
     )}
 
 
-def audit_connection(conn, *, start_day=None, end_day=None):
+def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None):
     if start_day is not None and end_day is not None and start_day > end_day:
         raise ValueError('Start day must not be after end day')
     bounds = (start_day, end_day)
+    reference_days = []
+    if reference_rows is not None:
+        reference_rows = list(reference_rows)
+        try:
+            reference_days = sorted({date.fromisoformat(row['delivery_date']) for row in reference_rows})
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError('Reference CSV contains an invalid delivery date') from exc
+        if any((start_day and day < start_day) or (end_day and day > end_day) for day in reference_days):
+            raise ValueError('Reference CSV contains delivery dates outside the audit range')
     if not conn.autocommit: raise ValueError('Dedicated autocommit connection required')
     with conn.transaction():
         conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY')
@@ -271,7 +281,7 @@ def audit_connection(conn, *, start_day=None, end_day=None):
                 'rejected_snapshots': selection.rejected,
             }
         coverage = summarize_delivery_coverage(snapshots, actuals, candidate_selection)
-        return dict(generated_at_utc=datetime.now(timezone.utc).isoformat(),transaction_read_only=True,
+        report = dict(generated_at_utc=datetime.now(timezone.utc).isoformat(),transaction_read_only=True,
                     start_day=start_day.isoformat() if start_day else None,
                     end_day=end_day.isoformat() if end_day else None,
                     tables=present,snapshots=snapshots,actual_days=actuals,
@@ -286,6 +296,18 @@ def audit_connection(conn, *, start_day=None, end_day=None):
                         s['day'] for s in snapshots if s.get('archive_hourly_candidate')
                     }),
                     note='60/2026 are diagnostics, not proof of invalid price. Legacy retrieval time is not completion evidence.')
+        if reference_rows is not None:
+            history = []
+            if present['actual.tge_fix1']:
+                rows = conn.execute(
+                    'SELECT delivery_date,hour,price_pln_mwh FROM actual.tge_fix1 '
+                    'WHERE delivery_date = ANY(%s::date[])', (reference_days,),
+                )
+                history = [dict(delivery_date=day.isoformat(), hour=hour, fix1=price)
+                           for day, hour, price in rows]
+            report['fix1_reference'] = compare_fix1_reference(history, audit_rows(history), reference_rows)
+        return report
+
 
 
 if __name__=='__main__':
@@ -294,11 +316,16 @@ if __name__=='__main__':
     p.add_argument('--dsn-file',required=True,help='Private local file containing authorized read-only connection DSN')
     p.add_argument('--start-day', type=date.fromisoformat, help='First delivery day, inclusive')
     p.add_argument('--end-day', type=date.fromisoformat, help='Last delivery day, inclusive')
+    p.add_argument('--reference', nargs='+', help='Independent Fix1 reference CSV files')
     args=p.parse_args()
     if args.start_day and args.end_day and args.start_day > args.end_day:
         p.error('--start-day must not be after --end-day')
     from pathlib import Path
     dsn=Path(args.dsn_file).read_text().strip()
+    reference_rows = None
+    if args.reference:
+        reference_rows = [row for path in args.reference for row in read_csv(path)]
     with connect_readonly(dsn) as conn:
-        result = audit_connection(conn, start_day=args.start_day, end_day=args.end_day)
+        result = audit_connection(conn, start_day=args.start_day, end_day=args.end_day,
+                                  reference_rows=reference_rows)
     print(json.dumps(result,indent=2))

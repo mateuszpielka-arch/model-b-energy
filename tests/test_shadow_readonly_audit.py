@@ -464,3 +464,31 @@ class ReadonlyAuditTests(unittest.TestCase):
             ('2026-10-24T07:50:00Z', '2026-10-24T07:50:00Z'),
         )
         self.assertEqual(timing(), 'AT_OR_BEFORE_OWN_ISSUE_CUTOFF')
+
+    def test_reconcile_fix1_with_tge_reference_inside_readonly_audit(self):
+        from decimal import Decimal
+        from pathlib import Path
+        from shadow_history_audit import read_csv
+
+        fixture = Path(__file__).parent / 'fixtures' / 'tge_fix1_2026-11-03_reference.csv'
+        reference = read_csv(fixture)
+        day = date(2026, 11, 3)
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s)',
+                [(day, int(row['hour'][1:]), Decimal(row['price_pln_mwh'])) for row in reference],
+            )
+        report = audit_connection(self.conn, start_day=day, end_day=day, reference_rows=reference)
+        self.assertEqual(report['fix1_reference']['matched_days'], 1)
+        self.assertEqual(report['fix1_reference']['compared_periods'], 24)
+        self.assertEqual(report['fix1_reference']['different_periods'], 0)
+        self.assertEqual(report['actual_days'][0]['quality_status'],
+                         'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')
+
+        self.conn.execute('UPDATE actual.tge_fix1 SET price_pln_mwh=price_pln_mwh+1 WHERE hour=24')
+        comparison = audit_connection(self.conn, reference_rows=reference)['fix1_reference']
+        self.assertEqual(comparison['matched_days'], 0)
+        self.assertEqual(comparison['compared_days'][0]['different_periods_utc'],
+                         ['2026-11-03T22:00:00+00:00'])
+        with self.assertRaisesRegex(ValueError, 'outside the audit range'):
+            audit_connection(self.conn, end_day=date(2026, 11, 2), reference_rows=reference)

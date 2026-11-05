@@ -463,3 +463,11 @@ treningowa musi być dostępna do D-1 09:50 ocenianej prognozy. Test na 91
 syntetycznych dobach sprawdza kompletne okna, spóźnioną cenę i lukę.
 Pokrycie jest diagnostyką, a dopuszczenie danych nadal wymaga odrębnej
 weryfikacji źródeł i mapowania godzin.
+
+Audyt PostgreSQL przyjmuje `--reference plik.csv` i porównuje ceny Fix1
+z niezależną referencją godzinowo, wewnątrz tej samej transakcji tylko do
+odczytu. SQL pobiera ceny wyłącznie dla dat z referencji. Doby 23/25h z
+samymi numerami godzin nie mają wystarczającego mapowania UTC do porównania.
+Test w izolowanym PostgreSQL używa zapisanej referencji TGE z 03.11.2026,
+porównuje 24 ceny i wykrywa zmienioną godzinę. Wynik porównania pozostaje
+oddzielony od kwalifikacji cen do walk-forward i nie zmienia archiwum.
