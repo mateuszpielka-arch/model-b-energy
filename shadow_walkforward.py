@@ -43,7 +43,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
                     raise ValueError('Simulated issuance is after evaluation time')
                 if actual_available <= selected.cutoff_utc:
                     raise ValueError('Target actual timestamp precedes simulated issuance or coincides with it')
-                actual=_prices(target['actual'])
+                actual=_prices(target.get('actual', ()))
                 if set(actual)!=set(expected_periods(day)): raise ValueError('Incomplete target actual periods')
                 if selected.snapshot_id is None:
                     skipped.append(dict(

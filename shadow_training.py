@@ -29,7 +29,7 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
         if selection.snapshot_id is None: raise ValueError('Historical JWCD availability not proven')
         if actual_available <= selection.cutoff_utc:
             raise ValueError('Historical actual available at or before its simulated issuance')
-        actual=_prices(p['actual'])
+        actual=_prices(p.get('actual', ()))
         if set(actual)!=set(expected_periods(day)):
             raise ValueError('Historical actual incomplete or invalid periods')
         prepared.append((day,selection.rows,actual))

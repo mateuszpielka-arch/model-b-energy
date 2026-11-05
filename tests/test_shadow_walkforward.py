@@ -229,3 +229,20 @@ class WalkforwardTests(unittest.TestCase):
         skipped, = result['skipped']
         self.assertEqual(skipped['stage'], 'target_snapshot')
         self.assertEqual(skipped['rejected_snapshots'], (('', 'INVALID_SNAPSHOT_COLLECTION'),))
+
+    def test_missing_target_prices_skip_only_affected_day(self):
+        args = self.args()
+        del args['history'][-1]['actual']
+        result = run_walkforward(**args)
+        self.assertEqual(result['common_days'], 1)
+        skipped, = result['skipped']
+        self.assertEqual(skipped['reason'], 'Incomplete target actual periods')
+
+    def test_missing_training_prices_skip_affected_day(self):
+        args = self.args()
+        args['target_days'] = args['target_days'][-1:]
+        del args['history'][-2]['actual']
+        result = run_walkforward(**args)
+        self.assertEqual(result['ranking'], [])
+        skipped, = result['skipped']
+        self.assertEqual(skipped['reason'], 'Historical actual incomplete or invalid periods')

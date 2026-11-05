@@ -294,3 +294,7 @@ Lokalnie przeszły 144 testy, 25 testów PostgreSQL pominięto.
 Selekcja JWCD odrzuca pole snapshotów o błędnym typie. Test potwierdza,
 że uszkodzona doba trafia do raportu, a poprawna pozostaje w rankingu.
 Lokalnie przeszło 145 testów, 25 testów PostgreSQL pominięto.
+
+Brak pola cen Fix1 w danych docelowych lub treningowych pomija
+dotkniętą dobę w walk-forward. Dwa testy potwierdzają diagnostykę.
+Lokalnie przeszło 147 testów, 25 PostgreSQL pominięto.
