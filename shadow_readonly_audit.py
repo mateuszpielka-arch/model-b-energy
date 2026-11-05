@@ -65,10 +65,12 @@ def summarize_delivery_coverage(snapshots, actuals, candidate_selection):
             pk5_status = 'MISSING'
         if actual is None:
             fix1_status = 'MISSING'
-        elif actual['structurally_complete']:
-            fix1_status = 'COMPLETE_UNVERIFIED'
-        else:
+        elif not actual['structurally_complete']:
             fix1_status = 'INCOMPLETE'
+        elif not actual['complete_finite_prices']:
+            fix1_status = 'INVALID_PRICES'
+        else:
+            fix1_status = 'COMPLETE_UNVERIFIED'
         coverage.append(dict(day=day, pk5_status=pk5_status, fix1_status=fix1_status))
     return coverage
 
@@ -187,16 +189,22 @@ def audit_connection(conn, *, start_day=None, end_day=None):
         if present['actual.tge_fix1']:
             rows=conn.execute('''SELECT delivery_date,count(*),
                 array_agg(DISTINCT hour) FILTER (WHERE hour IS NOT NULL),
-                count(*) FILTER (WHERE price_pln_mwh IN (60,2026))
+                count(*) FILTER (WHERE price_pln_mwh IN (60,2026)),
+                count(*) FILTER (WHERE price_pln_mwh IS NULL),
+                count(*) FILTER (WHERE price_pln_mwh::text IN ('NaN','Infinity','-Infinity'))
                 FROM actual.tge_fix1 WHERE delivery_date BETWEEN
                 COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date)
                 GROUP BY delivery_date ORDER BY delivery_date''', bounds).fetchall()
-            for day,n,hours,suspect in rows:
+            for day,n,hours,suspect,missing_prices,nonfinite_prices in rows:
                 expected=len(expected_periods(day))
                 observed = set(hours or [])
                 required = set(range(1, expected + 1))
+                structurally_complete = n == expected and observed == required
                 actuals.append(dict(day=day.isoformat(),rows=n,distinct_legacy_hours=len(observed),
-                    expected_periods=expected,structurally_complete=(n==expected and observed==required),
+                    expected_periods=expected,structurally_complete=structurally_complete,
+                    missing_price_rows=missing_prices,
+                    nonfinite_price_rows=nonfinite_prices,
+                    complete_finite_prices=structurally_complete and missing_prices == nonfinite_prices == 0,
                     missing_legacy_hours=sorted(required-observed),
                     unexpected_legacy_hours=sorted(observed-required),
                     prices_equal_60_or_2026=suspect,

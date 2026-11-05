@@ -313,3 +313,28 @@ class ReadonlyAuditTests(unittest.TestCase):
             {'start_day': '2026-10-29', 'end_day': '2026-10-29', 'days': 1},
         ])
         self.assertEqual(audit_connection(self.conn)['missing_delivery_ranges'], [internal_gap])
+
+    def test_complete_hours_with_missing_or_nonfinite_prices_are_flagged(self):
+        from decimal import Decimal
+
+        day = date(2026, 11, 2)
+        with self.conn.cursor() as cursor:
+            prices = [None, Decimal('NaN'), Decimal('Infinity'), Decimal('-Infinity'),
+                      Decimal('-12.34'), Decimal('0'), *([Decimal('100')] * 18)]
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s)',
+                [(day, hour, price) for hour, price in enumerate(prices, 1)],
+            )
+
+        report = audit_connection(self.conn)
+        actual, = report['actual_days']
+        self.assertTrue(actual['structurally_complete'])
+        self.assertFalse(actual['complete_finite_prices'])
+        self.assertEqual(actual['missing_price_rows'], 1)
+        self.assertEqual(actual['nonfinite_price_rows'], 3)
+        self.assertEqual(report['delivery_coverage'][0]['fix1_status'], 'INVALID_PRICES')
+
+        self.conn.execute('UPDATE actual.tge_fix1 SET price_pln_mwh=100 WHERE hour <= 4')
+        report = audit_connection(self.conn)
+        self.assertTrue(report['actual_days'][0]['complete_finite_prices'])
+        self.assertEqual(report['delivery_coverage'][0]['fix1_status'], 'COMPLETE_UNVERIFIED')

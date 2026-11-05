@@ -426,3 +426,9 @@ Brakującą granicę wyznacza pierwsza lub ostatnia zaobserwowana data.
 Gdy oba źródła są puste, cały przedział zostanie wskazany, jeśli podano obie
 granice. Test PostgreSQL obejmuje pusty przedział oraz luki na początku,
 w środku i na końcu zakresu. Raport nie tworzy sztucznych rekordów dziennych.
+
+Audyt Fix1 rozdziela komplet godzin od kompletu prawidłowych cen. Wskazuje
+liczbę brakujących cen oraz wartości NaN i ±Infinity oraz status INVALID_PRICES,
+jeśli doba z kompletem godzin ma niepoprawną cenę. Zera i ceny ujemne są
+akceptowane. Test na izolowanym PostgreSQL obejmuje wszystkie te przypadki.
+Poprawność techniczna cen nadal nie potwierdza ich pochodzenia.
