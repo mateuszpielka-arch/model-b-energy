@@ -354,3 +354,13 @@ wersji i czasu dostępności Fix1 oznacza zero kwalifikujących się dób dla 30
 60D i 90D. Testy sprawdzają odczyt bez zapisów, wykrywanie brakującej doby
 25h, odrzucenie zmienionego CSV i rozbieżności z manifestem. Lokalnie przeszło
 155 testów, 25 integracyjnych testów PostgreSQL pominięto.
+
+Opcja `--reference plik1.csv plik2.csv` w audycie ZIP porównuje kompletne
+ceny Fix1 okres po okresie w UTC. Raport rozdziela rozbieżne okresy oraz doby
+brakujące lub niepoprawne w historii. Odrzuca niekompletną lub niejednoznaczną
+referencję. Na rzeczywistej paczce ceny za 27.10–03.11.2026 zgodziły się
+z referencjami TGE we wszystkich 192 okresach (8 dób, zero różnic).
+Zgodność wartości nie ustala historycznych czasów publikacji lub pobrania
+i nie odblokowuje rankingu. Test regresji wykrył zmienioną cenę, brak doby
+i powielony okres referencyjny. Lokalnie przeszło 156 testów, a 25
+integracyjnych testów PostgreSQL pominięto.

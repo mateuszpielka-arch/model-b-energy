@@ -51,3 +51,30 @@ class HistoryBundleTests(unittest.TestCase):
                 self.make_bundle(path, **options)
                 with self.assertRaisesRegex(ValueError, error):
                     audit_bundle(path)
+
+    def test_reference_reports_price_difference_and_absent_history_day(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "history.zip"
+            self.make_bundle(path)
+            reference = Path(tmp) / "reference.csv"
+            reference.write_text(
+                "delivery_date,hour,price_pln_mwh\n" + "".join(
+                    f"{day},H{hour:02d},{-9 if day == '2026-10-26' and hour == 24 else -10}\n"
+                    for day in ("2026-10-24", "2026-10-26", "2026-10-27")
+                    for hour in range(1, 25)
+                ), encoding="utf-8",
+            )
+            report = audit_bundle(path, reference_paths=[reference])
+            comparison = report["fix1_reference"]
+            self.assertEqual(comparison["matched_days"], 1)
+            self.assertEqual(comparison["compared_periods"], 48)
+            self.assertEqual(comparison["different_periods"], 1)
+            self.assertEqual(comparison["compared_days"][1]["different_periods_utc"],
+                             ["2026-10-26T22:00:00+00:00"])
+            self.assertEqual(comparison["missing_or_invalid_history_days"], ["2026-10-27"])
+            self.assertEqual(report["model_ready_days"], 0)
+
+            with reference.open("a", encoding="utf-8") as stream:
+                stream.write("2026-10-24,H01,-10\n")
+            with self.assertRaisesRegex(ValueError, "complete, unambiguous"):
+                audit_bundle(path, reference_paths=[reference])
