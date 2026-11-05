@@ -37,6 +37,7 @@ def parse_fix1(html: str, day: str) -> dict[int, float]:
     parser = _Rows()
     parser.feed(html)
     prices = {}
+    seen_hours = set()
     key = re.compile(rf"{re.escape(day)}_H(\d{{2}})")
     number = re.compile(r"[-−]?(?:\d{1,3}(?: \d{3})+|\d+)(?:,\d{1,4})?")
     for cells in parser.rows:
@@ -48,10 +49,11 @@ def parse_fix1(html: str, day: str) -> dict[int, float]:
         hour = int(match.group(1))
         if not 1 <= hour <= 24:
             raise ValueError(f"Unsupported hour {hour}; DST requires separate handling")
+        if hour in seen_hours:
+            raise ValueError(f"Duplicate hourly key H{hour:02d}; fail closed")
+        seen_hours.add(hour)
         raw = cells[2].replace("\xa0", " ").replace("\u202f", " ").strip()
         if not number.fullmatch(raw):
             continue
-        if hour in prices:
-            raise ValueError(f"Duplicate hourly key H{hour:02d}; fail closed")
         prices[hour] = float(raw.replace(" ", "").replace("−", "-").replace(",", "."))
     return prices
