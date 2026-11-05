@@ -246,3 +246,14 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(result['ranking'], [])
         skipped, = result['skipped']
         self.assertEqual(skipped['reason'], 'Historical actual incomplete or invalid periods')
+
+    def test_malformed_target_prices_skip_only_affected_day(self):
+        for prices, reason in ((None, 'Invalid price collection'),
+                               ([None], 'Invalid price row')):
+            with self.subTest(prices=prices):
+                args = self.args()
+                args['history'][-1]['actual'] = prices
+                result = run_walkforward(**args)
+                self.assertEqual(result['common_days'], 1)
+                skipped, = result['skipped']
+                self.assertEqual(skipped['reason'], reason)

@@ -29,7 +29,15 @@ def expected_periods(day: date):
 def _prices(rows):
     # Sequence of pairs, not dict: duplicate periods must remain detectable.
     out = {}
-    for period, price in rows:
+    try:
+        records = iter(rows)
+    except TypeError as exc:
+        raise ValueError('Invalid price collection') from exc
+    for record in records:
+        try:
+            period, price = record
+        except (TypeError, ValueError) as exc:
+            raise ValueError('Invalid price row') from exc
         key = _utc(period)
         if key in out:
             raise ValueError('Duplicate UTC delivery period')

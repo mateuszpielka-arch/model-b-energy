@@ -298,3 +298,7 @@ Lokalnie przeszło 145 testów, 25 testów PostgreSQL pominięto.
 Brak pola cen Fix1 w danych docelowych lub treningowych pomija
 dotkniętą dobę w walk-forward. Dwa testy potwierdzają diagnostykę.
 Lokalnie przeszło 147 testów, 25 PostgreSQL pominięto.
+
+Walidacja cen odróżnia błędną kolekcję od błędnego wiersza. Test
+walk-forward potwierdza pominięcie wadliwej doby i ocenę poprawnej.
+Lokalnie przeszło 148 testów, 25 PostgreSQL pominięto.
