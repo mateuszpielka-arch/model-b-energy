@@ -55,6 +55,9 @@ class ReadonlyAuditTests(unittest.TestCase):
     def test_dst_incompleteness_and_unproven_availability_are_explicit(self):
         self.seed_dst();out=audit_connection(self.conn)
         self.assertTrue(out['transaction_read_only'])
+        self.assertEqual(out['delivery_coverage'], [{
+            'day': '2026-10-25', 'pk5_status': 'NO_HOURLY_CANDIDATE', 'fix1_status': 'INCOMPLETE',
+        }])
         s=out['snapshots'][0];self.assertEqual((s['rows'],s['expected_periods'],s['repeated_raw_labels']),(25,25,1))
         self.assertFalse(s['model_ready']);self.assertIn('UNPROVEN',s['availability_status'])
         a=out['actual_days'][0];self.assertFalse(a['structurally_complete']);self.assertEqual(a['prices_equal_60_or_2026'],24)
@@ -262,3 +265,29 @@ class ReadonlyAuditTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, 'Start day must not be after'):
             audit_connection(self.conn, start_day=third, end_day=first)
+
+    def test_delivery_coverage_includes_dates_present_in_only_one_source(self):
+        from psycopg.types.json import Jsonb
+
+        self.conn.execute('ALTER TABLE raw.snapshots ADD COLUMN created_at timestamptz')
+        self.conn.execute('ALTER TABLE raw.snapshots ADD COLUMN source_version text')
+        pk5_day, fix1_day = date(2026, 11, 2), date(2026, 11, 3)
+        rows = [{'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': 1000,
+                 'publication_ts': '2026-11-01T08:00:00Z'}
+                for period in expected_periods(pk5_day)]
+        retrieved = datetime.fromisoformat('2026-11-01T08:30:00+00:00')
+        with self.conn.cursor() as cursor:
+            cursor.executemany('INSERT INTO actual.tge_fix1 VALUES (%s,%s,100)',
+                               [(fix1_day, hour) for hour in range(1, 25)])
+        for identifier, jwcd_status in ((1, 'PROVISIONAL'), (2, 'CANDIDATES_REJECTED')):
+            rows[0]['fcst_gen_unit_stor_prov'] += 1
+            self.conn.execute(
+                'INSERT INTO raw.snapshots VALUES (%s,%s,%s,%s,%s,%s)',
+                (identifier, pk5_day, retrieved, Jsonb({'pk5l-wp': rows}),
+                 retrieved, 'energy-collector-v3'),
+            )
+            self.assertEqual(audit_connection(self.conn)['delivery_coverage'], [
+                {'day': pk5_day.isoformat(), 'pk5_status': jwcd_status, 'fix1_status': 'MISSING'},
+                {'day': fix1_day.isoformat(), 'pk5_status': 'MISSING',
+                 'fix1_status': 'COMPLETE_UNVERIFIED'},
+            ])

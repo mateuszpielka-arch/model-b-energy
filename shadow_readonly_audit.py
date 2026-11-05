@@ -49,6 +49,30 @@ def audit_pk5_utc_hours(day, rows):
     }
 
 
+def summarize_delivery_coverage(snapshots, actuals, candidate_selection):
+    """Combine source diagnostics per observed delivery day."""
+    snapshot_counts = Counter(snapshot['day'] for snapshot in snapshots)
+    actual_by_day = {actual['day']: actual for actual in actuals}
+    coverage = []
+    for day in sorted(snapshot_counts.keys() | actual_by_day.keys()):
+        actual = actual_by_day.get(day)
+        selection = candidate_selection.get(day)
+        if selection is not None:
+            pk5_status = 'PROVISIONAL' if selection['provisional_snapshot_id'] else 'CANDIDATES_REJECTED'
+        elif snapshot_counts[day]:
+            pk5_status = 'NO_HOURLY_CANDIDATE'
+        else:
+            pk5_status = 'MISSING'
+        if actual is None:
+            fix1_status = 'MISSING'
+        elif actual['structurally_complete']:
+            fix1_status = 'COMPLETE_UNVERIFIED'
+        else:
+            fix1_status = 'INCOMPLETE'
+        coverage.append(dict(day=day, pk5_status=pk5_status, fix1_status=fix1_status))
+    return coverage
+
+
 def audit_connection(conn, *, start_day=None, end_day=None):
     if start_day is not None and end_day is not None and start_day > end_day:
         raise ValueError('Start day must not be after end day')
@@ -172,6 +196,7 @@ def audit_connection(conn, *, start_day=None, end_day=None):
                         s['day'] for s in snapshots if s.get('archive_timing_candidate')
                     }),
                     archive_hourly_candidate_selection=candidate_selection,
+                    delivery_coverage=summarize_delivery_coverage(snapshots, actuals, candidate_selection),
                     archive_hourly_candidate_days=sorted({
                         s['day'] for s in snapshots if s.get('archive_hourly_candidate')
                     }),

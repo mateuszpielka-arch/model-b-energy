@@ -412,3 +412,10 @@ i `--end-day`. Filtry trafiają do obu zapytań SQL przed pobraniem danych PK5
 i agregacją Fix1. Daty graniczne są włączone, a raport zapisuje użyty zakres.
 Test na izolowanej bazie sprawdza dobę zmiany czasu, zakres jednodniowy,
 filtry jednostronne, pełny odczyt i odrzucenie odwróconych granic.
+
+Raport SQL zawiera `delivery_coverage` dla każdej daty obecnej w co najmniej
+jednym źródle. Pokazuje brakujące PK5 lub Fix1, brak kompletnego kandydata JWCD,
+odrzucenie kandydatów, wstępny wybór oraz niekompletne lub strukturalnie kompletne
+ceny Fix1. Statusy diagnostyczne nie potwierdzają pochodzenia danych ani ich
+gotowości do rankingu. Test SQL obejmuje dni z tylko jednym źródłem, dobę 25h
+z niekompletnym Fix1 i zmianę statusu PK5 po wykryciu konfliktu.
