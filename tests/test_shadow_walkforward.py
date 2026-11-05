@@ -269,6 +269,16 @@ class WalkforwardTests(unittest.TestCase):
         self.assertIn(training['day'].isoformat(), skipped['reason'])
         self.assertIn('RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER', skipped['reason'])
 
+    def test_snapshot_iterators_match_lists_for_training_and_targets(self):
+        args = self.args()
+        expected = run_walkforward(**args)
+        self.assertEqual(expected["common_days"], 2)
+        args["history"] = [
+            {**packet, "snapshots": iter(packet["snapshots"])}
+            for packet in args["history"]
+        ]
+        self.assertEqual(run_walkforward(**args), expected)
+
     def test_scoring_reuses_validated_target_prices(self):
         args = self.args()
         target = args['history'][-1]

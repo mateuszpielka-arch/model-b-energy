@@ -3,6 +3,7 @@
 Simulates issuance at each D-1 09:50; never creates real FROZEN forecasts.
 No I/O. Verified canonical history is a prerequisite, not produced by this module.
 """
+from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal, localcontext
 from shadow_asof import select_snapshot, snapshot_identifier
@@ -20,10 +21,18 @@ def run_walkforward(*,history,target_days,evaluated_at):
     plus shape. No parameter search on evaluation data. Simulated cutoff is
     explicitly reported and must never be mistaken for a real issuance timestamp.
     """
-    evaluated=_utc(evaluated_at); history=list(history); target_days=tuple(target_days); packets={}
-    for p in history:
-        if p['day'] in packets: raise ValueError('Duplicate historical packet day')
-        packets[p['day']]=p
+    evaluated = _utc(evaluated_at)
+    target_days = tuple(target_days)
+    packets = {}
+    for packet in history:
+        day = packet['day']
+        if day in packets:
+            raise ValueError('Duplicate historical packet day')
+        snapshots = packet.get('snapshots')
+        if isinstance(snapshots, Iterator):
+            packet = {**packet, 'snapshots': tuple(snapshots)}
+        packets[day] = packet
+    history = list(packets.values())
     accepted=[]; skipped=[]; totals={m:dict(n=0,nz=0,ae=Decimal(0),err=Decimal(0),
                                            denom=Decimal(0),ape=Decimal(0)) for m in MODELS}
     with localcontext() as ctx:
