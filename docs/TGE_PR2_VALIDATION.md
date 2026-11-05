@@ -439,3 +439,10 @@ kolejnością znaczników oraz z ponownym pobraniem. Późniejsze pobranie
 może nadpisać cenę w archiwum legacy. Samo przesunięcie znacznika nie
 dowodzi jednak zmiany ceny, a pierwszy zapis nie ustala dostępności
 aktualnej wartości. Test obejmuje obie wersje schematu na izolowanym PostgreSQL.
+
+Audyt Fix1 liczy zapisane pary adresu źródła i odcisku SHA-256 oraz wiersze
+bez użytecznych metadanych. Wskazuje, czy komplet godzin ma jedną parę, bez
+ujawniania adresów ani odcisków. To kontrola zapisanych metadanych. Zgodność
+z zawartością źródła nadal wymaga odrębnego sprawdzenia. Test na izolowanym
+PostgreSQL obejmuje schemat legacy, jednolite i mieszane metadane oraz
+nieprawidłowy odcisk.

@@ -363,3 +363,36 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(actual['rows_with_invalid_price_timing'], 1)
         self.assertEqual(actual['rows_retrieved_after_first_seen'], 1)
         self.assertEqual(actual['quality_status'], 'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')
+
+    def test_fix1_audit_reports_single_mixed_and_missing_recorded_sources(self):
+        day = date(2026, 11, 2)
+        with self.conn.cursor() as cursor:
+            cursor.executemany('INSERT INTO actual.tge_fix1 VALUES (%s,%s,100)',
+                               [(day, hour) for hour in range(1, 25)])
+
+        def report():
+            return audit_connection(self.conn)['actual_days'][0]
+
+        actual = report()
+        self.assertEqual(actual['rows_without_usable_source_metadata'], 24)
+        self.assertFalse(actual['single_recorded_source'])
+
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN source_url text')
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN raw_hash text')
+        self.conn.execute('UPDATE actual.tge_fix1 SET source_url=%s, raw_hash=%s',
+                          ('https://example.test/fix1', 'a' * 64))
+        self.conn.execute('UPDATE actual.tge_fix1 SET raw_hash=upper(raw_hash) WHERE hour=2')
+        actual = report()
+        self.assertTrue(actual['single_recorded_source'])
+        self.assertEqual(actual['distinct_recorded_sources'], 1)
+        self.assertEqual(actual['quality_status'], 'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')
+        self.assertNotIn('https://example.test', str(actual))
+
+        self.conn.execute('UPDATE actual.tge_fix1 SET raw_hash=%s WHERE hour=24', ('b' * 64,))
+        self.conn.execute('UPDATE actual.tge_fix1 SET source_url=%s WHERE hour=23',
+                          ('https://example.test/other',))
+        self.conn.execute('UPDATE actual.tge_fix1 SET raw_hash=%s WHERE hour=22', ('invalid',))
+        actual = report()
+        self.assertFalse(actual['single_recorded_source'])
+        self.assertEqual(actual['distinct_recorded_sources'], 3)
+        self.assertEqual(actual['rows_without_usable_source_metadata'], 1)

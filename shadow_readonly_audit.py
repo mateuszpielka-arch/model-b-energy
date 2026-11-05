@@ -194,6 +194,9 @@ def audit_connection(conn, *, start_day=None, end_day=None):
             columns = table_columns(conn, 'actual.tge_fix1')
             first_seen = 'first_seen_at_utc' if 'first_seen_at_utc' in columns else 'NULL::timestamptz'
             retrieved = 'retrieved_at_utc' if 'retrieved_at_utc' in columns else 'NULL::timestamptz'
+            source_url = 'source_url' if 'source_url' in columns else 'NULL::text'
+            raw_hash = 'raw_hash' if 'raw_hash' in columns else 'NULL::text'
+            source_present = f"(btrim({source_url}) <> '' AND {raw_hash} ~ '^[0-9A-Fa-f]{{64}}$')"
             rows=conn.execute(f'''SELECT delivery_date,count(*),
                 array_agg(DISTINCT hour) FILTER (WHERE hour IS NOT NULL),
                 count(*) FILTER (WHERE price_pln_mwh IN (60,2026)),
@@ -202,12 +205,15 @@ def audit_connection(conn, *, start_day=None, end_day=None):
                 max({first_seen}), max({retrieved}),
                 count(*) FILTER (WHERE {first_seen} IS NULL OR {retrieved} IS NULL),
                 count(*) FILTER (WHERE {retrieved} < {first_seen}),
-                count(*) FILTER (WHERE {retrieved} > {first_seen})
+                count(*) FILTER (WHERE {retrieved} > {first_seen}),
+                count(*) FILTER (WHERE {source_present} IS NOT TRUE),
+                count(DISTINCT (btrim({source_url}), lower({raw_hash})))
+                    FILTER (WHERE {source_present})
                 FROM actual.tge_fix1 WHERE delivery_date BETWEEN
                 COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date)
                 GROUP BY delivery_date ORDER BY delivery_date''', bounds).fetchall()
             for (day,n,hours,suspect,missing_prices,nonfinite_prices,latest_first_seen,
-                 latest_retrieved,missing_timing,invalid_timing,refetched) in rows:
+                 latest_retrieved,missing_timing,invalid_timing,refetched,missing_source,source_count) in rows:
                 expected=len(expected_periods(day))
                 observed = set(hours or [])
                 required = set(range(1, expected + 1))
@@ -224,6 +230,9 @@ def audit_connection(conn, *, start_day=None, end_day=None):
                     rows_missing_price_timing=missing_timing,
                     rows_with_invalid_price_timing=invalid_timing,
                     rows_retrieved_after_first_seen=refetched,
+                    rows_without_usable_source_metadata=missing_source,
+                    distinct_recorded_sources=source_count,
+                    single_recorded_source=structurally_complete and missing_source == 0 and source_count == 1,
                     missing_legacy_hours=sorted(required-observed),
                     unexpected_legacy_hours=sorted(observed-required),
                     prices_equal_60_or_2026=suspect,
