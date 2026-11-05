@@ -174,19 +174,23 @@ def audit_rows(rows):
                 })
 
 
+def read_csv_rows(lines, *, source):
+    reader = csv.DictReader((line for line in lines if not line.startswith('#')), strict=True)
+    duplicates = sorted(name for name, count in Counter(reader.fieldnames or ()).items()
+                        if count > 1)
+    if duplicates:
+        raise ValueError(f'{source}: duplicate CSV columns: {", ".join(duplicates)}')
+    rows = []
+    for record in reader:
+        if None in record or any(value is None for value in record.values()):
+            raise ValueError(f'{source}: CSV record at line {reader.line_num} has wrong field count')
+        rows.append(record)
+    return rows
+
+
 def read_csv(path):
-    with open(path,encoding='utf-8-sig',newline='') as f:
-        reader = csv.DictReader((line for line in f if not line.startswith('#')), strict=True)
-        duplicates = sorted(name for name, count in Counter(reader.fieldnames or ()).items()
-                            if count > 1)
-        if duplicates:
-            raise ValueError(f'{path}: duplicate CSV columns: {", ".join(duplicates)}')
-        rows = []
-        for record in reader:
-            if None in record or any(value is None for value in record.values()):
-                raise ValueError(f'{path}: CSV record at line {reader.line_num} has wrong field count')
-            rows.append(record)
-        return rows
+    with open(path, encoding='utf-8-sig', newline='') as f:
+        return read_csv_rows(f, source=path)
 
 
 if __name__=='__main__':

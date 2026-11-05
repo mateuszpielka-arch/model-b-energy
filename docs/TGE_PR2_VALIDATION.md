@@ -337,3 +337,20 @@ na ośmiu rzeczywistych referencjach TGE (27.10–03.11.2026) potwierdził 192
 poprawne ceny godzinowe, zero dób gotowych do porównania z powodu braku
 danych i metadanych JWCD oraz pusty ranking. Lokalnie przeszły 153 testy,
 25 integracyjnych testów PostgreSQL pominięto.
+
+### Audyt paczki ZIP PK5/Fix1
+
+`python shadow_history_bundle.py historia.zip` sprawdza SHA-256 CSV i XLSB
+względem manifestu oraz liczbę wierszy, liczbę dób i skrajne daty CSV. Następnie
+uruchamia audyt godzin UTC i dostępności danych. Nie rozpakowuje plików, a
+wynik zawiera wyłącznie agregaty i listy dat kwalifikujących się do porównania.
+Sumy kontrolne dowodzą zgodności zawartości z manifestem. Pochodzenie danych
+oraz zgodność komórek XLSB z CSV wymagają odrębnej weryfikacji.
+
+Przebieg na rzeczywistej paczce potwierdził 50 928 par JWCD/Fix1 w 2 122
+kompletnych dobach 24h od 01.01.2021 do 04.11.2026. CSV pomija sześć dób 23h
+i sześć dób 25h. Brak metadanych publikacji i pobrania JWCD oraz weryfikacji,
+wersji i czasu dostępności Fix1 oznacza zero kwalifikujących się dób dla 30D,
+60D i 90D. Testy sprawdzają odczyt bez zapisów, wykrywanie brakującej doby
+25h, odrzucenie zmienionego CSV i rozbieżności z manifestem. Lokalnie przeszło
+155 testów, 25 integracyjnych testów PostgreSQL pominięto.
