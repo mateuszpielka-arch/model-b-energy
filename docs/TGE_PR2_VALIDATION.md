@@ -374,3 +374,12 @@ wskazówką wymagającą weryfikacji pochodzenia rekordu (np. brak późnego imp
 z historycznym timestampem). Nie zastępuje tej weryfikacji ani mapowania godzin
 UTC. Test PostgreSQL obejmuje zapis na granicy, po granicy, przed startem,
 obcą wersję i brak czasu publikacji. Kod sprawdzono bez połączenia z produkcją.
+
+Audyt read-only PK5 pokazuje pokrycie jawnych `period_start_utc` dla dób
+23/24/25h, w tym brakujące, nadmiarowe i powtórzone okresy. Oddziela kandydatów
+czasowych od snapshotów z kompletem godzin UTC i skończonymi wartościami JWCD.
+Etykiety legacy nie służą do odtwarzania brakującego UTC. Testy syntetyczne
+obejmują obie zmiany czasu, podmianę okresu na duplikat i znaczniki bez strefy.
+Test SQL potwierdza, że sam poprawny czas archiwizacji nie wystarcza do
+zakwalifikowania snapshotu jako kompletnego. Weryfikacja pochodzenia danych
+pozostaje oddzielnym warunkiem dopuszczenia do rankingu.

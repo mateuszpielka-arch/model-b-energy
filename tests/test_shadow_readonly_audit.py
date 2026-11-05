@@ -1,10 +1,38 @@
 import os
+from copy import deepcopy
 from datetime import date,datetime,timezone
 import unittest
 from shadow_postgres_archive import connect_test_database
-from shadow_readonly_audit import audit_connection,connect_readonly
+from shadow_readonly_audit import audit_connection,audit_pk5_utc_hours,connect_readonly
+from shadow_scoring import expected_periods
 
 DSN=os.environ.get('FIX1_SHADOW_TEST_DSN')
+
+class PK5UtcHoursTests(unittest.TestCase):
+    def test_complete_utc_days_include_both_dst_transitions(self):
+        for day, count in ((date(2026, 3, 29), 23), (date(2026, 11, 2), 24),
+                           (date(2026, 10, 25), 25)):
+            with self.subTest(day=day):
+                rows = [{'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': '1000'}
+                        for period in expected_periods(day)]
+                self.assertEqual(len(rows), count)
+                self.assertTrue(audit_pk5_utc_hours(day, rows)['complete_utc_hours'])
+                duplicate = [*rows[:-1], deepcopy(rows[0])]
+                result = audit_pk5_utc_hours(day, duplicate)
+                self.assertFalse(result['complete_utc_hours'])
+                self.assertEqual(result['duplicate_periods_utc'], [rows[0]['period_start_utc']])
+                self.assertEqual(result['missing_periods_utc'], [rows[-1]['period_start_utc']])
+
+    def test_legacy_and_naive_periods_do_not_pass_as_utc(self):
+        result = audit_pk5_utc_hours(date(2026, 10, 25), [
+            {'period': '02a', 'fcst_gen_unit_stor_prov': 'NaN'},
+            {'period_start_utc': '2026-10-25T01:00:00', 'fcst_gen_unit_stor_prov': '1000'},
+        ])
+        self.assertFalse(result['complete_utc_hours'])
+        self.assertEqual(result['rows_without_utc_period'], 1)
+        self.assertEqual(result['rows_with_invalid_utc_period'], 1)
+        self.assertEqual(result['valid_jwcd_rows'], 1)
+
 
 @unittest.skipUnless(DSN,'Set explicit disposable PostgreSQL DSN')
 class ReadonlyAuditTests(unittest.TestCase):
@@ -130,8 +158,8 @@ class ReadonlyAuditTests(unittest.TestCase):
         day = date(2026, 10, 25)
         retrieved = datetime.fromisoformat('2026-10-24T07:30:00+00:00')
         cutoff = '2026-10-24T07:50:00+00:00'
-        rows = [{'period': str(h), 'publication_ts': '2026-10-24T07:20:00Z'}
-                for h in range(1, 26)]
+        rows = [{'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': 1000,
+                 'publication_ts': '2026-10-24T07:20:00Z'} for period in expected_periods(day)]
         for archive_time, source, publications, eligible in (
             (cutoff, 'energy-collector-v3', rows, True),
             ('2026-10-24T07:50:01+00:00', 'energy-collector-v3', rows, False),
@@ -149,4 +177,13 @@ class ReadonlyAuditTests(unittest.TestCase):
                 snapshot, = result['snapshots']
                 self.assertEqual(snapshot['archive_timing_candidate'], eligible)
                 self.assertEqual(result['archive_timing_candidate_days'], [day.isoformat()] if eligible else [])
+                self.assertEqual(result['archive_hourly_candidate_days'], [day.isoformat()] if eligible else [])
                 self.assertFalse(snapshot['model_ready'])
+
+        self.conn.execute('UPDATE raw.snapshots SET payload=%s', (Jsonb({'pk5l-wp': [
+            {key: value for key, value in row.items() if key != 'period_start_utc'}
+            for row in rows
+        ]}),))
+        result = audit_connection(self.conn)
+        self.assertEqual(result['archive_timing_candidate_days'], [day.isoformat()])
+        self.assertEqual(result['archive_hourly_candidate_days'], [])

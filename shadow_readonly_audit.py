@@ -5,6 +5,7 @@ No ambient DATABASE_URL. Never exports credentials or complete raw payloads.
 from datetime import datetime,timezone
 from collections import Counter
 from shadow_asof import cutoff_for_day
+from shadow_history_audit import _number, _stamp
 from shadow_scoring import expected_periods
 
 
@@ -12,6 +13,40 @@ def connect_readonly(dsn):
     import psycopg
     return psycopg.connect(dsn,autocommit=True,
         options='-c default_transaction_read_only=on -c statement_timeout=30000')
+
+
+def audit_pk5_utc_hours(day, rows):
+    """Check explicit canonical period starts; legacy labels cannot disambiguate DST."""
+    expected = set(expected_periods(day))
+    periods = Counter()
+    missing_utc = invalid_utc = valid_jwcd = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            invalid_utc += 1
+            continue
+        valid_jwcd += _number(row.get('fcst_gen_unit_stor_prov'))
+        raw_period = row.get('period_start_utc')
+        if raw_period in (None, ''):
+            missing_utc += 1
+            continue
+        try:
+            period = _stamp(raw_period)
+        except (ValueError, TypeError):
+            invalid_utc += 1
+            continue
+        periods[period] += 1
+    missing = expected - periods.keys()
+    unexpected = periods.keys() - expected
+    duplicates = {period for period, count in periods.items() if count > 1}
+    return {
+        'complete_utc_hours': not (missing or unexpected or duplicates or missing_utc or invalid_utc),
+        'rows_without_utc_period': missing_utc,
+        'rows_with_invalid_utc_period': invalid_utc,
+        'missing_periods_utc': [period.isoformat() for period in sorted(missing)],
+        'unexpected_periods_utc': [period.isoformat() for period in sorted(unexpected)],
+        'duplicate_periods_utc': [period.isoformat() for period in sorted(duplicates)],
+        'valid_jwcd_rows': valid_jwcd,
+    }
 
 
 def audit_connection(conn):
@@ -72,6 +107,7 @@ def audit_connection(conn):
                     and bool(publications) and len(publications) == len(values)
                     and max(publications) <= archived
                 )
+                utc_hours = audit_pk5_utc_hours(day, values)
                 snapshots.append(dict(snapshot_id=sid,day=day.isoformat(),expected_periods=len(expected_periods(day)),
                     rows=len(values),distinct_raw_labels=len(counts),repeated_raw_labels=sum(v-1 for v in counts.values()),
                     jwcd_nonnull=sum(isinstance(r,dict) and r.get('fcst_gen_unit_stor_prov') is not None for r in values),
@@ -84,6 +120,9 @@ def audit_connection(conn):
                     if isinstance(archived, datetime) and archived.utcoffset() is not None else None,
                     source_version=source_version,
                     archive_timing_candidate=archive_timing_candidate,
+                    utc_hour_audit=utc_hours,
+                    archive_hourly_candidate=(archive_timing_candidate and utc_hours['complete_utc_hours']
+                                              and utc_hours['valid_jwcd_rows'] == len(values)),
                     availability_status=availability,
                     model_ready=False))
         if present['actual.tge_fix1']:
@@ -105,6 +144,9 @@ def audit_connection(conn):
                     tables=present,snapshots=snapshots,actual_days=actuals,
                     archive_timing_candidate_days=sorted({
                         s['day'] for s in snapshots if s.get('archive_timing_candidate')
+                    }),
+                    archive_hourly_candidate_days=sorted({
+                        s['day'] for s in snapshots if s.get('archive_hourly_candidate')
                     }),
                     note='60/2026 are diagnostics, not proof of invalid price. Legacy retrieval time is not completion evidence.')
 
