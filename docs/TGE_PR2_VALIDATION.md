@@ -406,3 +406,9 @@ Chroni to przed przywróceniem starszej wersji po jej ponownym pobraniu.
 Jeśli oba snapshoty mają nowsze publikacje dla różnych godzin, nadal
 decyduje czas pobrania, a model korzysta z jednego pełnego snapshotu.
 Regułę sprawdzono na danych syntetycznych, także w audycie PostgreSQL.
+
+Audyt PostgreSQL przyjmuje opcjonalne granice daty dostawy `--start-day`
+i `--end-day`. Filtry trafiają do obu zapytań SQL przed pobraniem danych PK5
+i agregacją Fix1. Daty graniczne są włączone, a raport zapisuje użyty zakres.
+Test na izolowanej bazie sprawdza dobę zmiany czasu, zakres jednodniowy,
+filtry jednostronne, pełny odczyt i odrzucenie odwróconych granic.

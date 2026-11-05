@@ -79,7 +79,7 @@ class ReadonlyAuditTests(unittest.TestCase):
         execute = self.conn.execute
         with connect_test_database(DSN) as writer:
             def execute_with_concurrent_insert(query, *args, **kwargs):
-                if 'FROM actual.tge_fix1 GROUP BY' in query:
+                if 'FROM actual.tge_fix1 WHERE' in query:
                     writer.execute(
                         'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s)',
                         (date(2026, 10, 25), 25, 100),
@@ -232,3 +232,33 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(result['rejected_snapshots'], (('1', 'SUPERSEDED_JWCD_PUBLICATIONS'),) + tuple(
             (str(identifier), 'CONFLICTING_JWCD_PUBLICATION') for identifier in (2, 4, 6)
         ))
+
+    def test_audit_bounds_both_tables_by_inclusive_delivery_dates(self):
+        from psycopg.types.json import Jsonb
+
+        self.seed_dst()
+        first, second, third = (date(2026, 10, day) for day in (25, 26, 27))
+        for day in (second, third):
+            self.conn.execute(
+                'INSERT INTO raw.snapshots VALUES (%s,%s,%s,%s)',
+                (day.day, day, datetime(2026, 10, 24, 7, tzinfo=timezone.utc),
+                 Jsonb({'pk5l-wp': []})),
+            )
+            self.conn.execute('INSERT INTO actual.tge_fix1 VALUES (%s,1,100)', (day,))
+
+        for kwargs, days in (
+            ({'start_day': second, 'end_day': second}, [second]),
+            ({'start_day': second}, [second, third]),
+            ({'end_day': second}, [first, second]),
+            ({}, [first, second, third]),
+        ):
+            with self.subTest(kwargs=kwargs):
+                report = audit_connection(self.conn, **kwargs)
+                expected = [day.isoformat() for day in days]
+                self.assertEqual([row['day'] for row in report['snapshots']], expected)
+                self.assertEqual([row['day'] for row in report['actual_days']], expected)
+                for key in ('start_day', 'end_day'):
+                    self.assertEqual(report[key], kwargs[key].isoformat() if key in kwargs else None)
+
+        with self.assertRaisesRegex(ValueError, 'Start day must not be after'):
+            audit_connection(self.conn, start_day=third, end_day=first)

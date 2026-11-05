@@ -2,7 +2,7 @@
 
 No ambient DATABASE_URL. Never exports credentials or complete raw payloads.
 """
-from datetime import datetime,timezone
+from datetime import date, datetime, timezone
 from collections import Counter, defaultdict
 from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_history_audit import _number, _stamp
@@ -49,7 +49,10 @@ def audit_pk5_utc_hours(day, rows):
     }
 
 
-def audit_connection(conn):
+def audit_connection(conn, *, start_day=None, end_day=None):
+    if start_day is not None and end_day is not None and start_day > end_day:
+        raise ValueError('Start day must not be after end day')
+    bounds = (start_day, end_day)
     if not conn.autocommit: raise ValueError('Dedicated autocommit connection required')
     with conn.transaction():
         conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY')
@@ -69,7 +72,9 @@ def audit_connection(conn):
             source_column = 'source_version' if 'source_version' in columns else 'NULL'
             rows = conn.execute(
                 f'SELECT id,business_date,retrieved_at_utc,payload,{archived_column},{source_column} '
-                'FROM raw.snapshots ORDER BY business_date,retrieved_at_utc,id'
+                'FROM raw.snapshots WHERE business_date BETWEEN '
+                "COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date) "
+                'ORDER BY business_date,retrieved_at_utc,id', bounds,
             ).fetchall()
             for sid,day,retrieved,payload,archived,source_version in rows:
                 values=payload.get('pk5l-wp',[]) if isinstance(payload,dict) else None
@@ -139,7 +144,9 @@ def audit_connection(conn):
             rows=conn.execute('''SELECT delivery_date,count(*),
                 array_agg(DISTINCT hour) FILTER (WHERE hour IS NOT NULL),
                 count(*) FILTER (WHERE price_pln_mwh IN (60,2026))
-                FROM actual.tge_fix1 GROUP BY delivery_date ORDER BY delivery_date''').fetchall()
+                FROM actual.tge_fix1 WHERE delivery_date BETWEEN
+                COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date)
+                GROUP BY delivery_date ORDER BY delivery_date''', bounds).fetchall()
             for day,n,hours,suspect in rows:
                 expected=len(expected_periods(day))
                 observed = set(hours or [])
@@ -158,6 +165,8 @@ def audit_connection(conn):
                 'rejected_snapshots': selection.rejected,
             }
         return dict(generated_at_utc=datetime.now(timezone.utc).isoformat(),transaction_read_only=True,
+                    start_day=start_day.isoformat() if start_day else None,
+                    end_day=end_day.isoformat() if end_day else None,
                     tables=present,snapshots=snapshots,actual_days=actuals,
                     archive_timing_candidate_days=sorted({
                         s['day'] for s in snapshots if s.get('archive_timing_candidate')
@@ -173,8 +182,13 @@ if __name__=='__main__':
     import argparse,json
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--dsn-file',required=True,help='Private local file containing authorized read-only connection DSN')
+    p.add_argument('--start-day', type=date.fromisoformat, help='First delivery day, inclusive')
+    p.add_argument('--end-day', type=date.fromisoformat, help='Last delivery day, inclusive')
     args=p.parse_args()
+    if args.start_day and args.end_day and args.start_day > args.end_day:
+        p.error('--start-day must not be after --end-day')
     from pathlib import Path
     dsn=Path(args.dsn_file).read_text().strip()
-    with connect_readonly(dsn) as conn: result=audit_connection(conn)
+    with connect_readonly(dsn) as conn:
+        result = audit_connection(conn, start_day=args.start_day, end_day=args.end_day)
     print(json.dumps(result,indent=2))
