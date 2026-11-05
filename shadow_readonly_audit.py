@@ -3,8 +3,8 @@
 No ambient DATABASE_URL. Never exports credentials or complete raw payloads.
 """
 from datetime import datetime,timezone
-from collections import Counter
-from shadow_asof import cutoff_for_day
+from collections import Counter, defaultdict
+from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_history_audit import _number, _stamp
 from shadow_scoring import expected_periods
 
@@ -58,6 +58,7 @@ def audit_connection(conn):
         present={name:conn.execute('SELECT to_regclass(%s)',(name,)).fetchone()[0] is not None
                  for name in ('raw.snapshots','actual.tge_fix1','history.hourly')}
         snapshots=[];actuals=[]
+        hourly_candidates = defaultdict(list)
         if present['raw.snapshots']:
             columns = {name for (name,) in conn.execute(
                 "SELECT attname FROM pg_attribute WHERE attrelid = 'raw.snapshots'::regclass "
@@ -108,6 +109,16 @@ def audit_connection(conn):
                     and max(publications) <= archived
                 )
                 utc_hours = audit_pk5_utc_hours(day, values)
+                hourly_candidate = (archive_timing_candidate and utc_hours['complete_utc_hours']
+                                    and utc_hours['valid_jwcd_rows'] == len(values))
+                if hourly_candidate:
+                    hourly_candidates[day].append(dict(
+                        id=sid, delivery_date=day, retrieved_at=retrieved,
+                        retrieval_completed_at=archived,
+                        rows=[dict(period_start_utc=_stamp(row['period_start_utc']),
+                                   publication_ts=_stamp(row['publication_ts']),
+                                   jwcd_mw=row['fcst_gen_unit_stor_prov']) for row in values],
+                    ))
                 snapshots.append(dict(snapshot_id=sid,day=day.isoformat(),expected_periods=len(expected_periods(day)),
                     rows=len(values),distinct_raw_labels=len(counts),repeated_raw_labels=sum(v-1 for v in counts.values()),
                     jwcd_nonnull=sum(isinstance(r,dict) and r.get('fcst_gen_unit_stor_prov') is not None for r in values),
@@ -121,8 +132,7 @@ def audit_connection(conn):
                     source_version=source_version,
                     archive_timing_candidate=archive_timing_candidate,
                     utc_hour_audit=utc_hours,
-                    archive_hourly_candidate=(archive_timing_candidate and utc_hours['complete_utc_hours']
-                                              and utc_hours['valid_jwcd_rows'] == len(values)),
+                    archive_hourly_candidate=hourly_candidate,
                     availability_status=availability,
                     model_ready=False))
         if present['actual.tge_fix1']:
@@ -140,11 +150,19 @@ def audit_connection(conn):
                     unexpected_legacy_hours=sorted(observed-required),
                     prices_equal_60_or_2026=suspect,
                     quality_status='UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION'))
+        candidate_selection = {}
+        for day, candidates in sorted(hourly_candidates.items()):
+            selection = select_snapshot(day, candidates)
+            candidate_selection[day.isoformat()] = {
+                'provisional_snapshot_id': selection.snapshot_id,
+                'rejected_snapshots': selection.rejected,
+            }
         return dict(generated_at_utc=datetime.now(timezone.utc).isoformat(),transaction_read_only=True,
                     tables=present,snapshots=snapshots,actual_days=actuals,
                     archive_timing_candidate_days=sorted({
                         s['day'] for s in snapshots if s.get('archive_timing_candidate')
                     }),
+                    archive_hourly_candidate_selection=candidate_selection,
                     archive_hourly_candidate_days=sorted({
                         s['day'] for s in snapshots if s.get('archive_hourly_candidate')
                     }),

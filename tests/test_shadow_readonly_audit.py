@@ -187,3 +187,39 @@ class ReadonlyAuditTests(unittest.TestCase):
         result = audit_connection(self.conn)
         self.assertEqual(result['archive_timing_candidate_days'], [day.isoformat()])
         self.assertEqual(result['archive_hourly_candidate_days'], [])
+
+    def test_hourly_candidate_selection_flags_conflicting_latest_versions(self):
+        from psycopg.types.json import Jsonb
+
+        self.conn.execute('ALTER TABLE raw.snapshots ADD COLUMN created_at timestamptz')
+        self.conn.execute('ALTER TABLE raw.snapshots ADD COLUMN source_version text')
+        day = date(2026, 11, 2)
+        periods = expected_periods(day)
+        retrieved = datetime.fromisoformat('2026-11-01T08:30:00+00:00')
+
+        def insert(identifier, minute, jwcd, reverse=False):
+            rows = [{'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': jwcd,
+                     'publication_ts': '2026-11-01T08:00:00Z'} for period in periods]
+            if reverse:
+                rows.reverse()
+            self.conn.execute(
+                'INSERT INTO raw.snapshots VALUES (%s,%s,%s,%s,%s,%s)',
+                (identifier, day, retrieved, Jsonb({'pk5l-wp': rows}),
+                 retrieved.replace(minute=minute), 'energy-collector-v3'),
+            )
+
+        def selection():
+            return audit_connection(self.conn)['archive_hourly_candidate_selection'][day.isoformat()]
+
+        insert(1, 40, 999)
+        insert(2, 50, 1000)
+        insert(3, 51, 2000)
+        self.assertEqual(selection()['provisional_snapshot_id'], '2')
+        insert(4, 50, '1000.00', reverse=True)
+        self.assertEqual(selection()['provisional_snapshot_id'], '4')
+        insert(5, 50, 1001)
+        result = selection()
+        self.assertIsNone(result['provisional_snapshot_id'])
+        self.assertEqual(result['rejected_snapshots'], tuple(
+            (str(identifier), 'CONFLICTING_LATEST_SNAPSHOTS') for identifier in (2, 4, 5)
+        ))

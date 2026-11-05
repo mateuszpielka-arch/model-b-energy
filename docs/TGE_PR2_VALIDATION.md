@@ -383,3 +383,11 @@ obejmują obie zmiany czasu, podmianę okresu na duplikat i znaczniki bez strefy
 Test SQL potwierdza, że sam poprawny czas archiwizacji nie wystarcza do
 zakwalifikowania snapshotu jako kompletnego. Weryfikacja pochodzenia danych
 pozostaje oddzielnym warunkiem dopuszczenia do rankingu.
+
+Audyt SQL stosuje tę samą regułę wyboru co SHADOW do kompletnych kandydatów
+PK5. W raporcie wskazuje wstępny identyfikator lub konflikt, gdy snapshoty
+z tym samym najpóźniejszym czasem zapisu i rozpoczęcia pobrania różnią się
+wartościami JWCD. Równe wartości po normalizacji UTC i liczb oraz starsze
+wersje nie blokują wyboru. W teście na izolowanym PostgreSQL snapshot po
+09:50 nie wpływa na wybór. Jest to diagnostyka oparta na czasie zapisu.
+Pochodzenie rekordu nadal wymaga weryfikacji przed dopuszczeniem do rankingu.
