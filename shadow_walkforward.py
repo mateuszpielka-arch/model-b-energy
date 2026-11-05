@@ -38,7 +38,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 actual_available = _utc(target.get('actual_available_at'))
                 if actual_available > evaluated:
                     raise ValueError('Target actual not yet available for evaluation')
-                selected = select_snapshot(day, target.get('snapshots') or ())
+                selected = select_snapshot(day, target.get('snapshots', ()))
                 if evaluated < selected.cutoff_utc:
                     raise ValueError('Simulated issuance is after evaluation time')
                 if actual_available <= selected.cutoff_utc:

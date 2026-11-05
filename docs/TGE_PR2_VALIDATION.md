@@ -290,3 +290,7 @@ Lokalnie przeszły 143 testy, a 25 testów PostgreSQL pominięto.
 Brak pola snapshotów JWCD skutkuje pominięciem odpowiedniej doby
 w walk-forward. Testy obejmują brak danych docelowych i treningowych.
 Lokalnie przeszły 144 testy, 25 testów PostgreSQL pominięto.
+
+Selekcja JWCD odrzuca pole snapshotów o błędnym typie. Test potwierdza,
+że uszkodzona doba trafia do raportu, a poprawna pozostaje w rankingu.
+Lokalnie przeszło 145 testów, 25 testów PostgreSQL pominięto.

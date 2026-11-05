@@ -217,3 +217,15 @@ class WalkforwardTests(unittest.TestCase):
         skipped, = result['skipped']
         self.assertEqual(skipped['stage'], 'ols30')
         self.assertEqual(skipped['reason'], 'Historical JWCD availability not proven')
+
+    def test_invalid_snapshot_collection_does_not_abort_backtest(self):
+        args = self.args()
+        target = args['history'][-1]
+        target['snapshots'] = 42
+
+        result = run_walkforward(**args)
+
+        self.assertEqual(result['common_days'], 1)
+        skipped, = result['skipped']
+        self.assertEqual(skipped['stage'], 'target_snapshot')
+        self.assertEqual(skipped['rejected_snapshots'], (('', 'INVALID_SNAPSHOT_COLLECTION'),))

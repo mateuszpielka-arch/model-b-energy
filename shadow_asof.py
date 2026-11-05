@@ -40,7 +40,12 @@ def select_snapshot(day, snapshots):
     publication evidence rejects the candidate rather than inventing history.
     """
     cutoff = cutoff_for_day(day)
-    snapshots = list(snapshots)
+    if isinstance(snapshots, (str, bytes, Mapping)):
+        return SnapshotSelection(None, cutoff, (), (("", "INVALID_SNAPSHOT_COLLECTION"),))
+    try:
+        snapshots = list(snapshots)
+    except TypeError:
+        return SnapshotSelection(None, cutoff, (), (("", "INVALID_SNAPSHOT_COLLECTION"),))
     ids = Counter(snapshot_identifier(s) for s in snapshots)
     eligible, rejected = [], []
     periods = set(expected_periods(day))
