@@ -212,16 +212,16 @@ class ReadonlyAuditTests(unittest.TestCase):
         def selection():
             return audit_connection(self.conn)['archive_hourly_candidate_selection'][day.isoformat()]
 
-        insert(1, 40, 999)
-        insert(2, 50, 1000)
+        insert(1, 50, 999)
+        insert(2, 49, 1000)
         insert(3, 51, 2000)
         self.assertEqual(selection()['provisional_snapshot_id'], '2')
-        insert(4, 50, '1000.00', reverse=True)
+        insert(4, 49, '1000.00', reverse=True)
         self.assertEqual(selection()['provisional_snapshot_id'], '4')
-        insert(5, 50, 1001)
+        insert(5, 49, 1001)
         result = selection()
         self.assertIsNone(result['provisional_snapshot_id'])
-        self.assertEqual(result['rejected_snapshots'], tuple(
+        self.assertEqual(result['rejected_snapshots'], (('1', 'SUPERSEDED_JWCD_PUBLICATIONS'),) + tuple(
             (str(identifier), 'CONFLICTING_LATEST_SNAPSHOTS') for identifier in (2, 4, 5)
         ))
 
@@ -229,6 +229,6 @@ class ReadonlyAuditTests(unittest.TestCase):
         insert(6, 45, 1001)
         result = selection()
         self.assertIsNone(result['provisional_snapshot_id'])
-        self.assertEqual(result['rejected_snapshots'], tuple(
+        self.assertEqual(result['rejected_snapshots'], (('1', 'SUPERSEDED_JWCD_PUBLICATIONS'),) + tuple(
             (str(identifier), 'CONFLICTING_JWCD_PUBLICATION') for identifier in (2, 4, 6)
         ))

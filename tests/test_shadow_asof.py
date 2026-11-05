@@ -21,7 +21,10 @@ class AvailabilityTests(unittest.TestCase):
         c['rows'][0]['publication_ts'] += timedelta(minutes=1)
         out=select_snapshot(a['delivery_date'],[b,a,c])
         self.assertEqual(out.snapshot_id,'latest-eligible'); self.assertEqual(out.rows[0][1],11000)
-        self.assertEqual(len(out.rejected),1)
+        self.assertEqual(dict(out.rejected), {
+            'late': 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER',
+            'early': 'SUPERSEDED_JWCD_PUBLICATIONS',
+        })
 
     def test_request_start_before_cutoff_completion_after_is_rejected(self):
         s=self.snapshot(); s['retrieval_completed_at']=datetime(2026,11,2,8,50,1,tzinfo=UTC)
@@ -120,3 +123,28 @@ class AvailabilityTests(unittest.TestCase):
         later['retrieval_completed_at'] = result.cutoff_utc + timedelta(seconds=1)
         result = select_snapshot(original['delivery_date'], [later, original])
         self.assertEqual(result.snapshot_id, 'original')
+
+    def test_later_capture_cannot_roll_back_newer_complete_publications(self):
+        newer = self.snapshot(sid='newer-publications')
+        stale = deepcopy(newer)
+        stale['id'] = 'later-capture'
+        stale['retrieval_completed_at'] += timedelta(minutes=10)
+        newer['rows'][0]['publication_ts'] += timedelta(minutes=15)
+        newer['rows'][0]['jwcd_mw'] = 11000
+        result = select_snapshot(newer['delivery_date'], [stale, newer])
+        self.assertEqual(result.snapshot_id, 'newer-publications')
+        self.assertEqual(result.rows[0][1], 11000)
+        self.assertEqual(result.rejected, (('later-capture', 'SUPERSEDED_JWCD_PUBLICATIONS'),))
+
+    def test_incomparable_publications_keep_whole_snapshot(self):
+        first = self.snapshot(sid='first')
+        later = deepcopy(first)
+        later['id'] = 'later'
+        later['retrieval_completed_at'] += timedelta(minutes=10)
+        first['rows'][0]['publication_ts'] += timedelta(minutes=15)
+        first['rows'][0]['jwcd_mw'] = 11000
+        later['rows'][1]['publication_ts'] += timedelta(minutes=15)
+        later['rows'][1]['jwcd_mw'] = 12000
+        result = select_snapshot(first['delivery_date'], [later, first])
+        self.assertEqual(result.snapshot_id, 'later')
+        self.assertEqual([value for _, value in result.rows[:2]], [10000, 12000])

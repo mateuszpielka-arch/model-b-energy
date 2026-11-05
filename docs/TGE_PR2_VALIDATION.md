@@ -398,3 +398,11 @@ wartości JWCD temu samemu okresowi UTC i znacznikowi publikacji. Późniejsze
 pobranie tej samej publikacji nie rozstrzyga konfliktu. Odrębna publikacja
 pozostaje dopuszczalną rewizją, a dane po D-1 09:50 są wykluczone z porównania.
 Testy obejmują te przypadki oraz raport odrzuceń w izolowanym PostgreSQL.
+
+Selekcja SHADOW odrzuca jako SUPERSEDED_JWCD_PUBLICATIONS snapshot, gdy
+inny kompletny snapshot dostępny do D-1 09:50 ma równie nowe publikacje dla
+wszystkich godzin UTC i nowszą publikację dla co najmniej jednej godziny.
+Chroni to przed przywróceniem starszej wersji po jej ponownym pobraniu.
+Jeśli oba snapshoty mają nowsze publikacje dla różnych godzin, nadal
+decyduje czas pobrania, a model korzysta z jednego pełnego snapshotu.
+Regułę sprawdzono na danych syntetycznych, także w audycie PostgreSQL.

@@ -32,7 +32,7 @@ def snapshot_identifier(snapshot):
 
 
 def select_snapshot(day, snapshots):
-    """Latest complete JWCD snapshot genuinely available by D-1 09:50 Warsaw.
+    """Select a complete JWCD snapshot genuinely available by D-1 09:50 Warsaw.
 
     Canonical snapshot: id, delivery_date (date), retrieved_at (aware datetime),
     retrieval_completed_at (aware datetime), rows of period_start_utc,
@@ -91,9 +91,19 @@ def select_snapshot(day, snapshots):
             rejected.append((sid,str(exc)))
     if not eligible:
         return SnapshotSelection(None,cutoff,(),tuple(rejected))
-    completed, retrieved, sid, rows, _ = max(eligible)
+    # A later capture of an older publication must not roll back a complete
+    # revision. Keep whole snapshots, including incomparable publication mixes.
+    freshest = []
+    for candidate in eligible:
+        _, _, candidate_id, _, publications = candidate
+        if any(other != publications and all(other[p] >= publications[p] for p in periods)
+               for _, _, _, _, other in eligible):
+            rejected.append((candidate_id, 'SUPERSEDED_JWCD_PUBLICATIONS'))
+        else:
+            freshest.append(candidate)
+    completed, retrieved, sid, rows, _ = max(freshest)
     latest = [(candidate_id, candidate_rows, publications)
-              for end, start, candidate_id, candidate_rows, publications in eligible
+              for end, start, candidate_id, candidate_rows, publications in freshest
               if (end, start) == (completed, retrieved)]
     if any(candidate_rows != rows for _, candidate_rows, _ in latest):
         rejected.extend((candidate_id, 'CONFLICTING_LATEST_SNAPSHOTS')
