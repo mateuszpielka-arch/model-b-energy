@@ -259,3 +259,12 @@ class WalkforwardTests(unittest.TestCase):
                 self.assertEqual(result['common_days'], 1)
                 skipped, = result['skipped']
                 self.assertEqual(skipped['reason'], reason)
+
+    def test_late_training_snapshot_reason_is_reported(self):
+        args = self.args()
+        args['target_days'] = args['target_days'][-1:]
+        training = args['history'][-2]
+        training['snapshots'][0]['retrieval_completed_at'] += timedelta(days=1)
+        skipped, = run_walkforward(**args)['skipped']
+        self.assertIn(training['day'].isoformat(), skipped['reason'])
+        self.assertIn('RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER', skipped['reason'])

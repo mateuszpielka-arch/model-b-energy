@@ -307,3 +307,7 @@ Raport walk-forward wskazuje datę doby treningowej z brakującym JWCD,
 brakującymi lub spóźnionymi cenami Fix1 oraz pierwszy brak w oknie.
 Testy potwierdzają wskazanie daty dla obu brakujących zestawów.
 Lokalnie przeszło 148 testów, 25 PostgreSQL pominięto.
+
+Raport walk-forward dołącza przyczyny odrzucenia snapshotów JWCD do daty
+doby treningowej. Test obejmuje zakończenie pobrania po granicy 09:50.
+Lokalnie przeszło 149 testów, 25 PostgreSQL pominięto.
