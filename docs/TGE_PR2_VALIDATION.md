@@ -419,3 +419,10 @@ odrzucenie kandydatów, wstępny wybór oraz niekompletne lub strukturalnie komp
 ceny Fix1. Statusy diagnostyczne nie potwierdzają pochodzenia danych ani ich
 gotowości do rankingu. Test SQL obejmuje dni z tylko jednym źródłem, dobę 25h
 z niekompletnym Fix1 i zmianę statusu PK5 po wykryciu konfliktu.
+
+Raport SQL podaje `missing_delivery_ranges`, czyli przedziały dat dostawy
+nieobecnych zarówno w PK5, jak i Fix1. Uwzględnia wskazane granice włącznie.
+Brakującą granicę wyznacza pierwsza lub ostatnia zaobserwowana data.
+Gdy oba źródła są puste, cały przedział zostanie wskazany, jeśli podano obie
+granice. Test PostgreSQL obejmuje pusty przedział oraz luki na początku,
+w środku i na końcu zakresu. Raport nie tworzy sztucznych rekordów dziennych.

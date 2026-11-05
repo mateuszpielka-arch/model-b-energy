@@ -73,6 +73,26 @@ def summarize_delivery_coverage(snapshots, actuals, candidate_selection):
     return coverage
 
 
+def missing_delivery_ranges(coverage, start_day, end_day):
+    """Return compact inclusive ranges absent from both audited sources."""
+    observed = [date.fromisoformat(entry['day']).toordinal() for entry in coverage]
+    if not observed and (start_day is None or end_day is None):
+        return []
+    first = start_day.toordinal() if start_day is not None else observed[0]
+    last = end_day.toordinal() if end_day is not None else observed[-1]
+    gaps = []
+    cursor = first
+    for boundary in (*observed, last + 1):
+        if cursor < boundary:
+            gaps.append(dict(
+                start_day=date.fromordinal(cursor).isoformat(),
+                end_day=date.fromordinal(boundary - 1).isoformat(),
+                days=boundary - cursor,
+            ))
+        cursor = boundary + 1
+    return gaps
+
+
 def audit_connection(conn, *, start_day=None, end_day=None):
     if start_day is not None and end_day is not None and start_day > end_day:
         raise ValueError('Start day must not be after end day')
@@ -188,6 +208,7 @@ def audit_connection(conn, *, start_day=None, end_day=None):
                 'provisional_snapshot_id': selection.snapshot_id,
                 'rejected_snapshots': selection.rejected,
             }
+        coverage = summarize_delivery_coverage(snapshots, actuals, candidate_selection)
         return dict(generated_at_utc=datetime.now(timezone.utc).isoformat(),transaction_read_only=True,
                     start_day=start_day.isoformat() if start_day else None,
                     end_day=end_day.isoformat() if end_day else None,
@@ -196,7 +217,8 @@ def audit_connection(conn, *, start_day=None, end_day=None):
                         s['day'] for s in snapshots if s.get('archive_timing_candidate')
                     }),
                     archive_hourly_candidate_selection=candidate_selection,
-                    delivery_coverage=summarize_delivery_coverage(snapshots, actuals, candidate_selection),
+                    delivery_coverage=coverage,
+                    missing_delivery_ranges=missing_delivery_ranges(coverage, start_day, end_day),
                     archive_hourly_candidate_days=sorted({
                         s['day'] for s in snapshots if s.get('archive_hourly_candidate')
                     }),

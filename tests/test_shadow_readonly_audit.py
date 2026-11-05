@@ -291,3 +291,25 @@ class ReadonlyAuditTests(unittest.TestCase):
                 {'day': fix1_day.isoformat(), 'pk5_status': 'MISSING',
                  'fix1_status': 'COMPLETE_UNVERIFIED'},
             ])
+
+    def test_missing_delivery_ranges_cover_empty_and_partially_observed_windows(self):
+        start = date(2026, 10, 24)
+        end = date(2026, 10, 29)
+
+        report = audit_connection(self.conn, start_day=start, end_day=end)
+        self.assertEqual(report['delivery_coverage'], [])
+        self.assertEqual(report['missing_delivery_ranges'], [
+            {'start_day': '2026-10-24', 'end_day': '2026-10-29', 'days': 6},
+        ])
+        self.assertEqual(audit_connection(self.conn, start_day=start)['missing_delivery_ranges'], [])
+
+        self.seed_dst()
+        self.conn.execute('INSERT INTO actual.tge_fix1 VALUES (%s,1,100)', (date(2026, 10, 28),))
+        report = audit_connection(self.conn, start_day=start, end_day=end)
+        internal_gap = {'start_day': '2026-10-26', 'end_day': '2026-10-27', 'days': 2}
+        self.assertEqual(report['missing_delivery_ranges'], [
+            {'start_day': '2026-10-24', 'end_day': '2026-10-24', 'days': 1},
+            internal_gap,
+            {'start_day': '2026-10-29', 'end_day': '2026-10-29', 'days': 1},
+        ])
+        self.assertEqual(audit_connection(self.conn)['missing_delivery_ranges'], [internal_gap])
