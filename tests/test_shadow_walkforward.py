@@ -268,3 +268,16 @@ class WalkforwardTests(unittest.TestCase):
         skipped, = run_walkforward(**args)['skipped']
         self.assertIn(training['day'].isoformat(), skipped['reason'])
         self.assertIn('RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER', skipped['reason'])
+
+    def test_scoring_reuses_validated_target_prices(self):
+        args = self.args()
+        target = args['history'][-1]
+        args['target_days'] = [target['day']]
+        expected = run_walkforward(**args)
+        target['actual'] = iter(target['actual'])
+
+        result = run_walkforward(**args)
+
+        self.assertEqual(result['common_days'], 1)
+        self.assertEqual(result['accepted'][0]['scores'], expected['accepted'][0]['scores'])
+        self.assertEqual(result['ranking'], expected['ranking'])

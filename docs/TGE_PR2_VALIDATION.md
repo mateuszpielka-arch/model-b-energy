@@ -311,3 +311,7 @@ Lokalnie przeszło 148 testów, 25 PostgreSQL pominięto.
 Raport walk-forward dołącza przyczyny odrzucenia snapshotów JWCD do daty
 doby treningowej. Test obejmuje zakończenie pobrania po granicy 09:50.
 Lokalnie przeszło 149 testów, 25 PostgreSQL pominięto.
+
+Scoring dobowy i ranking walk-forward używają tych samych zwalidowanych
+cen Fix1. Test z jednorazowym iteratorem daje wyniki identyczne z listą.
+Lokalnie przeszło 150 testów, 25 PostgreSQL pominięto.

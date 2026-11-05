@@ -67,7 +67,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 retrieved=_utc(snapshot['retrieval_completed_at'])
                 scores={}
                 for name in MODELS:
-                    scores[name]=score_day(day=day,forecast=predictions[name]['prices'],actual=target['actual'],
+                    scores[name]=score_day(day=day,forecast=predictions[name]['prices'],actual=actual.items(),
                         forecast_id=f'simulated:{day}:{name}',model_version=predictions[name]['model_version'],
                         actual_version=target['actual_version'],forecast_status='SHADOW',actual_verified=True,
                         issued_at=selected.cutoff_utc,publication_ts=publication,retrieved_at=retrieved)
