@@ -338,3 +338,28 @@ class ReadonlyAuditTests(unittest.TestCase):
         report = audit_connection(self.conn)
         self.assertTrue(report['actual_days'][0]['complete_finite_prices'])
         self.assertEqual(report['delivery_coverage'][0]['fix1_status'], 'COMPLETE_UNVERIFIED')
+
+    def test_fix1_audit_distinguishes_first_seen_from_current_retrieval(self):
+        day = date(2026, 11, 2)
+        self.conn.execute('INSERT INTO actual.tge_fix1 VALUES (%s,1,100)', (day,))
+        legacy, = audit_connection(self.conn)['actual_days']
+        self.assertIsNone(legacy['latest_retrieved_at_utc'])
+        self.assertEqual(legacy['rows_missing_price_timing'], 1)
+
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN first_seen_at_utc timestamptz')
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN retrieved_at_utc timestamptz')
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,100,%s,%s)',
+                [(day, 2, '2026-11-01T10:05:00+01:00', '2026-11-02T06:00:00Z'),
+                 (day, 3, '2026-11-01T10:05:00+01:00', '2026-11-01T08:00:00Z'),
+                 (day, 4, '2026-11-01T10:05:00+01:00', '2026-11-01T09:05:00Z')],
+            )
+
+        actual, = audit_connection(self.conn)['actual_days']
+        self.assertEqual(actual['latest_first_seen_at_utc'], '2026-11-01T09:05:00+00:00')
+        self.assertEqual(actual['latest_retrieved_at_utc'], '2026-11-02T06:00:00+00:00')
+        self.assertEqual(actual['rows_missing_price_timing'], 1)
+        self.assertEqual(actual['rows_with_invalid_price_timing'], 1)
+        self.assertEqual(actual['rows_retrieved_after_first_seen'], 1)
+        self.assertEqual(actual['quality_status'], 'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')

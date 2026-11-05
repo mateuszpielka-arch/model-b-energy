@@ -95,6 +95,13 @@ def missing_delivery_ranges(coverage, start_day, end_day):
     return gaps
 
 
+def table_columns(conn, table):
+    return {name for (name,) in conn.execute(
+        'SELECT attname FROM pg_attribute WHERE attrelid = %s::regclass '
+        'AND attnum > 0 AND NOT attisdropped', (table,),
+    )}
+
+
 def audit_connection(conn, *, start_day=None, end_day=None):
     if start_day is not None and end_day is not None and start_day > end_day:
         raise ValueError('Start day must not be after end day')
@@ -109,10 +116,7 @@ def audit_connection(conn, *, start_day=None, end_day=None):
         snapshots=[];actuals=[]
         hourly_candidates = defaultdict(list)
         if present['raw.snapshots']:
-            columns = {name for (name,) in conn.execute(
-                "SELECT attname FROM pg_attribute WHERE attrelid = 'raw.snapshots'::regclass "
-                "AND attnum > 0 AND NOT attisdropped"
-            )}
+            columns = table_columns(conn, 'raw.snapshots')
             # Both expressions are fixed identifiers or NULL for older schemas.
             archived_column = 'created_at' if 'created_at' in columns else 'NULL'
             source_column = 'source_version' if 'source_version' in columns else 'NULL'
@@ -187,15 +191,23 @@ def audit_connection(conn, *, start_day=None, end_day=None):
                     availability_status=availability,
                     model_ready=False))
         if present['actual.tge_fix1']:
-            rows=conn.execute('''SELECT delivery_date,count(*),
+            columns = table_columns(conn, 'actual.tge_fix1')
+            first_seen = 'first_seen_at_utc' if 'first_seen_at_utc' in columns else 'NULL::timestamptz'
+            retrieved = 'retrieved_at_utc' if 'retrieved_at_utc' in columns else 'NULL::timestamptz'
+            rows=conn.execute(f'''SELECT delivery_date,count(*),
                 array_agg(DISTINCT hour) FILTER (WHERE hour IS NOT NULL),
                 count(*) FILTER (WHERE price_pln_mwh IN (60,2026)),
                 count(*) FILTER (WHERE price_pln_mwh IS NULL),
-                count(*) FILTER (WHERE price_pln_mwh::text IN ('NaN','Infinity','-Infinity'))
+                count(*) FILTER (WHERE price_pln_mwh::text IN ('NaN','Infinity','-Infinity')),
+                max({first_seen}), max({retrieved}),
+                count(*) FILTER (WHERE {first_seen} IS NULL OR {retrieved} IS NULL),
+                count(*) FILTER (WHERE {retrieved} < {first_seen}),
+                count(*) FILTER (WHERE {retrieved} > {first_seen})
                 FROM actual.tge_fix1 WHERE delivery_date BETWEEN
                 COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date)
                 GROUP BY delivery_date ORDER BY delivery_date''', bounds).fetchall()
-            for day,n,hours,suspect,missing_prices,nonfinite_prices in rows:
+            for (day,n,hours,suspect,missing_prices,nonfinite_prices,latest_first_seen,
+                 latest_retrieved,missing_timing,invalid_timing,refetched) in rows:
                 expected=len(expected_periods(day))
                 observed = set(hours or [])
                 required = set(range(1, expected + 1))
@@ -205,6 +217,13 @@ def audit_connection(conn, *, start_day=None, end_day=None):
                     missing_price_rows=missing_prices,
                     nonfinite_price_rows=nonfinite_prices,
                     complete_finite_prices=structurally_complete and missing_prices == nonfinite_prices == 0,
+                    latest_first_seen_at_utc=latest_first_seen.astimezone(timezone.utc).isoformat()
+                    if latest_first_seen is not None else None,
+                    latest_retrieved_at_utc=latest_retrieved.astimezone(timezone.utc).isoformat()
+                    if latest_retrieved is not None else None,
+                    rows_missing_price_timing=missing_timing,
+                    rows_with_invalid_price_timing=invalid_timing,
+                    rows_retrieved_after_first_seen=refetched,
                     missing_legacy_hours=sorted(required-observed),
                     unexpected_legacy_hours=sorted(observed-required),
                     prices_equal_60_or_2026=suspect,

@@ -432,3 +432,10 @@ liczbę brakujących cen oraz wartości NaN i ±Infinity oraz status INVALID_PRI
 jeśli doba z kompletem godzin ma niepoprawną cenę. Zera i ceny ujemne są
 akceptowane. Test na izolowanym PostgreSQL obejmuje wszystkie te przypadki.
 Poprawność techniczna cen nadal nie potwierdza ich pochodzenia.
+
+Audyt SQL Fix1 rozdziela najpóźniejsze czasy pierwszego zapisu i pobrania
+aktualnie zapisanych cen. Liczy wiersze bez metadanych czasu, z odwróconą
+kolejnością znaczników oraz z ponownym pobraniem. Późniejsze pobranie
+może nadpisać cenę w archiwum legacy. Samo przesunięcie znacznika nie
+dowodzi jednak zmiany ceny, a pierwszy zapis nie ustala dostępności
+aktualnej wartości. Test obejmuje obie wersje schematu na izolowanym PostgreSQL.
