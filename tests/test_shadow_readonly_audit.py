@@ -198,8 +198,9 @@ class ReadonlyAuditTests(unittest.TestCase):
         retrieved = datetime.fromisoformat('2026-11-01T08:30:00+00:00')
 
         def insert(identifier, minute, jwcd, reverse=False):
+            publication = '2026-11-01T07:00:00Z' if identifier == 1 else '2026-11-01T08:00:00Z'
             rows = [{'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': jwcd,
-                     'publication_ts': '2026-11-01T08:00:00Z'} for period in periods]
+                     'publication_ts': publication} for period in periods]
             if reverse:
                 rows.reverse()
             self.conn.execute(
@@ -222,4 +223,12 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertIsNone(result['provisional_snapshot_id'])
         self.assertEqual(result['rejected_snapshots'], tuple(
             (str(identifier), 'CONFLICTING_LATEST_SNAPSHOTS') for identifier in (2, 4, 5)
+        ))
+
+        self.conn.execute('DELETE FROM raw.snapshots WHERE id=5')
+        insert(6, 45, 1001)
+        result = selection()
+        self.assertIsNone(result['provisional_snapshot_id'])
+        self.assertEqual(result['rejected_snapshots'], tuple(
+            (str(identifier), 'CONFLICTING_JWCD_PUBLICATION') for identifier in (2, 4, 6)
         ))

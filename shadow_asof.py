@@ -63,6 +63,7 @@ def select_snapshot(day, snapshots):
             if not retrieved <= completed <= cutoff:
                 raise ValueError('RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER')
             clean = {}
+            publications = {}
             for row in s.get('rows',[]):
                 if not isinstance(row, Mapping):
                     raise ValueError('INVALID_SNAPSHOT_ROW')
@@ -82,19 +83,33 @@ def select_snapshot(day, snapshots):
                 if not value.is_finite():
                     raise ValueError('INVALID_JWCD')
                 clean[p] = value
+                publications[p] = pub
             if set(clean) != periods:
                 raise ValueError('INCOMPLETE_OR_WRONG_DELIVERY_PERIODS')
-            eligible.append((completed,retrieved,sid,tuple(sorted(clean.items()))))
+            eligible.append((completed, retrieved, sid, tuple(sorted(clean.items())), publications))
         except (ValueError,TypeError) as exc:
             rejected.append((sid,str(exc)))
     if not eligible:
         return SnapshotSelection(None,cutoff,(),tuple(rejected))
-    completed, retrieved, sid, rows = max(eligible)
-    latest = [(candidate_id, candidate_rows)
-              for end, start, candidate_id, candidate_rows in eligible
+    completed, retrieved, sid, rows, _ = max(eligible)
+    latest = [(candidate_id, candidate_rows, publications)
+              for end, start, candidate_id, candidate_rows, publications in eligible
               if (end, start) == (completed, retrieved)]
-    if any(candidate_rows != rows for _, candidate_rows in latest):
+    if any(candidate_rows != rows for _, candidate_rows, _ in latest):
         rejected.extend((candidate_id, 'CONFLICTING_LATEST_SNAPSHOTS')
-                        for candidate_id, _ in sorted(latest))
+                        for candidate_id, _, _ in sorted(latest))
+        return SnapshotSelection(None, cutoff, (), tuple(rejected))
+    # A later download alone does not explain changed values for the same
+    # publication and UTC period. Ignore conflicts from ineligible snapshots.
+    selected_values = dict(rows)
+    conflicting_ids = set()
+    for latest_id, _, latest_publications in latest:
+        for _, _, candidate_id, candidate_rows, candidate_publications in eligible:
+            if any(candidate_publications[period] == latest_publications[period]
+                   and value != selected_values[period] for period, value in candidate_rows):
+                conflicting_ids.update((latest_id, candidate_id))
+    if conflicting_ids:
+        rejected.extend((candidate_id, 'CONFLICTING_JWCD_PUBLICATION')
+                        for candidate_id in sorted(conflicting_ids))
         return SnapshotSelection(None, cutoff, (), tuple(rejected))
     return SnapshotSelection(sid,cutoff,rows,tuple(rejected))

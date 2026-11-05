@@ -391,3 +391,10 @@ wartościami JWCD. Równe wartości po normalizacji UTC i liczb oraz starsze
 wersje nie blokują wyboru. W teście na izolowanym PostgreSQL snapshot po
 09:50 nie wpływa na wybór. Jest to diagnostyka oparta na czasie zapisu.
 Pochodzenie rekordu nadal wymaga weryfikacji przed dopuszczeniem do rankingu.
+
+Selekcja SHADOW i audyt SQL zgłaszają teraz CONFLICTING_JWCD_PUBLICATION,
+gdy najnowszy dostępny kandydat i inny kompletny snapshot przypisują różne
+wartości JWCD temu samemu okresowi UTC i znacznikowi publikacji. Późniejsze
+pobranie tej samej publikacji nie rozstrzyga konfliktu. Odrębna publikacja
+pozostaje dopuszczalną rewizją, a dane po D-1 09:50 są wykluczone z porównania.
+Testy obejmują te przypadki oraz raport odrzuceń w izolowanym PostgreSQL.

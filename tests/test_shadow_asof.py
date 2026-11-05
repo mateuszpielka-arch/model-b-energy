@@ -18,6 +18,7 @@ class AvailabilityTests(unittest.TestCase):
         a=self.snapshot(); b=deepcopy(a); b['id']='late'; b['retrieval_completed_at']+=timedelta(hours=2)
         c=deepcopy(a); c['id']='latest-eligible'; c['retrieval_completed_at']+=timedelta(minutes=20)
         c['rows'][0]['jwcd_mw']=11000
+        c['rows'][0]['publication_ts'] += timedelta(minutes=1)
         out=select_snapshot(a['delivery_date'],[b,a,c])
         self.assertEqual(out.snapshot_id,'latest-eligible'); self.assertEqual(out.rows[0][1],11000)
         self.assertEqual(len(out.rejected),1)
@@ -102,3 +103,20 @@ class AvailabilityTests(unittest.TestCase):
         result = select_snapshot(first['delivery_date'], [first, second])
         self.assertEqual(result.snapshot_id, 'second')
         self.assertEqual(result.rejected, ())
+
+    def test_same_publication_with_changed_jwcd_blocks_later_download(self):
+        original = self.snapshot(sid='original')
+        later = deepcopy(original)
+        later['id'] = 'later'
+        later['retrieval_completed_at'] += timedelta(minutes=5)
+        later['rows'][0]['jwcd_mw'] = 11000
+        result = select_snapshot(original['delivery_date'], [later, original])
+        self.assertIsNone(result.snapshot_id)
+        self.assertEqual(result.rejected, (
+            ('later', 'CONFLICTING_JWCD_PUBLICATION'),
+            ('original', 'CONFLICTING_JWCD_PUBLICATION'),
+        ))
+
+        later['retrieval_completed_at'] = result.cutoff_utc + timedelta(seconds=1)
+        result = select_snapshot(original['delivery_date'], [later, original])
+        self.assertEqual(result.snapshot_id, 'original')
