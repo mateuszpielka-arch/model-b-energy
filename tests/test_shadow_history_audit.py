@@ -75,6 +75,10 @@ class HistoryAuditTests(unittest.TestCase):
         day, = audit_rows(rows)['days']
         self.assertEqual(day['availability_proven_rows'], 20)
         self.assertEqual(day['availability_missing_timestamp_rows'], 1)
+        self.assertEqual(day['missing_timestamp_rows_by_field'], {
+            'publication_ts': 0, 'retrieved_at': 0,
+            'retrieval_completed_at': 1, 'actual_available_at': 0,
+        })
         self.assertEqual(day['availability_invalid_timestamp_rows'], 2)
         self.assertEqual(day['availability_after_cutoff_rows'], 1)
         self.assertFalse(day['model_ready'])
@@ -105,6 +109,7 @@ class HistoryAuditTests(unittest.TestCase):
         del rows[1]['actual_available_at']
         day, = audit_rows(rows)['days']
         self.assertEqual(day['actual_after_issuance_rows'], 22)
+        self.assertEqual(day['missing_timestamp_rows_by_field']['actual_available_at'], 1)
         self.assertIn('ACTUAL_AVAILABILITY_NOT_PROVEN', day['issues'])
         self.assertFalse(day['model_ready'])
 

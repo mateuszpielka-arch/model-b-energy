@@ -606,3 +606,10 @@ dzień po jego końcu. Ponowny audyt pełnej kopii przekazanego ZIP potwierdził
 wypadają poza zakresem pliku, który kończy się 04.11.2026.
 Wynik potwierdza ceny, a liczba dób z udokumentowaną dostępnością do
 backtestu pozostaje równa zero.
+
+Audyt CSV i ZIP liczy brakujące znaczniki czasu osobno dla publikacji
+JWCD, początku i końca pobrania JWCD oraz dostępności cen Fix1.
+Raport CSV pokazuje także liczniki dobowe. Test odróżnia brak znacznika
+od nieprawidłowego formatu i przekroczenia granicy D-1 09:50.
+Audyt pełnego ZIP wykazał brak każdego z czterech znaczników we wszystkich
+50 928 wierszach. Liczba dób gotowych do backtestu pozostaje równa zero.

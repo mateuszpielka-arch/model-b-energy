@@ -12,6 +12,7 @@ from shadow_scoring import _utc, expected_periods
 
 
 FIX1_COLUMNS = ('fix1', 'price_pln_mwh', 'fix1_pln_mwh')
+JWCD_TIMESTAMPS = ('publication_ts', 'retrieved_at', 'retrieval_completed_at')
 
 
 def _number(value):
@@ -32,6 +33,7 @@ def audit_rows(rows):
         groups[d].append(row)
     days=[]
     ready_at = {}
+    missing_timestamp_totals = Counter(dict.fromkeys((*JWCD_TIMESTAMPS, 'actual_available_at'), 0))
     for d,records in sorted(groups.items()):
         periods=expected_periods(d); expected=set(periods); seen=[]; issues=set()
         good_prices=good_jwcd=available=verified=0
@@ -40,6 +42,7 @@ def audit_rows(rows):
         retrieval_windows = set()
         snapshot_ids = set()
         missing_timing = invalid_timing = late_timing = 0
+        missing_timestamps = Counter(dict.fromkeys(missing_timestamp_totals, 0))
         cutoff = cutoff_for_day(d)
         conflicting_price_periods = set()
         uses_explicit_utc = any(r.get('period_start_utc') not in (None, '') for r in records)
@@ -75,6 +78,8 @@ def audit_rows(rows):
             if r.get('actual_verified') in (True,'true','True'): verified+=1
             actual_versions.add(str(r.get('actual_version') or '').strip())
             snapshot_ids.add(str(r.get("jwcd_snapshot_id") or "").strip())
+            if r.get('actual_available_at') in (None, ''):
+                missing_timestamps['actual_available_at'] += 1
             try:
                 actual_time = _stamp(r.get('actual_available_at'))
                 if actual_time > cutoff:
@@ -85,7 +90,11 @@ def audit_rows(rows):
             legacy_start = r.get('retrieved_at_utc')
             stamps = (r.get('publication_ts'), canonical_start or legacy_start,
                       r.get('retrieval_completed_at'))
-            if any(stamp in (None, '') for stamp in stamps):
+            missing_fields = [
+                field for field, stamp in zip(JWCD_TIMESTAMPS, stamps) if stamp in (None, '')
+            ]
+            if missing_fields:
+                missing_timestamps.update(missing_fields)
                 missing_timing += 1
                 continue
             try:
@@ -124,6 +133,7 @@ def audit_rows(rows):
             issues.add("MISSING_JWCD_SNAPSHOT_ID")
         if len(snapshot_ids - {""}) > 1:
             issues.add("MIXED_JWCD_SNAPSHOT_IDS")
+        missing_timestamp_totals.update(missing_timestamps)
         days.append(dict(day=d.isoformat(),expected_periods=len(periods),rows=len(records),
             unique_periods=len(set(seen)),complete_periods=complete,
             missing_periods_utc=[p.isoformat() for p in sorted(missing)],
@@ -136,6 +146,7 @@ def audit_rows(rows):
             actual_after_issuance_rows=len(actual_times),
             availability_proven_rows=available,verified_actual_rows=verified,
             availability_missing_timestamp_rows=missing_timing,
+            missing_timestamp_rows_by_field=dict(missing_timestamps),
             availability_invalid_timestamp_rows=invalid_timing,
             availability_after_cutoff_rows=late_timing,
             model_ready=not issues,issues=sorted(issues)))
@@ -147,6 +158,7 @@ def audit_rows(rows):
         for window, dates in comparison_candidates.items()
     }
     return dict(days=days, invalid_date_rows=invalid_dates,
+                missing_timestamp_rows_by_field=dict(missing_timestamp_totals),
                 complete_pair_days=sum(d['complete_pairs'] for d in days),
                 model_ready_days=sum(d['model_ready'] for d in days),
                 longest_model_ready_run=longest_run,

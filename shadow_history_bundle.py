@@ -52,6 +52,7 @@ def audit_bundle(path, *, reference_paths=()):
         "days": len(dates),
         "complete_pair_days": audit["complete_pair_days"],
         "model_ready_days": audit["model_ready_days"],
+        "missing_timestamp_rows_by_field": audit["missing_timestamp_rows_by_field"],
         "missing_delivery_days_by_hours": dict(sorted(Counter(
             len(expected_periods(day)) for day in missing
         ).items())),

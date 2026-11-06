@@ -41,6 +41,10 @@ class HistoryBundleTests(unittest.TestCase):
         self.assertEqual(report["missing_delivery_days_by_hours"], {25: 1})
         self.assertEqual(report["days_by_issue"]["AVAILABILITY_NOT_PROVEN"], 2)
         self.assertEqual(report["model_ready_days"], 0)
+        self.assertEqual(report["missing_timestamp_rows_by_field"], {
+            "publication_ts": 48, "retrieved_at": 48,
+            "retrieval_completed_at": 48, "actual_available_at": 48,
+        })
         self.assertEqual(report["comparison_candidates"]["90D"], [])
 
     def test_rejects_changed_csv_and_inconsistent_manifest(self):
