@@ -56,7 +56,15 @@ def evaluate_csv_rows(rows, *, evaluated_at):
         history=history, target_days=[packet["day"] for packet in history],
         evaluated_at=evaluated_at,
     )
-    return dict(history_audit=readiness, walkforward=comparison)
+    admission = {
+        "delivery_days": len(readiness["days"]),
+        "admitted_days": len(ready_days),
+        "excluded_days": {
+            entry["day"]: entry["issues"] for entry in readiness["days"]
+            if not entry["model_ready"]
+        },
+    }
+    return dict(history_audit=readiness, csv_admission=admission, walkforward=comparison)
 
 
 def main():

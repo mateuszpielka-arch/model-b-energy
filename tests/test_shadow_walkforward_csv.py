@@ -32,6 +32,9 @@ class WalkforwardCSVTests(unittest.TestCase):
         result = evaluate_csv_rows(iter(rows), evaluated_at=evaluated_at)
         comparison = result["walkforward"]
         self.assertEqual(result["history_audit"]["model_ready_days"], 91)
+        self.assertEqual(result["csv_admission"], {
+            "delivery_days": 91, "admitted_days": 91, "excluded_days": {},
+        })
         self.assertEqual(comparison["common_days"], 1)
         self.assertEqual(comparison["common_periods"], 25)
         self.assertEqual(len(comparison["ranking"]), 6)
@@ -42,6 +45,12 @@ class WalkforwardCSVTests(unittest.TestCase):
         self.assertEqual(result["history_audit"]["model_ready_days"], 90)
         self.assertEqual(result["history_audit"]["days"][0]["availability_after_cutoff_rows"], 1)
         self.assertEqual(result["walkforward"]["ranking"], [])
+        first_day = snapshots[0]["delivery_date"].isoformat()
+        self.assertEqual(result["csv_admission"], {
+            "delivery_days": 91, "admitted_days": 90,
+            "excluded_days": {first_day: ["AVAILABILITY_NOT_PROVEN"]},
+        })
+        self.assertNotIn(first_day, {entry["day"] for entry in result["walkforward"]["skipped"]})
 
     def test_real_reference_prices_do_not_create_ranking_without_jwcd(self):
         fixtures = Path(__file__).parent / "fixtures"
@@ -50,3 +59,9 @@ class WalkforwardCSVTests(unittest.TestCase):
         self.assertEqual(result["history_audit"]["days"][0]["valid_fix1_rows"], 24)
         self.assertEqual(result["history_audit"]["model_ready_days"], 0)
         self.assertEqual(result["walkforward"]["ranking"], [])
+
+        self.assertEqual(result["csv_admission"]["delivery_days"], 1)
+        self.assertEqual(result["csv_admission"]["admitted_days"], 0)
+        self.assertIn("MISSING_OR_INVALID_JWCD",
+                      result["csv_admission"]["excluded_days"]["2026-11-03"])
+        self.assertEqual(result["walkforward"]["requested_days"], 0)

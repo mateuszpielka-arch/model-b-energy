@@ -619,3 +619,9 @@ doby docelowe z kompletem danych, które odpadły przez zbyt późną
 dostępność cen Fix1 z treningu. Przy każdej podają daty spóźnionych
 cen. Testy obejmują cenę dostępną dokładnie o D-1 09:50, sekundę
 później oraz okno z luką w historii.
+
+Raport walk-forward z CSV pokazuje osobno liczbę dni źródłowych i dni
+dopuszczonych oraz daty i przyczyny odrzuceń na etapie audytu.
+Test potwierdza rozdzielenie odrzuceń audytu od pominięć w samym
+walk-forward. Na przekazanym ZIP wykluczono w audycie 2122 z 2122
+dób i nie utworzono rankingu.
