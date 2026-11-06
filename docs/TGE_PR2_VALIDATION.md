@@ -509,3 +509,15 @@ porównaniu z referencją TGE na izolowanym PostgreSQL.
 Wstępne okna porównań SQL wymagają jawnej i kompletnej mapy UTC Fix1 dla
 dób 23/25h. Sam komplet numerów legacy wystarcza w tej diagnostyce tylko
 dla doby 24h. Test regresji sprawdza obie zmiany czasu oraz zwykłą dobę.
+
+Raport SHADOW zapisuje posortowane klucze UTC wspólnej próby dla każdej
+ocenionej doby. Test jesiennej zmiany czasu porównuje te klucze z wyjściem
+każdego modelu. Test wiosennej zmiany czasu sprawdza 47 godzin w dwóch
+dobach i wyklucza dobę 23h z rankingu wszystkich modeli po podmianie jednego
+klucza UTC w prognozie jednego modelu. Testy używają danych syntetycznych.
+
+Pierwszy przebieg testu 23h wykazał, że wymóg identycznego zbioru godzin
+lokalnych wykluczał zwykłe doby z sąsiedztwa wiosennej doby DST. SHADOW
+porównuje teraz profile po godzinach doby docelowej, zarówno dla odległości
+poziomów, jak i średniej używanej do centrowania kształtu. Sąsiad nadal musi
+mieć każdą wymaganą godzinę. Zmieniono wersje SHADOW dni podobnych i mediany.

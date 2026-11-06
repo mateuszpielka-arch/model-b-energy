@@ -88,7 +88,9 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 for p,y in actual.items():
                     error=predicted[p]-y;t['n']+=1;t['ae']+=abs(error);t['err']+=error;t['denom']+=abs(y)
                     if y!=0:t['nz']+=1;t['ape']+=abs(error)/abs(y)
-            accepted.append(dict(day=day.isoformat(),periods=len(actual),target_snapshot_id=selected.snapshot_id,
+            accepted.append(dict(day=day.isoformat(),periods=len(actual),
+                period_starts_utc=[period.isoformat() for period in sorted(actual)],
+                target_snapshot_id=selected.snapshot_id,
                 actual_version=target["actual_version"],
                 actual_available_at=actual_available.isoformat(),
                 target_latest_publication_ts=publication.isoformat(),

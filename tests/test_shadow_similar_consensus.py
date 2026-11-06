@@ -4,6 +4,7 @@ from decimal import Decimal
 import unittest
 import test_shadow_ols as fixtures
 from shadow_similar_consensus import predict_similar,median_consensus,MEDIAN_MEMBERS
+from shadow_scoring import WARSAW
 
 class SimilarTests(unittest.TestCase):
     def args(self):
@@ -42,8 +43,15 @@ class SimilarTests(unittest.TestCase):
         autumn=fixtures.OLSTests().data(target=date(2026,10,25))
         self.assertEqual(len(predict_similar(**autumn,k=3)['prices']),25)
         spring=fixtures.OLSTests().data(target=date(2026,3,29))
-        with self.assertRaisesRegex(ValueError,'comparable'):
-            predict_similar(**spring,k=3)
+        for mode in ('shape', 'level'):
+            baseline = predict_similar(**spring, k=3, mode=mode)
+            self.assertEqual(len(baseline['prices']), 23)
+            modified = deepcopy(spring)
+            for packet in modified['history']:
+                for row in packet['snapshots'][0]['rows']:
+                    if row['period_start_utc'].astimezone(WARSAW).hour == 2:
+                        row['jwcd_mw'] += 50000
+            self.assertEqual(predict_similar(**modified, k=3, mode=mode), baseline)
 
     def test_input_not_mutated(self):
         kw=self.args();before=deepcopy(kw);predict_similar(**kw);self.assertEqual(kw,before)

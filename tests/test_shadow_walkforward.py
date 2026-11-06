@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 import test_shadow_ols as fixtures
 from shadow_walkforward import run_walkforward,MODELS
+from shadow_similar_consensus import predict_similar
 
 class WalkforwardTests(unittest.TestCase):
     def args(self):
@@ -67,11 +68,46 @@ class WalkforwardTests(unittest.TestCase):
         packets={p['day'].isoformat():p for p in history}
         for d in out['accepted']:
             actual=dict(packets[d['day']]['actual'])
+            periods = [period.isoformat() for period in sorted(actual)]
+            self.assertEqual(d['period_starts_utc'], periods)
+            for prediction in d['predictions'].values():
+                self.assertEqual(sorted(period.isoformat() for period, _ in prediction['prices']), periods)
             for p,v in d['predictions']['similar_level']['prices']:
                 total+=abs(v-actual[p]);denom+=abs(actual[p])
         row=next(r for r in out['ranking'] if r['model']=='similar_level')
         self.assertLess(abs(row['mae']-total/49),Decimal('1e-24'))
         self.assertLess(abs(row['wape_pct']-100*total/denom),Decimal('1e-24'))
+
+    def test_wrong_utc_period_excludes_spring_dst_day_from_every_model(self):
+        history = fixtures.OLSTests().data(92, target=date(2026, 3, 30))['history']
+        target_days = [packet['day'] for packet in history[-2:]]
+        spring = date(2026, 3, 29)
+
+        def run():
+            return run_walkforward(
+                history=history, target_days=target_days,
+                evaluated_at=datetime(2026, 3, 31, tzinfo=timezone.utc),
+            )
+
+        baseline = run()
+        self.assertEqual(baseline['common_periods'], 47)
+        self.assertEqual(baseline['accepted'][-1]['day'], spring.isoformat())
+        self.assertEqual(len(baseline['accepted'][-1]['period_starts_utc']), 23)
+
+        def wrong_period(**kwargs):
+            prediction = predict_similar(**kwargs)
+            if kwargs['mode'] == 'level' and kwargs['target_day'] == spring:
+                first, *remaining = prediction['prices']
+                period, price = first
+                prediction['prices'] = [(period - timedelta(hours=1), price), *remaining]
+            return prediction
+
+        with patch('shadow_walkforward.predict_similar', side_effect=wrong_period):
+            result = run()
+        self.assertEqual(result['common_periods'], 24)
+        self.assertEqual(result['skipped_days_by_stage'], {'scoring': [spring.isoformat()]})
+        self.assertEqual(len(result['ranking']), len(MODELS))
+        self.assertTrue(all(row['periods'] == 24 for row in result['ranking']))
 
     def test_backdated_target_actual_is_rejected(self):
         kw = self.args()
