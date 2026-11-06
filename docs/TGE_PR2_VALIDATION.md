@@ -539,3 +539,10 @@ Scoring i raport SHADOW korzystają ze znaczników czasu zwróconych razem
 z wybranym snapshotem docelowym przez selekcję as-of. Test potwierdza, że
 spóźniona rewizja nie zmienia czasów przekazanych do scoringu żadnego
 z sześciu modeli ani czasów zapisanych w raporcie.
+
+Scoring SHADOW sprawdza najpóźniejsze czasy publikacji i zakończenia pobrania
+JWCD z wejścia docelowego i treningu danego modelu. Mediana dziedziczy
+maksima swoich czterech modeli składowych. Raport zachowuje czasy snapshotu
+docelowego oddzielnie od czasów przekazanych do scoringu. Test z wcześnie
+pobranym snapshotem docelowym potwierdza użycie późniejszych czasów danych
+treningowych, nadal mieszczących się przed granicą D-1 09:50.

@@ -206,6 +206,33 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(completed, snapshot['retrieval_completed_at'])
         self.assertLessEqual(completed, datetime.fromisoformat(day['simulated_issue_at']))
 
+    def test_scoring_uses_newer_training_timestamps_with_early_target_snapshot(self):
+        args = self.args()
+        training, target = args['history'][-2:]
+        args['target_days'] = [target['day']]
+        target_snapshot, = target['snapshots']
+        early = cutoff_for_day(target['day']) - timedelta(days=2)
+        target_snapshot['retrieved_at'] = early
+        target_snapshot['retrieval_completed_at'] = early
+        for row in target_snapshot['rows']:
+            row['publication_ts'] = early
+        source, = training['snapshots']
+        publication = max(row['publication_ts'] for row in source['rows'])
+        completed = source['retrieval_completed_at']
+
+        with patch('shadow_walkforward.score_day', wraps=score_day) as scorer:
+            accepted, = run_walkforward(**args)['accepted']
+
+        self.assertEqual(accepted['target_latest_publication_ts'], early.isoformat())
+        self.assertEqual(scorer.call_count, len(MODELS))
+        for name, call in zip(MODELS, scorer.call_args_list):
+            self.assertEqual(call.kwargs['publication_ts'], publication)
+            self.assertEqual(call.kwargs['retrieved_at'], completed)
+            self.assertEqual(accepted['scoring_input_timing'][name], {
+                'latest_publication_ts_utc': publication.isoformat(),
+                'latest_retrieval_completed_at_utc': completed.isoformat(),
+            })
+
     def test_ranked_day_identifies_actual_version_and_availability(self):
         args = self.args()
         target = args['history'][-1]
@@ -253,7 +280,7 @@ class WalkforwardTests(unittest.TestCase):
         args['target_days'] = [target['day']]
 
         def forecast(error):
-            return dict(model_version='test', prices=[
+            return dict(model_version='test', training_timing=(), prices=[
                 (period, price + error) for period, price in target['actual']
             ])
 

@@ -8,7 +8,7 @@ from datetime import datetime
 from decimal import Decimal, localcontext
 from shadow_asof import select_snapshot
 from shadow_ols import predict_ols
-from shadow_similar_consensus import predict_similar, median_consensus
+from shadow_similar_consensus import MEDIAN_MEMBERS, median_consensus, predict_similar
 from shadow_scoring import _utc, _prices, expected_periods, score_day
 
 MODELS=('ols30','ols60','ols90','similar_shape','similar_level','median4')
@@ -72,16 +72,29 @@ def run_walkforward(*,history,target_days,evaluated_at):
                     stage='similar_'+mode
                     predictions[stage]=predict_similar(**common,window_days=90,k=5,mode=mode)
                 stage='median4'; predictions[stage]=median_consensus(target_day=day,
-                    models={m:predictions[m] for m in ('ols30','ols60','ols90','similar_shape')})
+                    models={m:predictions[m] for m in MEDIAN_MEMBERS})
                 stage='scoring'
                 publication = selected.latest_publication_ts_utc
                 retrieved = selected.retrieval_completed_at_utc
+                input_times = {}
+                for name in MODELS[:-1]:
+                    latest_publication, latest_retrieval = publication, retrieved
+                    for evidence in predictions[name]['training_timing']:
+                        latest_publication = max(latest_publication,
+                            datetime.fromisoformat(evidence['latest_publication_ts_utc']))
+                        latest_retrieval = max(latest_retrieval,
+                            datetime.fromisoformat(evidence['retrieval_completed_at_utc']))
+                    input_times[name] = (latest_publication, latest_retrieval)
+                input_times['median4'] = (
+                    max(input_times[name][0] for name in MEDIAN_MEMBERS),
+                    max(input_times[name][1] for name in MEDIAN_MEMBERS),
+                )
                 scores={}
-                for name in MODELS:
+                for name, (latest_publication, latest_retrieval) in input_times.items():
                     scores[name]=score_day(day=day,forecast=predictions[name]['prices'],actual=actual.items(),
                         forecast_id=f'simulated:{day}:{name}',model_version=predictions[name]['model_version'],
                         actual_version=target['actual_version'],forecast_status='SHADOW',actual_verified=True,
-                        issued_at=selected.cutoff_utc,publication_ts=publication,retrieved_at=retrieved)
+                        issued_at=selected.cutoff_utc,publication_ts=latest_publication,retrieved_at=latest_retrieval)
             except ValueError as exc:
                 skipped.append(dict(day=day.isoformat(),stage=stage,reason=str(exc)));continue
             # Accumulate only after ALL models and scores have passed for the day.
@@ -98,6 +111,11 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 target_latest_publication_ts=publication.isoformat(),
                 target_retrieval_started_at=selected.retrieved_at_utc.isoformat(),
                 target_retrieval_completed_at=retrieved.isoformat(),
+                scoring_input_timing={
+                    name: dict(latest_publication_ts_utc=published.isoformat(),
+                               latest_retrieval_completed_at_utc=completed.isoformat())
+                    for name, (published, completed) in input_times.items()
+                },
                 rejected_snapshots=selected.rejected,
                 simulated_issue_at=selected.cutoff_utc.isoformat(),predictions=predictions,scores=scores))
         ranking=[]
