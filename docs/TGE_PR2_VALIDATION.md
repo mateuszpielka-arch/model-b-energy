@@ -585,3 +585,9 @@ Test integracyjny zapisuje w izolowanym PostgreSQL trzy paczki TGE dla
 dostaw 04–06.11.2026 i ponawia każdą z nich. Sprawdza 72 ceny z kluczami UTC,
 trzy oryginalne odpowiedzi HTTP wraz z sumami SHA-256 i czasami pobrania
 oraz brak wpisów w kwarantannie po identycznym ponowieniu.
+
+Test kwarantanny symuluje rewizję rzeczywistej sesji dla dostawy
+04.11.2026 przez zmianę ceny H01 o 0,01 PLN/MWh w kopii HTML i CSV.
+Izolowany PostgreSQL zachowuje oryginalne 24 ceny i ich powiązanie
+z oryginalnym HTML. Zapisuje dowody zmienionej paczki w jednym wpisie
+kwarantanny także po jej ponowieniu.

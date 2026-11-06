@@ -67,12 +67,17 @@ class RecentOfficialSessionsTests(unittest.TestCase):
 
 @unittest.skipUnless(DSN, 'Set FIX1_SHADOW_TEST_DSN for isolated PostgreSQL integration')
 class RecentOfficialSessionsPostgresTests(unittest.TestCase):
+    def isolated_connection(self):
+        conn = connect_test_database(DSN)
+        self.addCleanup(conn.close)
+        initialize(conn)
+        conn.execute('''TRUNCATE fix1_shadow_test.quarantine, fix1_shadow_test.prices,
+                        fix1_shadow_test.batches RESTART IDENTITY CASCADE''')
+        return conn
+
     def test_archive_and_replay_three_sessions_with_original_evidence(self):
         manifest = json.loads((FIXTURES / 'manifest.json').read_text())
-        with connect_test_database(DSN) as conn:
-            initialize(conn)
-            conn.execute('''TRUNCATE fix1_shadow_test.quarantine, fix1_shadow_test.prices,
-                            fix1_shadow_test.batches RESTART IDENTITY CASCADE''')
+        with self.isolated_connection() as conn:
             for entry in manifest['entries']:
                 with self.subTest(delivery_date=entry['delivery_date']):
                     raw, _, rows = load_session(entry)
@@ -101,3 +106,54 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
             self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone(), (72,))
             self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.quarantine').fetchone(), (0,))
+
+    def test_conflicting_revision_is_quarantined_once_with_its_own_evidence(self):
+        from lxml import html
+
+        entry = json.loads((FIXTURES / 'manifest.json').read_text())['entries'][0]
+        day = entry['delivery_date']
+        raw, reference, rows = load_session(entry)
+        original = prepare_session(entry, raw, [(row['hour'], row['price_pln_mwh']) for row in rows])
+
+        # Simulate a revision by changing only the first Fixing I price.
+        page = html.fromstring(raw)
+        cells = page.xpath(
+            '//table[@id="rdn"]/tbody/tr[normalize-space(td[1])=$period]/td[3]',
+            period=f'{day}_H01',
+        )
+        self.assertEqual(len(cells), 1)
+        revised_price = Decimal(rows[0]['price_pln_mwh']) + Decimal('0.01')
+        cells[0].text = format(revised_price, 'f').replace('.', ',')
+        revised_raw = html.tostring(page, encoding='utf-8')
+        old_row = f"{day},H01,{rows[0]['price_pln_mwh']}\n".encode()
+        self.assertEqual(reference.count(old_row), 1)
+        revised_reference = reference.replace(old_row, f'{day},H01,{revised_price}\n'.encode())
+        revised_rows = list(csv.DictReader(revised_reference.decode('utf-8').splitlines()))
+        revised = prepare_session(
+            {**entry, 'reference_sha256': sha256(revised_reference).hexdigest()},
+            revised_raw,
+            [(row['hour'], row['price_pln_mwh']) for row in revised_rows],
+        )
+        self.assertEqual(revised.rows, ((original.rows[0][0], revised_price), *original.rows[1:]))
+
+        with self.isolated_connection() as conn:
+            self.assertEqual(archive_batch(conn, original, raw), 'INSERT')
+            self.assertEqual(archive_batch(conn, revised, revised_raw), 'QUARANTINE')
+            self.assertEqual(archive_batch(conn, revised, revised_raw), 'QUARANTINE')
+            self.assertEqual(archive_batch(conn, original, raw), 'REPLAY')
+
+            stored = conn.execute('''
+                SELECT p.period_start_utc, p.price, b.raw_sha256
+                FROM fix1_shadow_test.prices AS p
+                JOIN fix1_shadow_test.batches AS b ON b.id = p.batch_id
+                ORDER BY p.period_start_utc
+            ''').fetchall()
+            self.assertEqual(stored, [(period, price, original.raw_sha256) for period, price in original.rows])
+
+            quarantined = conn.execute('''
+                SELECT b.raw_sha256, b.reference_sha256, b.raw_html
+                FROM fix1_shadow_test.quarantine AS q
+                JOIN fix1_shadow_test.batches AS b ON b.id = q.batch_id
+            ''').fetchall()
+            self.assertEqual(quarantined, [(revised.raw_sha256, revised.reference_sha256, revised_raw)])
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (2,))
