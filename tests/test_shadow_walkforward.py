@@ -7,6 +7,7 @@ import test_shadow_ols as fixtures
 from shadow_walkforward import run_walkforward,MODELS
 from shadow_similar_consensus import predict_similar
 from shadow_asof import cutoff_for_day
+from shadow_scoring import score_day
 
 class WalkforwardTests(unittest.TestCase):
     def args(self):
@@ -175,10 +176,23 @@ class WalkforwardTests(unittest.TestCase):
 
     def test_ranked_day_reports_source_times_used_for_cutoff(self):
         args = self.args()
-        snapshot = args['history'][-1]['snapshots'][0]
-        result = run_walkforward(**args)
-        day = result['accepted'][-1]
+        target = args['history'][-1]
+        args['target_days'] = [target['day']]
+        snapshot, = target['snapshots']
+        late = deepcopy(snapshot)
+        late['id'] = 'late-target-revision'
+        late['retrieval_completed_at'] = cutoff_for_day(target['day']) + timedelta(seconds=1)
+        late['rows'][0]['publication_ts'] = late['retrieval_completed_at']
+        target['snapshots'].insert(0, late)
+        with patch('shadow_walkforward.score_day', wraps=score_day) as scorer:
+            result = run_walkforward(**args)
+        day, = result['accepted']
 
+        self.assertEqual(scorer.call_count, len(MODELS))
+        for call in scorer.call_args_list:
+            self.assertEqual(call.kwargs['publication_ts'],
+                             max(row['publication_ts'] for row in snapshot['rows']))
+            self.assertEqual(call.kwargs['retrieved_at'], snapshot['retrieval_completed_at'])
         self.assertEqual(day['target_snapshot_id'], str(snapshot['id']))
         self.assertEqual(
             datetime.fromisoformat(day['target_latest_publication_ts']),

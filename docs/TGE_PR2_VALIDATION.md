@@ -534,3 +534,8 @@ początek i koniec pobrania, granicę JWCD dla własnej doby i dostępność cen
 dla trenowanego modelu. Test syntetyczny potwierdza wybór wcześniejszego
 snapshotu mimo spóźnionej rewizji i dopuszczenie cen dostępnych dokładnie
 na granicy treningu. Mediana nadal odsyła do raportów modeli składowych.
+
+Scoring i raport SHADOW korzystają ze znaczników czasu zwróconych razem
+z wybranym snapshotem docelowym przez selekcję as-of. Test potwierdza, że
+spóźniona rewizja nie zmienia czasów przekazanych do scoringu żadnego
+z sześciu modeli ani czasów zapisanych w raporcie.

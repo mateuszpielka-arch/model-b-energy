@@ -6,7 +6,7 @@ No I/O. Verified canonical history is a prerequisite, not produced by this modul
 from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal, localcontext
-from shadow_asof import select_snapshot, snapshot_identifier
+from shadow_asof import select_snapshot
 from shadow_ols import predict_ols
 from shadow_similar_consensus import predict_similar, median_consensus
 from shadow_scoring import _utc, _prices, expected_periods, score_day
@@ -74,9 +74,8 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 stage='median4'; predictions[stage]=median_consensus(target_day=day,
                     models={m:predictions[m] for m in ('ols30','ols60','ols90','similar_shape')})
                 stage='scoring'
-                snapshot=next(s for s in target['snapshots'] if snapshot_identifier(s)==selected.snapshot_id)
-                publication=max(_utc(r['publication_ts']) for r in snapshot['rows'])
-                retrieved=_utc(snapshot['retrieval_completed_at'])
+                publication = selected.latest_publication_ts_utc
+                retrieved = selected.retrieval_completed_at_utc
                 scores={}
                 for name in MODELS:
                     scores[name]=score_day(day=day,forecast=predictions[name]['prices'],actual=actual.items(),
@@ -97,7 +96,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 actual_version=target["actual_version"],
                 actual_available_at=actual_available.isoformat(),
                 target_latest_publication_ts=publication.isoformat(),
-                target_retrieval_started_at=_utc(snapshot["retrieved_at"]).isoformat(),
+                target_retrieval_started_at=selected.retrieved_at_utc.isoformat(),
                 target_retrieval_completed_at=retrieved.isoformat(),
                 rejected_snapshots=selected.rejected,
                 simulated_issue_at=selected.cutoff_utc.isoformat(),predictions=predictions,scores=scores))
