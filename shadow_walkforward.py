@@ -42,6 +42,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
         ctx.prec=34
         for day in sorted(set(target_days)):
             stage='actual'
+            scoring_model = None
             try:
                 if day not in packets: raise ValueError('Missing target packet')
                 target=packets[day]
@@ -78,6 +79,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 retrieved = selected.retrieval_completed_at_utc
                 input_times = {}
                 for name in MODELS[:-1]:
+                    scoring_model = name
                     latest_publication, latest_retrieval = publication, retrieved
                     for evidence in predictions[name]['training_timing']:
                         latest_publication = max(latest_publication,
@@ -85,18 +87,24 @@ def run_walkforward(*,history,target_days,evaluated_at):
                         latest_retrieval = max(latest_retrieval,
                             datetime.fromisoformat(evidence['retrieval_completed_at_utc']))
                     input_times[name] = (latest_publication, latest_retrieval)
+                scoring_model = 'median4'
                 input_times['median4'] = (
                     max(input_times[name][0] for name in MEDIAN_MEMBERS),
                     max(input_times[name][1] for name in MEDIAN_MEMBERS),
                 )
                 scores={}
                 for name, (latest_publication, latest_retrieval) in input_times.items():
+                    scoring_model = name
                     scores[name]=score_day(day=day,forecast=predictions[name]['prices'],actual=actual.items(),
                         forecast_id=f'simulated:{day}:{name}',model_version=predictions[name]['model_version'],
                         actual_version=target['actual_version'],forecast_status='SHADOW',actual_verified=True,
                         issued_at=selected.cutoff_utc,publication_ts=latest_publication,retrieved_at=latest_retrieval)
             except ValueError as exc:
-                skipped.append(dict(day=day.isoformat(),stage=stage,reason=str(exc)));continue
+                rejection = dict(day=day.isoformat(), stage=stage, reason=str(exc))
+                if scoring_model is not None:
+                    rejection['model'] = scoring_model
+                skipped.append(rejection)
+                continue
             # Accumulate only after ALL models and scores have passed for the day.
             for name in MODELS:
                 predicted=_prices(predictions[name]['prices']); t=totals[name]

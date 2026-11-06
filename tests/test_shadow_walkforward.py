@@ -8,6 +8,7 @@ from shadow_walkforward import run_walkforward,MODELS
 from shadow_similar_consensus import predict_similar
 from shadow_asof import cutoff_for_day
 from shadow_scoring import score_day
+from shadow_ols import predict_ols
 
 class WalkforwardTests(unittest.TestCase):
     def args(self):
@@ -134,6 +135,8 @@ class WalkforwardTests(unittest.TestCase):
             result = run()
         self.assertEqual(result['common_periods'], 24)
         self.assertEqual(result['skipped_days_by_stage'], {'scoring': [spring.isoformat()]})
+        self.assertEqual(result['skipped'][0]['model'], 'similar_level')
+        self.assertEqual(result['skipped'][0]['reason'], 'Incomplete or mismatched delivery periods')
         self.assertEqual(len(result['ranking']), len(MODELS))
         self.assertTrue(all(row['periods'] == 24 for row in result['ranking']))
 
@@ -232,6 +235,29 @@ class WalkforwardTests(unittest.TestCase):
                 'latest_publication_ts_utc': publication.isoformat(),
                 'latest_retrieval_completed_at_utc': completed.isoformat(),
             })
+
+    def test_scoring_rejection_identifies_model_with_late_input(self):
+        args = self.args()
+        target = args['target_days'][-1]
+        args['target_days'] = [target]
+
+        def late_training(**kwargs):
+            prediction = predict_ols(**kwargs)
+            if kwargs['window_days'] == 60:
+                evidence = prediction['training_timing'][-1]
+                evidence['retrieval_completed_at_utc'] = (
+                    cutoff_for_day(target) + timedelta(seconds=1)
+                ).isoformat()
+            return prediction
+
+        with patch('shadow_walkforward.predict_ols', side_effect=late_training):
+            result = run_walkforward(**args)
+        self.assertEqual(result['ranking'], [])
+        self.assertEqual(result['common_periods'], 0)
+        self.assertEqual(result['skipped'], [{
+            'day': target.isoformat(), 'stage': 'scoring', 'model': 'ols60',
+            'reason': 'Invalid chronology or data unavailable before D-1 09:50',
+        }])
 
     def test_ranked_day_identifies_actual_version_and_availability(self):
         args = self.args()

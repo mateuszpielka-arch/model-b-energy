@@ -546,3 +546,8 @@ maksima swoich czterech modeli składowych. Raport zachowuje czasy snapshotu
 docelowego oddzielnie od czasów przekazanych do scoringu. Test z wcześnie
 pobranym snapshotem docelowym potwierdza użycie późniejszych czasów danych
 treningowych, nadal mieszczących się przed granicą D-1 09:50.
+
+Raport odrzuceń SHADOW zapisuje nazwę modelu, jeśli błąd wystąpi przy
+sprawdzaniu czasu wejść lub scoringu. Nadal wyklucza całą dobę ze wspólnej
+próby. Testy wskazują wariant dni podobnych z błędną godziną UTC oraz
+OLS 60D z czasem pobrania treningowego o sekundę po D-1 09:50.
