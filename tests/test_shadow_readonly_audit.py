@@ -63,6 +63,17 @@ class ProvisionalCoverageTests(unittest.TestCase):
         self.assertEqual(result['comparison_candidates']['60D'], [])
         self.assertEqual(result['comparison_candidates']['90D'], [])
 
+        matched = {day.isoformat() for day in days}
+        matched.remove(days[45].isoformat())
+        result = provisional_comparison_coverage(actuals, selections, included_days=matched)
+        self.assertEqual(result['paired_days'], 90)
+        self.assertEqual(result['longest_paired_run'], 45)
+        self.assertEqual(result['comparison_candidates']['90D'], [])
+        self.assertIn(days[-1].isoformat(), result['comparison_candidates']['30D'])
+        matched.add(days[45].isoformat())
+        result = provisional_comparison_coverage(actuals, selections, included_days=matched)
+        self.assertEqual(result['comparison_candidates']['90D'], [days[-1].isoformat()])
+
         actuals[-2]['latest_retrieved_at_utc'] = (
             cutoff_for_day(days[-1]) + timedelta(seconds=1)
         ).isoformat()
@@ -508,6 +519,7 @@ class ReadonlyAuditTests(unittest.TestCase):
         )
         report = audit_connection(self.conn, start_day=day, end_day=day, reference_rows=reference)
         self.assertEqual(report['provisional_comparison_coverage']['paired_days'], 1)
+        self.assertEqual(report['reference_matched_comparison_coverage']['paired_days'], 1)
         self.assertEqual(report['fix1_reference']['matched_days'], 1)
         self.assertEqual(report['fix1_reference']['compared_periods'], 24)
         self.assertEqual(report['fix1_reference']['different_periods'], 0)
@@ -517,7 +529,10 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.conn.execute('UPDATE actual.tge_fix1 SET price_pln_mwh=price_pln_mwh+1 WHERE hour=24')
         report = audit_connection(self.conn, reference_rows=reference)
         self.assertEqual(report['provisional_comparison_coverage']['paired_days'], 0)
-        self.assertEqual(audit_connection(self.conn)['provisional_comparison_coverage']['paired_days'], 1)
+        self.assertEqual(report['reference_matched_comparison_coverage']['paired_days'], 0)
+        unreferenced = audit_connection(self.conn)
+        self.assertEqual(unreferenced['provisional_comparison_coverage']['paired_days'], 1)
+        self.assertNotIn('reference_matched_comparison_coverage', unreferenced)
         comparison = report['fix1_reference']
         self.assertEqual(comparison['matched_days'], 0)
         self.assertEqual(comparison['compared_days'][0]['different_periods_utc'],

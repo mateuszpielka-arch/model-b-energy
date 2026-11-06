@@ -96,12 +96,15 @@ def missing_delivery_ranges(coverage, start_day, end_day):
     return gaps
 
 
-def provisional_comparison_coverage(actuals, candidate_selection, *, excluded_days=()):
+def provisional_comparison_coverage(
+    actuals, candidate_selection, *, excluded_days=(), included_days=None,
+):
     """Estimate coverage from legacy metadata without admitting model inputs."""
     ready_at = {
         date.fromisoformat(actual['day']): _stamp(actual['latest_retrieved_at_utc'])
         for actual in actuals
-        if actual['day'] not in excluded_days
+        if (included_days is None or actual['day'] in included_days)
+        and actual['day'] not in excluded_days
         and actual['single_recorded_source']
         and actual['next_delivery_training_timing'] in ('TIMING_CANDIDATE', 'AFTER_NEXT_ISSUE_CUTOFF')
         and candidate_selection.get(actual['day'], {}).get('provisional_snapshot_id')
@@ -311,6 +314,11 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
             excluded_days.update(comparison['missing_or_invalid_history_days'])
             excluded_days.update(entry['day'] for entry in comparison['compared_days']
                                  if entry['different_periods_utc'])
+            matched_days = {entry['day'] for entry in comparison['compared_days']
+                            if not entry['different_periods_utc']}
+            report['reference_matched_comparison_coverage'] = provisional_comparison_coverage(
+                actuals, candidate_selection, included_days=matched_days,
+            )
         report['provisional_comparison_coverage'] = provisional_comparison_coverage(
             actuals, candidate_selection, excluded_days=excluded_days,
         )

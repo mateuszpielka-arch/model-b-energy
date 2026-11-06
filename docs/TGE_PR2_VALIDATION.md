@@ -478,3 +478,10 @@ doba nie może być celem ani częścią okna treningowego. Zgodność referencj
 nie nadaje danym statusu zweryfikowanego. Doby bez podanej referencji nadal
 podlegają dotychczasowym kryteriom wstępnego audytu. Testy obejmują lukę
 w oknie oraz zmianę pojedynczej ceny z referencji 03.11.2026 w izolowanej bazie.
+
+Gdy audyt otrzyma referencje TGE, raport pokazuje również
+`reference_matched_comparison_coverage`: daty dla okien 30/60/90D, w których
+cel i każda doba treningowa mają pełną zgodność godzinową Fix1 z referencją.
+Testy pokazują, że brak jednej referencji przerywa okno, a wybrane krótsze
+okna pozostają dostępne. Jest to pokrycie diagnostyczne po kontroli czasu
+pobrania. Nie nadaje ono danym statusu dopuszczającego je do rankingu.
