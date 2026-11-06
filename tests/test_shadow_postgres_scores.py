@@ -2,6 +2,7 @@ import os
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
+from decimal import Decimal
 import test_shadow_archive_batch as fixtures
 from shadow_archive_batch import prepare_batch
 from shadow_postgres_archive import connect_test_database, initialize, archive_batch
@@ -32,6 +33,53 @@ class ScorePersistenceTests(unittest.TestCase):
         self.kw['forecast']=list(reversed(self.kw['forecast']))
         self.assertEqual(score_archived_day(self.conn,**self.kw)[0],'REPLAY')
         self.assertEqual(self.count(),1)
+
+    def test_equivalent_decimal_spellings_replay_without_writing(self):
+        first, *rest = self.kw['forecast']
+        period, _ = first
+        self.kw['forecast'] = [(period, Decimal('-0.00')), *rest]
+        decision, expected = score_archived_day(self.conn, **self.kw)
+        self.assertEqual(decision, 'INSERT')
+        before = self.conn.execute('SELECT input_sha256,payload FROM fix1_shadow_test.scores').fetchone()
+
+        self.kw['forecast'] = [
+            (p, text + ('0' if '.' in text else '.0'))
+            for p, value in reversed(rest)
+            for text in [format(value, 'f')]
+        ]
+        self.kw['forecast'].append((period, '0E+3'))
+        decision, replay = score_archived_day(self.conn, **self.kw)
+
+        self.assertEqual(decision, 'REPLAY')
+        self.assertEqual(replay, expected)
+        self.assertEqual(self.count(), 1)
+        self.assertEqual(self.conn.execute('SELECT input_sha256,payload FROM fix1_shadow_test.scores').fetchone(),
+                         before)
+
+    def test_legacy_fingerprint_can_replay_original_inputs(self):
+        from dataclasses import asdict
+        from hashlib import sha256
+        import json
+        from psycopg.types.json import Jsonb
+
+        period, _ = self.kw['forecast'][0]
+        self.kw['forecast'][0] = (period, '0.000')
+        _, score = score_archived_day(self.conn, **self.kw)
+        inputs = dict(
+            day=self.kw['day'].isoformat(),
+            forecast_status=self.kw['forecast_status'],
+            forecast=sorted((p.isoformat(), str(Decimal(str(v)))) for p, v in self.kw['forecast']),
+        )
+        for key in ('issued_at', 'publication_ts', 'retrieved_at'):
+            inputs[key] = self.kw[key].isoformat()
+        legacy_hash = sha256(json.dumps(inputs, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        legacy_payload = json.loads(json.dumps(asdict(score), default=str))
+        self.conn.execute('UPDATE fix1_shadow_test.scores SET input_sha256=%s,payload=%s',
+                          (legacy_hash, Jsonb(legacy_payload)))
+
+        self.assertEqual(score_archived_day(self.conn, **self.kw)[0], 'REPLAY')
+        self.assertEqual(self.conn.execute('SELECT input_sha256,payload FROM fix1_shadow_test.scores').fetchone(),
+                         (legacy_hash, legacy_payload))
 
     def test_changed_forecast_same_identity_never_overwrites(self):
         score_archived_day(self.conn,**self.kw)

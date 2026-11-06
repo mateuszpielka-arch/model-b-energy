@@ -557,3 +557,11 @@ okresów UTC. Przed poprawką odwrócenie kolejności wierszy cen zmieniało
 końcowe cyfry metryk przez zaokrąglenia Decimal. Testy potwierdzają
 identyczny WAPE dobowy i identyczny pełny raport dla dwóch syntetycznych
 dób niezależnie od kolejności wierszy Fix1.
+
+Izolowany zapis scoringu normalizuje zapis dziesiętny cen i metryk bez
+zaokrąglania. Równoważne wartości, w tym zera ze znakiem i końcowe zera,
+nie tworzą konfliktu przy ponownym zapisie nowych wyników. Wyniki zapisane
+wcześniej z odciskiem zależnym od formatu nadal obsługują powtórkę oryginalnych
+danych. Równoważnego zapisu w innym formacie nie da się potwierdzić na
+podstawie samego starego odcisku. Testy sprawdzają oba warianty na izolowanej
+bazie oraz zachowanie istniejącego wiersza.

@@ -16,6 +16,21 @@ DDL = '''CREATE TABLE IF NOT EXISTS fix1_shadow_test.scores (
 )'''
 
 
+def canonical_decimal(value):
+    """Serialize an already validated Decimal without rounding or signed zero."""
+    if not value:
+        return '0'
+    sign, digits, exponent = value.as_tuple()
+    last = len(digits)
+    while digits[last - 1] == 0:
+        last -= 1
+    return str(Decimal((sign, digits[:last], exponent + len(digits) - last)))
+
+
+def input_fingerprint(inputs):
+    return sha256(json.dumps(inputs, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
 def initialize_scores(conn):
     _guard(conn)
     with conn.transaction(): conn.execute(DDL)
@@ -71,9 +86,11 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         inputs = dict(day=day.isoformat(),forecast_status=forecast_status,
             issued_at=_utc(issued_at).isoformat(),publication_ts=_utc(publication_ts).isoformat(),
             retrieved_at=_utc(retrieved_at).isoformat(),
-            forecast=sorted((_utc(p).isoformat(),str(Decimal(str(v)))) for p,v in forecast))
-        fingerprint = sha256(json.dumps(inputs,sort_keys=True,separators=(',',':')).encode()).hexdigest()
-        payload = json.loads(json.dumps(asdict(score),default=str,sort_keys=True))
+            forecast=sorted((_utc(p).isoformat(), canonical_decimal(Decimal(str(v))))
+                            for p,v in forecast))
+        fingerprint = input_fingerprint(inputs)
+        score_values = asdict(score)
+        payload = json.loads(json.dumps(score_values, default=canonical_decimal, sort_keys=True))
         key = (forecast_id,model_version,bid,SCORING_VERSION)
         from psycopg.types.json import Jsonb
         inserted = conn.execute('''INSERT INTO fix1_shadow_test.scores
@@ -83,6 +100,12 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         if not inserted:
             previous = conn.execute('''SELECT input_sha256,payload FROM fix1_shadow_test.scores
                 WHERE forecast_id=%s AND model_version=%s AND batch_id=%s AND scoring_version=%s''',key).fetchone()
-            if previous != (fingerprint,payload):
-                raise ValueError('Score identity conflict; existing result preserved')
+            if previous != (fingerprint, payload):
+                # Existing rows may use the original spelling-sensitive hash.
+                legacy_inputs = {**inputs, 'forecast': sorted(
+                    (_utc(p).isoformat(), str(Decimal(str(v)))) for p, v in forecast
+                )}
+                legacy_payload = json.loads(json.dumps(score_values, default=str, sort_keys=True))
+                if previous != (input_fingerprint(legacy_inputs), legacy_payload):
+                    raise ValueError('Score identity conflict; existing result preserved')
     return ('INSERT' if inserted else 'REPLAY'), score
