@@ -192,6 +192,21 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(report['complete_pair_days'], 1)
         self.assertEqual(report['model_ready_days'], 0)
 
+    def test_partial_explicit_utc_cannot_be_completed_with_legacy_hours(self):
+        rows = self.rows()
+        for hour, row in enumerate(rows, 1):
+            row['hour'] = f'H{hour:02d}'
+        missing_period = rows[5].pop('period_start_utc')
+        partial, = audit_rows(rows)['days']
+        self.assertFalse(partial['complete_periods'])
+        self.assertEqual(partial['missing_periods_utc'], [missing_period])
+        self.assertIn('INVALID_OR_AMBIGUOUS_PERIOD', partial['issues'])
+
+        for row in rows:
+            row.pop('period_start_utc', None)
+        legacy, = audit_rows(rows)['days']
+        self.assertTrue(legacy['complete_periods'])
+
     def test_swapped_utc_periods_block_complete_pairs_when_labels_are_present(self):
         rows = self.rows()
         for hour, row in enumerate(rows, 1):

@@ -526,6 +526,14 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(report['actual_days'][0]['quality_status'],
                          'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')
 
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz')
+        self.conn.execute('UPDATE actual.tge_fix1 SET period_start_utc=%s WHERE hour=1',
+                          (expected_periods(day)[0],))
+        partial = audit_connection(self.conn, reference_rows=reference)
+        self.assertFalse(partial['actual_days'][0]['structurally_complete'])
+        self.assertEqual(partial['fix1_reference']['missing_or_invalid_history_days'], [day.isoformat()])
+        self.conn.execute('UPDATE actual.tge_fix1 SET period_start_utc=NULL WHERE hour=1')
+
         self.conn.execute('UPDATE actual.tge_fix1 SET price_pln_mwh=price_pln_mwh+1 WHERE hour=24')
         report = audit_connection(self.conn, reference_rows=reference)
         self.assertEqual(report['provisional_comparison_coverage']['paired_days'], 0)

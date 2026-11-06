@@ -499,3 +499,9 @@ Pozwala odróżnić powtórzoną godzinę lokalną w dobie 25h od duplikatu UTC.
 W zwykłej dobie sprawdza także zgodność podanych numerów godzin z UTC.
 Dla danych bez znaczników zachowuje osobno oznaczoną diagnostykę legacy.
 Test PostgreSQL potwierdza spójność z porównaniem referencji dla dób 23/25h.
+
+Audyt CSV i porównanie z referencją stosują tę samą regułę co audyt SQL:
+gdy doba ma jawny okres UTC, każda godzina tej doby musi mieć taki znacznik.
+Dla doby 24h w całości zapisanej jako H01–H24 dotychczasowa ścieżka nadal
+działa. Testy sprawdzają częściową dobową mapę UTC oraz odrzucenie jej przy
+porównaniu z referencją TGE na izolowanym PostgreSQL.

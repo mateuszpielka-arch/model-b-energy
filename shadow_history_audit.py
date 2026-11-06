@@ -42,23 +42,24 @@ def audit_rows(rows):
         missing_timing = invalid_timing = late_timing = 0
         cutoff = cutoff_for_day(d)
         conflicting_price_periods = set()
+        uses_explicit_utc = any(r.get('period_start_utc') not in (None, '') for r in records)
         for r in records:
             p = None
             try:
-                if r.get('period_start_utc'):
+                if r.get('period_start_utc') not in (None, ''):
                     p=_stamp(r['period_start_utc'])
                     if len(periods) == 24 and r.get("hour") not in (None, ""):
                         label = str(r["hour"]).removeprefix("H")
                         hour = int(label)
                         if not 1 <= hour <= 24 or p != periods[hour - 1]:
                             issues.add("HOUR_UTC_MISMATCH")
-                elif len(periods)==24:
+                elif len(periods) == 24 and not uses_explicit_utc:
                     label=str(r.get('hour','')).removeprefix('H')
                     h=int(label)
                     if not 1<=h<=24: raise ValueError('hour')
                     p=periods[h-1]
                 else:
-                    raise ValueError('DST_REQUIRES_UTC_PERIODS')
+                    raise ValueError('Missing explicit UTC period')
                 seen.append(p)
             except (ValueError,TypeError,IndexError): issues.add('INVALID_OR_AMBIGUOUS_PERIOD')
             price_fields = [r[name] for name in FIX1_COLUMNS
