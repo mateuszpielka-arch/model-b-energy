@@ -5,7 +5,7 @@ A structurally complete price day alone never means model-ready history.
 """
 import csv
 from collections import Counter, defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from shadow_asof import cutoff_for_day
 from shadow_scoring import _utc, expected_periods
@@ -152,7 +152,7 @@ def audit_rows(rows):
             model_ready=not issues,issues=sorted(issues)))
         if not issues:
             ready_at[d] = max(actual_times)
-    longest_run, comparison_candidates = comparison_coverage(ready_at)
+    longest_run, comparison_candidates, late_fix1 = comparison_coverage(ready_at)
     first_candidate = {
         window: dates[0] if dates else None
         for window, dates in comparison_candidates.items()
@@ -164,6 +164,7 @@ def audit_rows(rows):
                 longest_model_ready_run=longest_run,
                 first_comparison_candidate=first_candidate,
                 comparison_candidates=comparison_candidates,
+                comparison_blocked_by_late_fix1=late_fix1,
                 # Coverage only: the model runner checks training provenance again.
                 missing_days_for_first_comparison={
                     f'{window}D': max(0, window + 1 - longest_run)
@@ -175,20 +176,25 @@ def comparison_coverage(ready_at):
     """Measure contiguous calendar coverage and respect each target cutoff."""
     longest_run = run = 0
     previous = None
-    dates = sorted(ready_at)
-    for day in dates:
+    windows = (30, 60, 90)
+    candidates = {f'{window}D': [] for window in windows}
+    late_fix1 = {f'{window}D': {} for window in windows}
+    for day in sorted(ready_at):
         run = run + 1 if previous and day - previous == timedelta(days=1) else 1
         longest_run = max(longest_run, run)
         previous = day
-    unavailable = datetime.max.replace(tzinfo=timezone.utc)
-    comparison_candidates = {f'{window}D': [] for window in (30, 60, 90)}
-    for day in dates:
         cutoff = cutoff_for_day(day)
-        for window in (30, 60, 90):
-            if all(ready_at.get(day - timedelta(days=i), unavailable) <= cutoff
-                   for i in range(1, window + 1)):
-                comparison_candidates[f'{window}D'].append(day.isoformat())
-    return longest_run, comparison_candidates
+        for window in windows:
+            if run <= window:
+                continue
+            training_days = [day - timedelta(days=i) for i in range(window, 0, -1)]
+            late_days = [prior.isoformat() for prior in training_days if ready_at[prior] > cutoff]
+            key = f'{window}D'
+            if late_days:
+                late_fix1[key][day.isoformat()] = late_days
+            else:
+                candidates[key].append(day.isoformat())
+    return longest_run, candidates, late_fix1
 
 
 def read_csv_rows(lines, *, source):

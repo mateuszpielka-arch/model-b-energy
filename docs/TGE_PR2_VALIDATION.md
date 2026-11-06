@@ -613,3 +613,9 @@ Raport CSV pokazuje także liczniki dobowe. Test odróżnia brak znacznika
 od nieprawidłowego formatu i przekroczenia granicy D-1 09:50.
 Audyt pełnego ZIP wykazał brak każdego z czterech znaczników we wszystkich
 50 928 wierszach. Liczba dób gotowych do backtestu pozostaje równa zero.
+
+Audyt CSV, ZIP i wstępny audyt SQL podają dla okien 30D, 60D i 90D
+doby docelowe z kompletem danych, które odpadły przez zbyt późną
+dostępność cen Fix1 z treningu. Przy każdej podają daty spóźnionych
+cen. Testy obejmują cenę dostępną dokładnie o D-1 09:50, sekundę
+później oraz okno z luką w historii.

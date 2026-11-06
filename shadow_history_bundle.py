@@ -60,6 +60,7 @@ def audit_bundle(path, *, reference_paths=()):
             issue for entry in audit["days"] for issue in entry["issues"]
         ).items())),
         "comparison_candidates": audit["comparison_candidates"],
+        "comparison_blocked_by_late_fix1": audit["comparison_blocked_by_late_fix1"],
     }
 
     if reference_paths:

@@ -110,9 +110,9 @@ def provisional_comparison_coverage(
         and actual['next_delivery_training_timing'] in ('TIMING_CANDIDATE', 'AFTER_NEXT_ISSUE_CUTOFF')
         and candidate_selection.get(actual['day'], {}).get('provisional_snapshot_id')
     }
-    longest_run, candidates = comparison_coverage(ready_at)
+    longest_run, candidates, late_fix1 = comparison_coverage(ready_at)
     return dict(paired_days=len(ready_at), longest_paired_run=longest_run,
-                comparison_candidates=candidates)
+                comparison_candidates=candidates, comparison_blocked_by_late_fix1=late_fix1)
 
 
 def table_columns(conn, table):

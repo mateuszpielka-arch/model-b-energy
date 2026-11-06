@@ -82,11 +82,15 @@ class ProvisionalCoverageTests(unittest.TestCase):
         result = provisional_comparison_coverage(actuals, selections)
         self.assertEqual(result['longest_paired_run'], 91)
         self.assertEqual(result['comparison_candidates']['90D'], [])
+        self.assertEqual(result['comparison_blocked_by_late_fix1']['90D'], {
+            days[-1].isoformat(): [days[-2].isoformat()],
+        })
 
         selections[days[45].isoformat()]['provisional_snapshot_id'] = None
         result = provisional_comparison_coverage(actuals, selections)
         self.assertEqual(result['longest_paired_run'], 45)
         self.assertEqual(result['comparison_candidates']['60D'], [])
+        self.assertEqual(result['comparison_blocked_by_late_fix1']['90D'], {})
 
 
     def test_dst_legacy_hours_are_excluded_from_provisional_coverage(self):
