@@ -1,5 +1,5 @@
 import csv
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 import gzip
 from hashlib import sha256
@@ -10,6 +10,7 @@ import unittest
 
 from shadow_archive_batch import prepare_batch
 from shadow_postgres_archive import archive_batch, connect_test_database, initialize
+from shadow_postgres_scores import initialize_scores, score_archived_day
 from tge_parser_safe import parse_complete_standard_day
 from tools.capture_tge_validation import extract_reference
 
@@ -157,3 +158,53 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             ''').fetchall()
             self.assertEqual(quarantined, [(revised.raw_sha256, revised.reference_sha256, revised_raw)])
             self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (2,))
+
+    def test_score_fixed_forecast_against_archived_official_prices(self):
+        entry = json.loads((FIXTURES / 'manifest.json').read_text())['entries'][0]
+        raw, _, rows = load_session(entry)
+        batch = prepare_session(entry, raw, [(row['hour'], row['price_pln_mwh']) for row in rows])
+        # Synthetic forecast and timestamps. Only actual prices come from TGE.
+        cutoff = datetime(2026, 11, 3, 8, 50, tzinfo=timezone.utc)
+        inputs = dict(
+            day=batch.delivery_date,
+            forecast=[(period, Decimal('1000')) for period, _ in batch.rows],
+            forecast_id='constant-1000-official-actual-test',
+            model_version='synthetic-test',
+            forecast_status='SHADOW',
+            issued_at=cutoff,
+            publication_ts=cutoff - timedelta(minutes=10),
+            retrieved_at=cutoff,
+        )
+        # Independently calculated from the reference CSV using exact fractions.
+        expected = {
+            'mae': Decimal('368.701666666667'),
+            'mape_pct': Decimal('22.311982605236'),
+            'wape_pct': Decimal('27.201755896023'),
+            'bias': Decimal('-355.433333333333'),
+        }
+        precision = Decimal('0.000000000001')
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(archive_batch(conn, batch, raw), 'INSERT')
+            decision, score = score_archived_day(conn, **inputs)
+            self.assertEqual(decision, 'INSERT')
+            self.assertEqual(score_archived_day(conn, **inputs), ('REPLAY', score))
+
+            query = '''
+                SELECT s.payload, b.raw_sha256
+                FROM fix1_shadow_test.scores AS s
+                JOIN fix1_shadow_test.batches AS b ON b.id = s.batch_id
+            '''
+            stored = conn.execute(query).fetchall()
+            self.assertEqual(len(stored), 1)
+            payload, raw_hash = stored[0]
+            self.assertEqual(raw_hash, entry['raw_sha256'])
+            self.assertEqual((payload['periods'], payload['mape_periods']), (24, 24))
+            for metric, value in expected.items():
+                with self.subTest(metric=metric):
+                    self.assertEqual(Decimal(payload[metric]).quantize(precision), value)
+
+            after_cutoff = cutoff + timedelta(seconds=1)
+            with self.assertRaisesRegex(ValueError, 'unavailable before D-1 09:50'):
+                score_archived_day(conn, **{**inputs, 'issued_at': after_cutoff, 'retrieved_at': after_cutoff})
+            self.assertEqual(conn.execute(query).fetchall(), stored)

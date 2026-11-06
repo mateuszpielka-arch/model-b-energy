@@ -591,3 +591,10 @@ Test kwarantanny symuluje rewizję rzeczywistej sesji dla dostawy
 Izolowany PostgreSQL zachowuje oryginalne 24 ceny i ich powiązanie
 z oryginalnym HTML. Zapisuje dowody zmienionej paczki w jednym wpisie
 kwarantanny także po jej ponowieniu.
+
+Test scoringu na izolowanym PostgreSQL używa 24 rzeczywistych cen Fixing I
+dla dostawy 04.11.2026 i syntetycznej prognozy stałej 1000 PLN/MWh.
+Sprawdza zapis MAE, MAPE, WAPE i bias względem wartości obliczonych
+niezależnie z referencji CSV, powiązanie wyniku z HTML TGE oraz ponowienie
+bez duplikatu. Syntetyczny czas pobrania na granicy D-1 09:50 przechodzi,
+a sekundę później blokuje zapis. Test nie ocenia trafności modelu.
