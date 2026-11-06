@@ -85,9 +85,24 @@ class ScorePersistenceTests(unittest.TestCase):
         score_archived_day(self.conn,**self.kw)
         old=self.conn.execute('SELECT payload FROM fix1_shadow_test.scores').fetchone()
         p,v=self.kw['forecast'][0]; self.kw['forecast'][0]=(p,v+10)
-        with self.assertRaisesRegex(ValueError,'identity conflict'): score_archived_day(self.conn,**self.kw)
+        with self.assertRaisesRegex(ValueError, 'identity conflict: input fingerprint differs'):
+            score_archived_day(self.conn, **self.kw)
         self.assertEqual(self.conn.execute('SELECT payload FROM fix1_shadow_test.scores').fetchone(),old)
         self.assertEqual(self.count(),1)
+
+    def test_mismatched_payload_same_fingerprint_never_overwrites(self):
+        score_archived_day(self.conn, **self.kw)
+        self.conn.execute(
+            "UPDATE fix1_shadow_test.scores SET payload = jsonb_set(payload, '{mae}', to_jsonb('999'::text))"
+        )
+        query = 'SELECT input_sha256,payload FROM fix1_shadow_test.scores'
+        before = self.conn.execute(query).fetchone()
+
+        with self.assertRaisesRegex(ValueError, 'identity conflict: stored score payload differs'):
+            score_archived_day(self.conn, **self.kw)
+
+        self.assertEqual(self.conn.execute(query).fetchone(), before)
+        self.assertEqual(self.count(), 1)
 
     def test_wrong_actual_or_missing_period_blocks_scoring(self):
         p,_=self.batch.rows[0]

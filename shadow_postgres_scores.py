@@ -100,12 +100,20 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         if not inserted:
             previous = conn.execute('''SELECT input_sha256,payload FROM fix1_shadow_test.scores
                 WHERE forecast_id=%s AND model_version=%s AND batch_id=%s AND scoring_version=%s''',key).fetchone()
+            if previous is None:
+                raise ValueError('Score identity conflict: existing result unavailable')
             if previous != (fingerprint, payload):
                 # Existing rows may use the original spelling-sensitive hash.
                 legacy_inputs = {**inputs, 'forecast': sorted(
                     (_utc(p).isoformat(), str(Decimal(str(v)))) for p, v in forecast
                 )}
                 legacy_payload = json.loads(json.dumps(score_values, default=str, sort_keys=True))
-                if previous != (input_fingerprint(legacy_inputs), legacy_payload):
-                    raise ValueError('Score identity conflict; existing result preserved')
+                legacy_fingerprint = input_fingerprint(legacy_inputs)
+                if previous != (legacy_fingerprint, legacy_payload):
+                    reason = (
+                        'stored score payload differs'
+                        if previous[0] in (fingerprint, legacy_fingerprint)
+                        else 'input fingerprint differs'
+                    )
+                    raise ValueError(f'Score identity conflict: {reason}; existing result preserved')
     return ('INSERT' if inserted else 'REPLAY'), score

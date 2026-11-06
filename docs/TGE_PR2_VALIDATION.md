@@ -565,3 +565,8 @@ wcześniej z odciskiem zależnym od formatu nadal obsługują powtórkę orygina
 danych. Równoważnego zapisu w innym formacie nie da się potwierdzić na
 podstawie samego starego odcisku. Testy sprawdzają oba warianty na izolowanej
 bazie oraz zachowanie istniejącego wiersza.
+
+Izolowany scoring rozróżnia konflikt odcisku wejść od niezgodności metryk
+przy zgodnym odcisku. Test PostgreSQL symuluje zmianę zapisanej wartości
+MAE i potwierdza, że ponowny scoring zgłasza przyczynę konfliktu oraz
+zachowuje wiersz. Oddzielny test sprawdza komunikat przy zmianie prognozy.
