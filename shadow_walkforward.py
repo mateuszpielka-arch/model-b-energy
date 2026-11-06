@@ -31,6 +31,9 @@ def run_walkforward(*,history,target_days,evaluated_at):
         snapshots = packet.get('snapshots')
         if isinstance(snapshots, Iterator):
             packet = {**packet, 'snapshots': tuple(snapshots)}
+        actual = packet.get('actual')
+        if isinstance(actual, Iterator):
+            packet = {**packet, 'actual': tuple(actual)}
         packets[day] = packet
     history = list(packets.values())
     accepted=[]; skipped=[]; totals={m:dict(n=0,nz=0,ae=Decimal(0),err=Decimal(0),

@@ -521,3 +521,9 @@ lokalnych wykluczał zwykłe doby z sąsiedztwa wiosennej doby DST. SHADOW
 porównuje teraz profile po godzinach doby docelowej, zarówno dla odległości
 poziomów, jak i średniej używanej do centrowania kształtu. Sąsiad nadal musi
 mieć każdą wymaganą godzinę. Zmieniono wersje SHADOW dni podobnych i mediany.
+
+Walk-forward odczytuje jednorazowe iteratory cen Fix1 raz na dobę i używa
+tych samych wartości w treningu oraz scoringu. Test porównuje pełne raporty
+dla dwóch kolejnych dób, z których pierwsza wchodzi do treningu drugiej.
+Wyniki dla iteratorów i list są identyczne. Kontrola dostępności ceny
+względem granicy D-1 09:50 działa także przy ponownym użyciu danych.
