@@ -570,3 +570,13 @@ Izolowany scoring rozróżnia konflikt odcisku wejść od niezgodności metryk
 przy zgodnym odcisku. Test PostgreSQL symuluje zmianę zapisanej wartości
 MAE i potwierdza, że ponowny scoring zgłasza przyczynę konfliktu oraz
 zachowuje wiersz. Oddzielny test sprawdza komunikat przy zmianie prognozy.
+
+## Checkpoint 2026-11-06 — trzy dodatkowe sesje Fixing I
+
+Pobrano trzy odpowiedzi HTTP 200 z oficjalnej tabeli RDN TGE dla dostaw
+04–06.11.2026. Test porównuje wszystkie 72 ceny godzinowe z CSV uzyskanym
+osobną ekstrakcją lxml z tego samego HTML. Sprawdza też sumy SHA-256,
+powiązanie daty sesji z dostawą i dopuszczenie trzech kompletnych paczek
+przez walidator archiwizacji. Pliki gzip zachowują bajty odpowiedzi HTTP.
+Pobranie historyczne nie dokumentuje dostępności danych wejściowych
+przed D-1 09:50 i nie jest dowodem gotowości do backtestu.

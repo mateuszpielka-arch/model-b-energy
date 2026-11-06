@@ -1,0 +1,48 @@
+{
+  "entries": [
+    {
+      "delivery_date": "2026-11-04",
+      "session_date": "2026-11-03",
+      "url": "https://tge.pl/energia-elektryczna-rdn?dateShow=03-11-2026",
+      "retrieved_at_utc": "2026-11-06T15:12:00.334280+00:00",
+      "http_status": 200,
+      "raw_file": "tge_delivery_2026-11-04.html.gz",
+      "reference_file": "tge_delivery_2026-11-04.csv",
+      "raw_sha256": "6f37c2376cab86d45c6c4a44085a579210fda91948149fa28528b99b253d0081",
+      "reference_sha256": "c08807af415cdcd062a2adc87f229eca87bba0af6f00636afa9603acf355ec69",
+      "reference_method": "independent lxml XPath extraction from SAME official HTML, not independent official export",
+      "hours": 24,
+      "bytes": 426714
+    },
+    {
+      "delivery_date": "2026-11-05",
+      "session_date": "2026-11-04",
+      "url": "https://tge.pl/energia-elektryczna-rdn?dateShow=04-11-2026",
+      "retrieved_at_utc": "2026-11-06T15:12:00.314638+00:00",
+      "http_status": 200,
+      "raw_file": "tge_delivery_2026-11-05.html.gz",
+      "reference_file": "tge_delivery_2026-11-05.csv",
+      "raw_sha256": "31627350fb547f63554a61856ae67cd103fac6fa320ad27c1a7051b1327e0014",
+      "reference_sha256": "d22f13d1d51a4c3d3895eeed6eba93a90783cd5a361ee2609ce2eb23df8579f1",
+      "reference_method": "independent lxml XPath extraction from SAME official HTML, not independent official export",
+      "hours": 24,
+      "bytes": 426204
+    },
+    {
+      "delivery_date": "2026-11-06",
+      "session_date": "2026-11-05",
+      "url": "https://tge.pl/energia-elektryczna-rdn?dateShow=05-11-2026",
+      "retrieved_at_utc": "2026-11-06T15:12:07.918077+00:00",
+      "http_status": 200,
+      "raw_file": "tge_delivery_2026-11-06.html.gz",
+      "reference_file": "tge_delivery_2026-11-06.csv",
+      "raw_sha256": "3a0fa7cebf0be76d0a60e3891b7f53b986be759497b40d9ac6757076355678a0",
+      "reference_sha256": "647504c8439503119002c8ea42dfbae4a70325ac7306d91c613075a687a8b2ef",
+      "reference_method": "independent lxml XPath extraction from SAME official HTML, not independent official export",
+      "hours": 24,
+      "bytes": 425686
+    }
+  ],
+  "errors": [],
+  "note": "Three historical sessions captured together. SHA-256 and bytes describe the decompressed HTTP response."
+}
