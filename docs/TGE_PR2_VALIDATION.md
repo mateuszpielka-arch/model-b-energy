@@ -492,3 +492,10 @@ UTC po obu stronach i rozróżnić powtórzoną godzinę lokalną. Brak lub
 duplikat okresu UTC w takiej dobie wyklucza porównanie. Test na izolowanym
 PostgreSQL porównuje syntetyczne doby 23h i 25h. Ścieżka nie dodaje kolumn
 do archiwum ani nie zmienia zasad dopuszczenia do rankingu.
+
+Audyt kompletności Fix1 wykorzystuje jawne okresy UTC, gdy doba zawiera
+przynajmniej jeden taki znacznik. Wymaga wtedy kompletu poprawnych okresów.
+Pozwala odróżnić powtórzoną godzinę lokalną w dobie 25h od duplikatu UTC.
+W zwykłej dobie sprawdza także zgodność podanych numerów godzin z UTC.
+Dla danych bez znaczników zachowuje osobno oznaczoną diagnostykę legacy.
+Test PostgreSQL potwierdza spójność z porównaniem referencji dla dób 23/25h.

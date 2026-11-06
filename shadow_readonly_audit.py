@@ -224,6 +224,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
             retrieved = 'retrieved_at_utc' if 'retrieved_at_utc' in columns else 'NULL::timestamptz'
             source_url = 'source_url' if 'source_url' in columns else 'NULL::text'
             raw_hash = 'raw_hash' if 'raw_hash' in columns else 'NULL::text'
+            period_column = 'period_start_utc' if 'period_start_utc' in columns else 'NULL::timestamptz'
             source_present = f"(btrim({source_url}) <> '' AND {raw_hash} ~ '^[0-9A-Fa-f]{{64}}$')"
             rows=conn.execute(f'''SELECT delivery_date,count(*),
                 array_agg(DISTINCT hour) FILTER (WHERE hour IS NOT NULL),
@@ -236,16 +237,32 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 count(*) FILTER (WHERE {retrieved} > {first_seen}),
                 count(*) FILTER (WHERE {source_present} IS NOT TRUE),
                 count(DISTINCT (btrim({source_url}), lower({raw_hash})))
-                    FILTER (WHERE {source_present})
+                    FILTER (WHERE {source_present}),
+                array_agg({period_column} ORDER BY {period_column})
+                    FILTER (WHERE {period_column} IS NOT NULL),
+                array_agg(hour ORDER BY {period_column})
+                    FILTER (WHERE {period_column} IS NOT NULL)
                 FROM actual.tge_fix1 WHERE delivery_date BETWEEN
                 COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date)
                 GROUP BY delivery_date ORDER BY delivery_date''', bounds).fetchall()
             for (day,n,hours,suspect,missing_prices,nonfinite_prices,latest_first_seen,
-                 latest_retrieved,missing_timing,invalid_timing,refetched,missing_source,source_count) in rows:
-                expected=len(expected_periods(day))
+                 latest_retrieved,missing_timing,invalid_timing,refetched,missing_source,source_count,
+                 explicit_periods,explicit_hours) in rows:
+                periods = expected_periods(day)
+                expected = len(periods)
                 observed = set(hours or [])
                 required = set(range(1, expected + 1))
-                structurally_complete = n == expected and observed == required
+                if explicit_periods:
+                    structurally_complete = (
+                        n == expected == len(explicit_periods)
+                        and set(explicit_periods) == set(periods)
+                        and (expected != 24 or all(
+                            hour is None or hour == index
+                            for index, hour in enumerate(explicit_hours, 1)
+                        ))
+                    )
+                else:
+                    structurally_complete = n == expected and observed == required
                 complete_prices = structurally_complete and missing_prices == nonfinite_prices == 0
                 next_cutoff = cutoff_for_day(day + timedelta(days=1))
                 if not complete_prices or missing_timing or invalid_timing:
@@ -258,6 +275,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     training_timing = 'TIMING_CANDIDATE'
                 actuals.append(dict(day=day.isoformat(),rows=n,distinct_legacy_hours=len(observed),
                     expected_periods=expected,structurally_complete=structurally_complete,
+                    period_basis='EXPLICIT_UTC' if explicit_periods else 'LEGACY_HOUR',
                     missing_price_rows=missing_prices,
                     nonfinite_price_rows=nonfinite_prices,
                     complete_finite_prices=complete_prices,
@@ -303,7 +321,6 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
         if reference_rows is not None:
             history = []
             if present['actual.tge_fix1']:
-                period_column = 'period_start_utc' if 'period_start_utc' in columns else 'NULL'
                 rows = conn.execute(
                     f'SELECT delivery_date,hour,price_pln_mwh,{period_column} FROM actual.tge_fix1 '
                     'WHERE delivery_date = ANY(%s::date[])', (reference_days,),

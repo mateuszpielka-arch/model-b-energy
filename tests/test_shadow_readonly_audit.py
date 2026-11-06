@@ -555,10 +555,10 @@ class ReadonlyAuditTests(unittest.TestCase):
             reference.extend(dict(delivery_date=day.isoformat(), period_start_utc=period.isoformat(),
                                   fix1=str(price)) for price, period in enumerate(periods, 1))
 
-        def comparison():
-            return audit_connection(self.conn, reference_rows=reference)['fix1_reference']
-
-        matched = comparison()
+        report = audit_connection(self.conn, reference_rows=reference)
+        self.assertTrue(all(day['structurally_complete'] and day['period_basis'] == 'EXPLICIT_UTC'
+                            for day in report['actual_days']))
+        matched = report['fix1_reference']
         self.assertEqual(matched['matched_days'], 2)
         self.assertEqual(matched['compared_periods'], 48)
 
@@ -572,6 +572,8 @@ class ReadonlyAuditTests(unittest.TestCase):
             'UPDATE actual.tge_fix1 SET period_start_utc=%s WHERE delivery_date=%s AND period_start_utc=%s',
             (periods[2], autumn, periods[3]),
         )
-        unmatched = comparison()
+        report = audit_connection(self.conn, reference_rows=reference)
+        self.assertTrue(all(not day['structurally_complete'] for day in report['actual_days']))
+        unmatched = report['fix1_reference']
         self.assertEqual(unmatched['matched_days'], 0)
         self.assertEqual(unmatched['missing_or_invalid_history_days'], ['2026-03-29', '2026-10-25'])
