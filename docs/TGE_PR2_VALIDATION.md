@@ -485,3 +485,10 @@ cel i każda doba treningowa mają pełną zgodność godzinową Fix1 z referenc
 Testy pokazują, że brak jednej referencji przerywa okno, a wybrane krótsze
 okna pozostają dostępne. Jest to pokrycie diagnostyczne po kontroli czasu
 pobrania. Nie nadaje ono danym statusu dopuszczającego je do rankingu.
+
+Porównanie SQL z referencją uwzględnia kolumnę `period_start_utc`, gdy
+istnieje w archiwum Fix1. Pozwala porównać doby 23/25h z jawnymi godzinami
+UTC po obu stronach i rozróżnić powtórzoną godzinę lokalną. Brak lub
+duplikat okresu UTC w takiej dobie wyklucza porównanie. Test na izolowanym
+PostgreSQL porównuje syntetyczne doby 23h i 25h. Ścieżka nie dodaje kolumn
+do archiwum ani nie zmienia zasad dopuszczenia do rankingu.

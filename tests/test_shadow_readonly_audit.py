@@ -7,7 +7,7 @@ from shadow_asof import cutoff_for_day
 from shadow_readonly_audit import (
     audit_connection, audit_pk5_utc_hours, connect_readonly, provisional_comparison_coverage,
 )
-from shadow_scoring import expected_periods
+from shadow_scoring import WARSAW, expected_periods
 
 DSN=os.environ.get('FIX1_SHADOW_TEST_DSN')
 
@@ -539,3 +539,39 @@ class ReadonlyAuditTests(unittest.TestCase):
                          ['2026-11-03T22:00:00+00:00'])
         with self.assertRaisesRegex(ValueError, 'outside the audit range'):
             audit_connection(self.conn, end_day=date(2026, 11, 2), reference_rows=reference)
+
+    def test_reconcile_dst_days_requires_explicit_distinct_utc_periods(self):
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz')
+        reference = []
+        for day, count in ((date(2026, 3, 29), 23), (date(2026, 10, 25), 25)):
+            periods = expected_periods(day)
+            self.assertEqual(len(periods), count)
+            with self.conn.cursor() as cursor:
+                cursor.executemany(
+                    'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s,%s)',
+                    [(day, period.astimezone(WARSAW).hour + 1, price, period)
+                     for price, period in enumerate(periods, 1)],
+                )
+            reference.extend(dict(delivery_date=day.isoformat(), period_start_utc=period.isoformat(),
+                                  fix1=str(price)) for price, period in enumerate(periods, 1))
+
+        def comparison():
+            return audit_connection(self.conn, reference_rows=reference)['fix1_reference']
+
+        matched = comparison()
+        self.assertEqual(matched['matched_days'], 2)
+        self.assertEqual(matched['compared_periods'], 48)
+
+        self.conn.execute(
+            'UPDATE actual.tge_fix1 SET period_start_utc=NULL WHERE delivery_date=%s AND hour=1',
+            (date(2026, 3, 29),),
+        )
+        autumn = date(2026, 10, 25)
+        periods = expected_periods(autumn)
+        self.conn.execute(
+            'UPDATE actual.tge_fix1 SET period_start_utc=%s WHERE delivery_date=%s AND period_start_utc=%s',
+            (periods[2], autumn, periods[3]),
+        )
+        unmatched = comparison()
+        self.assertEqual(unmatched['matched_days'], 0)
+        self.assertEqual(unmatched['missing_or_invalid_history_days'], ['2026-03-29', '2026-10-25'])

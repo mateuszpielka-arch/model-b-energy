@@ -303,12 +303,15 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
         if reference_rows is not None:
             history = []
             if present['actual.tge_fix1']:
+                period_column = 'period_start_utc' if 'period_start_utc' in columns else 'NULL'
                 rows = conn.execute(
-                    'SELECT delivery_date,hour,price_pln_mwh FROM actual.tge_fix1 '
+                    f'SELECT delivery_date,hour,price_pln_mwh,{period_column} FROM actual.tge_fix1 '
                     'WHERE delivery_date = ANY(%s::date[])', (reference_days,),
                 )
-                history = [dict(delivery_date=day.isoformat(), hour=hour, fix1=price)
-                           for day, hour, price in rows]
+                history = [
+                    dict(delivery_date=day.isoformat(), hour=hour, fix1=price, period_start_utc=period)
+                    for day, hour, price, period in rows
+                ]
             comparison = compare_fix1_reference(history, audit_rows(history), reference_rows)
             report['fix1_reference'] = comparison
             excluded_days.update(comparison['missing_or_invalid_history_days'])
