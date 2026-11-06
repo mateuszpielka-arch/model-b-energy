@@ -580,3 +580,8 @@ powiązanie daty sesji z dostawą i dopuszczenie trzech kompletnych paczek
 przez walidator archiwizacji. Pliki gzip zachowują bajty odpowiedzi HTTP.
 Pobranie historyczne nie dokumentuje dostępności danych wejściowych
 przed D-1 09:50 i nie jest dowodem gotowości do backtestu.
+
+Test integracyjny zapisuje w izolowanym PostgreSQL trzy paczki TGE dla
+dostaw 04–06.11.2026 i ponawia każdą z nich. Sprawdza 72 ceny z kluczami UTC,
+trzy oryginalne odpowiedzi HTTP wraz z sumami SHA-256 i czasami pobrania
+oraz brak wpisów w kwarantannie po identycznym ponowieniu.
