@@ -6,6 +6,7 @@ from unittest.mock import patch
 import test_shadow_ols as fixtures
 from shadow_walkforward import run_walkforward,MODELS
 from shadow_similar_consensus import predict_similar
+from shadow_asof import cutoff_for_day
 
 class WalkforwardTests(unittest.TestCase):
     def args(self):
@@ -22,6 +23,32 @@ class WalkforwardTests(unittest.TestCase):
         self.assertTrue(all(r['mae']<Decimal('1e-24') for r in out['ranking'] if r['model'].startswith('ols')))
         self.assertTrue(out['simulation'])
         self.assertEqual(out['accepted'][-1]['rejected_snapshots'], (('', 'INVALID_SNAPSHOT_OBJECT'),))
+
+    def test_training_report_contains_selected_publication_and_price_availability(self):
+        args = self.args()
+        args['target_days'] = args['target_days'][-1:]
+        training = args['history'][-2]
+        target_cutoff = cutoff_for_day(args['target_days'][0])
+        training['actual_available_at'] = target_cutoff
+        snapshot, = training['snapshots']
+        revision = deepcopy(snapshot)
+        revision['id'] = 'late-training-revision'
+        revision['retrieval_completed_at'] = cutoff_for_day(training['day']) + timedelta(seconds=1)
+        training['snapshots'].append(revision)
+
+        accepted, = run_walkforward(**args)['accepted']
+        for model in ('ols30', 'ols60', 'ols90', 'similar_shape', 'similar_level'):
+            prediction = accepted['predictions'][model]
+            evidence = prediction['training_timing'][-1]
+            self.assertEqual(evidence['day'], training['day'].isoformat())
+            self.assertEqual(evidence['actual_version'], training['actual_version'])
+            self.assertEqual(evidence['actual_available_at_utc'], target_cutoff.isoformat())
+            self.assertEqual(evidence['snapshot_id'], str(snapshot['id']))
+            self.assertEqual(evidence['latest_publication_ts_utc'],
+                             max(row['publication_ts'] for row in snapshot['rows']).isoformat())
+            self.assertEqual(evidence['retrieval_completed_at_utc'],
+                             snapshot['retrieval_completed_at'].isoformat())
+            self.assertLessEqual(evidence['retrieval_completed_at_utc'], evidence['jwcd_cutoff_utc'])
 
     def test_day_rejected_for_every_model_when_90d_window_incomplete(self):
         kw=self.args();kw['history']=kw['history'][1:]

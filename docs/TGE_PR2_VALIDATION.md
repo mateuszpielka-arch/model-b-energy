@@ -527,3 +527,10 @@ tych samych wartości w treningu oraz scoringu. Test porównuje pełne raporty
 dla dwóch kolejnych dób, z których pierwsza wchodzi do treningu drugiej.
 Wyniki dla iteratorów i list są identyczne. Kontrola dostępności ceny
 względem granicy D-1 09:50 działa także przy ponownym użyciu danych.
+
+Raport walk-forward zachowuje wersje danych treningowych oraz dodaje czasy
+dla każdego użytego snapshotu JWCD i zestawu cen Fix1. Pokazuje publikację,
+początek i koniec pobrania, granicę JWCD dla własnej doby i dostępność cen
+dla trenowanego modelu. Test syntetyczny potwierdza wybór wcześniejszego
+snapshotu mimo spóźnionej rewizji i dopuszczenie cen dostępnych dokładnie
+na granicy treningu. Mediana nadal odsyła do raportów modeli składowych.

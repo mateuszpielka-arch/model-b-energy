@@ -16,6 +16,9 @@ class SnapshotSelection:
     cutoff_utc: datetime
     rows: tuple
     rejected: tuple
+    retrieved_at_utc: datetime | None = None
+    retrieval_completed_at_utc: datetime | None = None
+    latest_publication_ts_utc: datetime | None = None
 
 
 def cutoff_for_day(day):
@@ -101,7 +104,7 @@ def select_snapshot(day, snapshots):
             rejected.append((candidate_id, 'SUPERSEDED_JWCD_PUBLICATIONS'))
         else:
             freshest.append(candidate)
-    completed, retrieved, sid, rows, _ = max(freshest)
+    completed, retrieved, sid, rows, publications = max(freshest)
     latest = [(candidate_id, candidate_rows, publications)
               for end, start, candidate_id, candidate_rows, publications in freshest
               if (end, start) == (completed, retrieved)]
@@ -122,4 +125,6 @@ def select_snapshot(day, snapshots):
         rejected.extend((candidate_id, 'CONFLICTING_JWCD_PUBLICATION')
                         for candidate_id in sorted(conflicting_ids))
         return SnapshotSelection(None, cutoff, (), tuple(rejected))
-    return SnapshotSelection(sid,cutoff,rows,tuple(rejected))
+    return SnapshotSelection(
+        sid, cutoff, rows, tuple(rejected), retrieved, completed, max(publications.values()),
+    )

@@ -22,7 +22,7 @@ def predict_ols(*, target_day, target_snapshots, history, window_days):
     hour/sequence mapping or a claim that official PSE/TGE DST labels are resolved.
     """
     from shadow_training import prepare_training
-    cutoff,target,prepared,evidence=prepare_training(target_day=target_day,
+    cutoff,target,prepared,evidence,timing=prepare_training(target_day=target_day,
         target_snapshots=target_snapshots,history=history,window_days=window_days)
     buckets=defaultdict(list)
     for day,jwcd_rows,actual in prepared:
@@ -47,4 +47,4 @@ def predict_ols(*, target_day, target_snapshots, history, window_days):
     return dict(model_version=f'jwcd-ols-{window_days}d-local-hour-shadow-v1',
         target_day=target_day.isoformat(),target_snapshot_id=target.snapshot_id,
         cutoff_utc=cutoff.isoformat(),window_days=window_days,
-        training_evidence=tuple(evidence),coefficients=coefficients,prices=tuple(predictions))
+        training_evidence=tuple(evidence),training_timing=timing,coefficients=coefficients,prices=tuple(predictions))

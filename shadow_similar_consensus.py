@@ -21,7 +21,7 @@ def predict_similar(*, target_day, target_snapshots, history, window_days=90, k=
     """
     if mode not in ('shape','level') or isinstance(k,bool) or not isinstance(k,int) or k<1:
         raise ValueError('Fixed valid mode and positive integer k required')
-    cutoff,target,prepared,evidence=prepare_training(target_day=target_day,
+    cutoff,target,prepared,evidence,timing=prepare_training(target_day=target_day,
         target_snapshots=target_snapshots,history=history,window_days=window_days)
     with localcontext() as ctx:
         ctx.prec=34
@@ -41,7 +41,7 @@ def predict_similar(*, target_day, target_snapshots, history, window_days=90, k=
         predictions=tuple((p,hourly[p.astimezone(WARSAW).hour]) for p,_ in target.rows)
     return dict(model_version=f'jwcd-similar-{mode}-{window_days}d-k{k}-shadow-v2',
         target_day=target_day.isoformat(),target_snapshot_id=target.snapshot_id,
-        cutoff_utc=cutoff.isoformat(),prices=predictions,training_evidence=evidence,
+        cutoff_utc=cutoff.isoformat(),prices=predictions,training_evidence=evidence,training_timing=timing,
         neighbors=tuple((d.isoformat(),dist) for dist,d,_ in chosen),excluded=tuple(excluded))
 
 

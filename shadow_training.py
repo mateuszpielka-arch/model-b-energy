@@ -19,7 +19,7 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
         raise ValueError(f'Incomplete calendar training window: first missing day {min(missing)}')
     target=select_snapshot(target_day,target_snapshots)
     if target.snapshot_id is None: raise ValueError('No complete pre-cutoff target JWCD')
-    prepared=[]; evidence=[]
+    prepared=[]; evidence=[]; timing=[]
     for day,p in sorted(packets.items()):
         if p.get('actual_verified') is not True or not p.get('actual_version'):
             raise ValueError('Historical actual provenance not verified')
@@ -40,4 +40,14 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
             raise ValueError(f'Historical actual incomplete or invalid periods: {day}')
         prepared.append((day,selection.rows,actual))
         evidence.append((day.isoformat(),selection.snapshot_id,p['actual_version']))
-    return cutoff,target,tuple(prepared),tuple(evidence)
+        timing.append(dict(
+            day=day.isoformat(),
+            snapshot_id=selection.snapshot_id,
+            actual_version=p['actual_version'],
+            jwcd_cutoff_utc=selection.cutoff_utc.isoformat(),
+            latest_publication_ts_utc=selection.latest_publication_ts_utc.isoformat(),
+            retrieved_at_utc=selection.retrieved_at_utc.isoformat(),
+            retrieval_completed_at_utc=selection.retrieval_completed_at_utc.isoformat(),
+            actual_available_at_utc=actual_available.isoformat(),
+        ))
+    return cutoff,target,tuple(prepared),tuple(evidence),tuple(timing)
