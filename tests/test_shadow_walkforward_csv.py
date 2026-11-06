@@ -40,6 +40,15 @@ class WalkforwardCSVTests(unittest.TestCase):
         self.assertEqual(len(comparison["ranking"]), 6)
         self.assertEqual(comparison["accepted"][0]["day"], target.isoformat())
 
+        scoped = evaluate_csv_rows(rows, evaluated_at=evaluated_at, target_from=target, target_to=target)
+        self.assertEqual(scoped["csv_admission"], result["csv_admission"])
+        self.assertEqual(scoped["walkforward"]["requested_days"], 1)
+        self.assertEqual(scoped["walkforward"]["skipped"], [])
+        self.assertEqual(scoped["walkforward"]["accepted"], comparison["accepted"])
+        self.assertEqual(scoped["walkforward"]["ranking"], comparison["ranking"])
+        self.assertEqual(scoped["walkforward"]["target_from"], target.isoformat())
+        self.assertEqual(scoped["walkforward"]["target_to"], target.isoformat())
+
         rows[0]["retrieval_completed_at"] = rows[0]["actual_available_at"]
         result = evaluate_csv_rows(rows, evaluated_at=evaluated_at)
         self.assertEqual(result["history_audit"]["model_ready_days"], 90)
@@ -65,3 +74,8 @@ class WalkforwardCSVTests(unittest.TestCase):
         self.assertIn("MISSING_OR_INVALID_JWCD",
                       result["csv_admission"]["excluded_days"]["2026-11-03"])
         self.assertEqual(result["walkforward"]["requested_days"], 0)
+
+    def test_reversed_target_bounds_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, "Target start"):
+            evaluate_csv_rows([], evaluated_at=datetime(2026, 11, 4, tzinfo=timezone.utc),
+                              target_from=date(2026, 11, 4), target_to=date(2026, 11, 3))

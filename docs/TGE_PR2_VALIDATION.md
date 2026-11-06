@@ -625,3 +625,9 @@ dopuszczonych oraz daty i przyczyny odrzuceń na etapie audytu.
 Test potwierdza rozdzielenie odrzuceń audytu od pominięć w samym
 walk-forward. Na przekazanym ZIP wykluczono w audycie 2122 z 2122
 dób i nie utworzono rankingu.
+
+CLI walk-forward z CSV przyjmuje `--target-from` i `--target-to` jako
+włączne granice dat dostawy do oceny. Wcześniejsze doby nadal wchodzą
+do treningu, jeśli spełniają warunki dostępności dla danej prognozy.
+Test z 90 dobami treningowymi i docelową dobą 25h potwierdza identyczny
+ranking sześciu modeli po ograniczeniu oceny do tej jednej doby.

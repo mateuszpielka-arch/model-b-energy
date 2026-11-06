@@ -11,12 +11,16 @@ from shadow_scoring import expected_periods
 from shadow_walkforward import run_walkforward
 
 
-def evaluate_csv_rows(rows, *, evaluated_at):
+def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None):
     """Report source readiness and compare only days admitted by the CSV audit.
 
     CSV provenance fields are assertions supplied by the source. The audit
     checks their presence and consistency but cannot authenticate them.
+    The inclusive target range limits evaluation only. Earlier admitted rows
+    remain available for the per-target training windows.
     """
+    if target_from is not None and target_to is not None and target_from > target_to:
+        raise ValueError("Target start must not be after target end")
     rows = list(rows)
     readiness = audit_rows(rows)
     ready_days = {entry["day"] for entry in readiness["days"] if entry["model_ready"]}
@@ -52,10 +56,13 @@ def evaluate_csv_rows(rows, *, evaluated_at):
                 retrieval_completed_at=_stamp(first["retrieval_completed_at"]), rows=jwcd,
             )],
         ))
-    comparison = run_walkforward(
-        history=history, target_days=[packet["day"] for packet in history],
-        evaluated_at=evaluated_at,
-    )
+    targets = [
+        day for day in sorted(grouped)
+        if (target_from is None or day >= target_from) and (target_to is None or day <= target_to)
+    ]
+    comparison = run_walkforward(history=history, target_days=targets, evaluated_at=evaluated_at)
+    comparison["target_from"] = target_from.isoformat() if target_from is not None else None
+    comparison["target_to"] = target_to.isoformat() if target_to is not None else None
     admission = {
         "delivery_days": len(readiness["days"]),
         "admitted_days": len(ready_days),
@@ -70,11 +77,17 @@ def evaluate_csv_rows(rows, *, evaluated_at):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--evaluated-at", required=True, type=_stamp)
+    parser.add_argument("--target-from", type=date.fromisoformat, help="First delivery date to score")
+    parser.add_argument("--target-to", type=date.fromisoformat, help="Last delivery date to score")
     parser.add_argument("csv", nargs="+")
     args = parser.parse_args()
+    if args.target_from is not None and args.target_to is not None and args.target_from > args.target_to:
+        parser.error("--target-from must not be after --target-to")
     rows = (row for path in args.csv for row in read_csv(path))
-    print(json.dumps(evaluate_csv_rows(rows, evaluated_at=args.evaluated_at),
-                     default=str, indent=2))
+    result = evaluate_csv_rows(
+        rows, evaluated_at=args.evaluated_at, target_from=args.target_from, target_to=args.target_to,
+    )
+    print(json.dumps(result, default=str, indent=2))
 
 
 if __name__ == "__main__":
