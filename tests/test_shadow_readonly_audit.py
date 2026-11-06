@@ -43,6 +43,7 @@ class ProvisionalCoverageTests(unittest.TestCase):
         days = [first + timedelta(days=i) for i in range(91)]
         actuals = [dict(
             day=day.isoformat(), single_recorded_source=True,
+            expected_periods=len(expected_periods(day)), period_basis='EXPLICIT_UTC',
             next_delivery_training_timing='TIMING_CANDIDATE',
             latest_retrieved_at_utc=cutoff_for_day(day + timedelta(days=1)).isoformat(),
         ) for day in days]
@@ -86,6 +87,25 @@ class ProvisionalCoverageTests(unittest.TestCase):
         result = provisional_comparison_coverage(actuals, selections)
         self.assertEqual(result['longest_paired_run'], 45)
         self.assertEqual(result['comparison_candidates']['60D'], [])
+
+
+    def test_dst_legacy_hours_are_excluded_from_provisional_coverage(self):
+        for day, count in ((date(2026, 3, 29), 23), (date(2026, 10, 25), 25),
+                           (date(2026, 11, 2), 24)):
+            with self.subTest(day=day):
+                actual = dict(
+                    day=day.isoformat(), single_recorded_source=True,
+                    expected_periods=count, period_basis='LEGACY_HOUR',
+                    next_delivery_training_timing='TIMING_CANDIDATE',
+                    latest_retrieved_at_utc=cutoff_for_day(day + timedelta(days=1)).isoformat(),
+                )
+                selections = {day.isoformat(): {'provisional_snapshot_id': '1'}}
+                result = provisional_comparison_coverage([actual], selections)
+                self.assertEqual(result['paired_days'], int(count == 24))
+
+                actual['period_basis'] = 'EXPLICIT_UTC'
+                result = provisional_comparison_coverage([actual], selections)
+                self.assertEqual(result['paired_days'], 1)
 
 
 @unittest.skipUnless(DSN,'Set explicit disposable PostgreSQL DSN')

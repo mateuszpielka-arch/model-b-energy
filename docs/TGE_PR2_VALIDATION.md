@@ -505,3 +505,7 @@ gdy doba ma jawny okres UTC, każda godzina tej doby musi mieć taki znacznik.
 Dla doby 24h w całości zapisanej jako H01–H24 dotychczasowa ścieżka nadal
 działa. Testy sprawdzają częściową dobową mapę UTC oraz odrzucenie jej przy
 porównaniu z referencją TGE na izolowanym PostgreSQL.
+
+Wstępne okna porównań SQL wymagają jawnej i kompletnej mapy UTC Fix1 dla
+dób 23/25h. Sam komplet numerów legacy wystarcza w tej diagnostyce tylko
+dla doby 24h. Test regresji sprawdza obie zmiany czasu oraz zwykłą dobę.

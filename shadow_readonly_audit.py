@@ -106,6 +106,7 @@ def provisional_comparison_coverage(
         if (included_days is None or actual['day'] in included_days)
         and actual['day'] not in excluded_days
         and actual['single_recorded_source']
+        and (actual['expected_periods'] == 24 or actual['period_basis'] == 'EXPLICIT_UTC')
         and actual['next_delivery_training_timing'] in ('TIMING_CANDIDATE', 'AFTER_NEXT_ISSUE_CUTOFF')
         and candidate_selection.get(actual['day'], {}).get('provisional_snapshot_id')
     }
