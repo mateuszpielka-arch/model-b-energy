@@ -598,3 +598,11 @@ Sprawdza zapis MAE, MAPE, WAPE i bias względem wartości obliczonych
 niezależnie z referencji CSV, powiązanie wyniku z HTML TGE oraz ponowienie
 bez duplikatu. Syntetyczny czas pobrania na granicy D-1 09:50 przechodzi,
 a sekundę później blokuje zapis. Test nie ocenia trafności modelu.
+
+Audyt porównania z TGE rozdziela braki w zakresie historii od dat poza
+jego granicami. Test obejmuje brakującą dobę 25h wewnątrz zakresu oraz
+dzień po jego końcu. Ponowny audyt pełnej kopii przekazanego ZIP potwierdził
+24 z 24 zgodnych cen dla dostawy 04.11.2026. Dostawy 05–06.11.2026
+wypadają poza zakresem pliku, który kończy się 04.11.2026.
+Wynik potwierdza ceny, a liczba dób z udokumentowaną dostępnością do
+backtestu pozostaje równa zero.

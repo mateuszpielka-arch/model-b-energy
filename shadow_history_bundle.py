@@ -109,11 +109,19 @@ def compare_fix1_reference(rows, audit, reference_rows):
         ]
         compared.append({"day": day, "periods": len(reference[day]),
                          "different_periods_utc": different})
+    unmatched = reference_days - history.keys()
+    history_dates = [entry["day"] for entry in audit["days"]]
+    within_range = {
+        day for day in unmatched
+        if history_dates and history_dates[0] <= day <= history_dates[-1]
+    }
     return {
         "matched_days": sum(not day["different_periods_utc"] for day in compared),
         "compared_periods": sum(day["periods"] for day in compared),
         "different_periods": sum(len(day["different_periods_utc"]) for day in compared),
-        "missing_or_invalid_history_days": sorted(reference_days - history.keys()),
+        "missing_or_invalid_history_days": sorted(unmatched),
+        "missing_or_invalid_within_history_range_days": sorted(within_range),
+        "outside_history_range_days": sorted(unmatched - within_range),
         "compared_days": compared,
     }
 

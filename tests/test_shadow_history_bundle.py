@@ -1,3 +1,4 @@
+from datetime import date
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -6,6 +7,7 @@ import unittest
 from zipfile import ZipFile
 
 from shadow_history_bundle import CSV_NAME, audit_bundle
+from shadow_scoring import expected_periods
 
 
 class HistoryBundleTests(unittest.TestCase):
@@ -58,10 +60,13 @@ class HistoryBundleTests(unittest.TestCase):
             self.make_bundle(path)
             reference = Path(tmp) / "reference.csv"
             reference.write_text(
-                "delivery_date,hour,price_pln_mwh\n" + "".join(
-                    f"{day},H{hour:02d},{-9 if day == '2026-10-26' and hour == 24 else -10}\n"
+                "delivery_date,hour,price_pln_mwh,period_start_utc\n" + "".join(
+                    f"{day},H{hour:02d},{-9 if day == '2026-10-26' and hour == 24 else -10},\n"
                     for day in ("2026-10-24", "2026-10-26", "2026-10-27")
                     for hour in range(1, 25)
+                ) + "".join(
+                    f"2026-10-25,,-10,{period.isoformat()}\n"
+                    for period in expected_periods(date(2026, 10, 25))
                 ), encoding="utf-8",
             )
             report = audit_bundle(path, reference_paths=[reference])
@@ -71,10 +76,12 @@ class HistoryBundleTests(unittest.TestCase):
             self.assertEqual(comparison["different_periods"], 1)
             self.assertEqual(comparison["compared_days"][1]["different_periods_utc"],
                              ["2026-10-26T22:00:00+00:00"])
-            self.assertEqual(comparison["missing_or_invalid_history_days"], ["2026-10-27"])
+            self.assertEqual(comparison["missing_or_invalid_history_days"], ["2026-10-25", "2026-10-27"])
+            self.assertEqual(comparison["missing_or_invalid_within_history_range_days"], ["2026-10-25"])
+            self.assertEqual(comparison["outside_history_range_days"], ["2026-10-27"])
             self.assertEqual(report["model_ready_days"], 0)
 
             with reference.open("a", encoding="utf-8") as stream:
-                stream.write("2026-10-24,H01,-10\n")
+                stream.write("2026-10-24,H01,-10,\n")
             with self.assertRaisesRegex(ValueError, "complete, unambiguous"):
                 audit_bundle(path, reference_paths=[reference])
