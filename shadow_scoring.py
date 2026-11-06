@@ -99,10 +99,11 @@ def score_day(*, day, forecast, actual, forecast_id, model_version, actual_versi
         raise ValueError('Incomplete or mismatched delivery periods')
     with localcontext() as ctx:
         ctx.prec = 34
-        errors = [fp[p] - ap[p] for p in sorted(expected)]
+        periods = sorted(expected)
+        errors = [fp[p] - ap[p] for p in periods]
         abs_sum = sum(map(abs, errors), Decimal(0))
-        denom = sum(map(abs, ap.values()), Decimal(0))
-        ratios = [abs(fp[p]-ap[p])/abs(ap[p]) for p in sorted(expected) if ap[p] != 0]
+        denom = sum((abs(ap[p]) for p in periods), Decimal(0))
+        ratios = [abs(fp[p]-ap[p])/abs(ap[p]) for p in periods if ap[p] != 0]
         n = len(expected)
         return Score(forecast_id, model_version, actual_version, forecast_status,
                      n, len(ratios), n-len(ratios), abs_sum/n,

@@ -551,3 +551,9 @@ Raport odrzuceń SHADOW zapisuje nazwę modelu, jeśli błąd wystąpi przy
 sprawdzaniu czasu wejść lub scoringu. Nadal wyklucza całą dobę ze wspólnej
 próby. Testy wskazują wariant dni podobnych z błędną godziną UTC oraz
 OLS 60D z czasem pobrania treningowego o sekundę po D-1 09:50.
+
+Scoring dobowy i ranking walk-forward sumują wartości w stałej kolejności
+okresów UTC. Przed poprawką odwrócenie kolejności wierszy cen zmieniało
+końcowe cyfry metryk przez zaokrąglenia Decimal. Testy potwierdzają
+identyczny WAPE dobowy i identyczny pełny raport dla dwóch syntetycznych
+dób niezależnie od kolejności wierszy Fix1.

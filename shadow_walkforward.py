@@ -106,13 +106,15 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 skipped.append(rejection)
                 continue
             # Accumulate only after ALL models and scores have passed for the day.
+            periods = sorted(actual)
             for name in MODELS:
                 predicted=_prices(predictions[name]['prices']); t=totals[name]
-                for p,y in actual.items():
+                for p in periods:
+                    y = actual[p]
                     error=predicted[p]-y;t['n']+=1;t['ae']+=abs(error);t['err']+=error;t['denom']+=abs(y)
                     if y!=0:t['nz']+=1;t['ape']+=abs(error)/abs(y)
             accepted.append(dict(day=day.isoformat(),periods=len(actual),
-                period_starts_utc=[period.isoformat() for period in sorted(actual)],
+                period_starts_utc=[period.isoformat() for period in periods],
                 target_snapshot_id=selected.snapshot_id,
                 actual_version=target["actual_version"],
                 actual_available_at=actual_available.isoformat(),

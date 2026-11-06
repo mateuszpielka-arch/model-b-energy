@@ -52,6 +52,18 @@ class WalkforwardTests(unittest.TestCase):
                              snapshot['retrieval_completed_at'].isoformat())
             self.assertLessEqual(evidence['retrieval_completed_at_utc'], evidence['jwcd_cutoff_utc'])
 
+    def test_ranking_is_identical_for_reversed_actual_rows(self):
+        args = self.args()
+        for packet in args['history'][-2:]:
+            packet['actual'] = [(period, index * index + 137)
+                                for index, (period, _) in enumerate(packet['actual'])]
+        expected = run_walkforward(**args)
+        self.assertEqual(expected['common_days'], 2)
+
+        for packet in args['history']:
+            packet['actual'].reverse()
+        self.assertEqual(run_walkforward(**args), expected)
+
     def test_day_rejected_for_every_model_when_90d_window_incomplete(self):
         kw=self.args();kw['history']=kw['history'][1:]
         out=run_walkforward(**kw)

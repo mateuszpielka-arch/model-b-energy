@@ -24,6 +24,14 @@ class ScoringTests(unittest.TestCase):
         self.assertEqual((s.mape_pct,s.wape_pct), (Decimal(15),Decimal(20)))
         self.assertEqual((s.mape_periods,s.zero_actual_periods), (16,8))
 
+    def test_wape_is_identical_for_reversed_actual_rows(self):
+        args = self.args()
+        args['actual'] = [(period, '1e34' if index == 0 else '1')
+                          for index, (period, _) in enumerate(args['actual'])]
+        expected = score_day(**args)
+        args['actual'].reverse()
+        self.assertEqual(score_day(**args), expected)
+
     def test_all_zero_actual(self):
         kw=self.args(); kw['actual']=[(p,0) for p,_ in kw['actual']]
         s=score_day(**kw)
