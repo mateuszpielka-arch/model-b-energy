@@ -96,12 +96,13 @@ def missing_delivery_ranges(coverage, start_day, end_day):
     return gaps
 
 
-def provisional_comparison_coverage(actuals, candidate_selection):
+def provisional_comparison_coverage(actuals, candidate_selection, *, excluded_days=()):
     """Estimate coverage from legacy metadata without admitting model inputs."""
     ready_at = {
         date.fromisoformat(actual['day']): _stamp(actual['latest_retrieved_at_utc'])
         for actual in actuals
-        if actual['single_recorded_source']
+        if actual['day'] not in excluded_days
+        and actual['single_recorded_source']
         and actual['next_delivery_training_timing'] in ('TIMING_CANDIDATE', 'AFTER_NEXT_ISSUE_CUTOFF')
         and candidate_selection.get(actual['day'], {}).get('provisional_snapshot_id')
     }
@@ -290,12 +291,12 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     }),
                     archive_hourly_candidate_selection=candidate_selection,
                     delivery_coverage=coverage,
-                    provisional_comparison_coverage=provisional_comparison_coverage(actuals, candidate_selection),
                     missing_delivery_ranges=missing_delivery_ranges(coverage, start_day, end_day),
                     archive_hourly_candidate_days=sorted({
                         s['day'] for s in snapshots if s.get('archive_hourly_candidate')
                     }),
                     note='60/2026 are diagnostics, not proof of invalid price. Legacy retrieval time is not completion evidence.')
+        excluded_days = set()
         if reference_rows is not None:
             history = []
             if present['actual.tge_fix1']:
@@ -305,7 +306,14 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 )
                 history = [dict(delivery_date=day.isoformat(), hour=hour, fix1=price)
                            for day, hour, price in rows]
-            report['fix1_reference'] = compare_fix1_reference(history, audit_rows(history), reference_rows)
+            comparison = compare_fix1_reference(history, audit_rows(history), reference_rows)
+            report['fix1_reference'] = comparison
+            excluded_days.update(comparison['missing_or_invalid_history_days'])
+            excluded_days.update(entry['day'] for entry in comparison['compared_days']
+                                 if entry['different_periods_utc'])
+        report['provisional_comparison_coverage'] = provisional_comparison_coverage(
+            actuals, candidate_selection, excluded_days=excluded_days,
+        )
         return report
 
 

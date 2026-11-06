@@ -471,3 +471,10 @@ samymi numerami godzin nie mają wystarczającego mapowania UTC do porównania.
 Test w izolowanym PostgreSQL używa zapisanej referencji TGE z 03.11.2026,
 porównuje 24 ceny i wykrywa zmienioną godzinę. Wynik porównania pozostaje
 oddzielony od kwalifikacji cen do walk-forward i nie zmienia archiwum.
+
+Jeśli podano referencje TGE, audyt wyklucza ze wstępnego pokrycia 30/60/90D
+doby z różnicą ceny albo bez kompletu porównywalnych godzin. Wykluczona
+doba nie może być celem ani częścią okna treningowego. Zgodność referencji
+nie nadaje danym statusu zweryfikowanego. Doby bez podanej referencji nadal
+podlegają dotychczasowym kryteriom wstępnego audytu. Testy obejmują lukę
+w oknie oraz zmianę pojedynczej ceny z referencji 03.11.2026 w izolowanej bazie.

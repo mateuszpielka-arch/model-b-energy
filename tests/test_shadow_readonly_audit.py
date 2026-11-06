@@ -55,6 +55,14 @@ class ProvisionalCoverageTests(unittest.TestCase):
             self.assertEqual(result['comparison_candidates'][f'{window}D'],
                              [day.isoformat() for day in days[window:]])
 
+        result = provisional_comparison_coverage(
+            actuals, selections, excluded_days={days[45].isoformat()},
+        )
+        self.assertEqual(result['paired_days'], 90)
+        self.assertEqual(result['longest_paired_run'], 45)
+        self.assertEqual(result['comparison_candidates']['60D'], [])
+        self.assertEqual(result['comparison_candidates']['90D'], [])
+
         actuals[-2]['latest_retrieved_at_utc'] = (
             cutoff_for_day(days[-1]) + timedelta(seconds=1)
         ).isoformat()
@@ -478,7 +486,28 @@ class ReadonlyAuditTests(unittest.TestCase):
                 'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s)',
                 [(day, int(row['hour'][1:]), Decimal(row['price_pln_mwh'])) for row in reference],
             )
+        from psycopg.types.json import Jsonb
+
+        self.conn.execute(
+            'ALTER TABLE actual.tge_fix1 ADD COLUMN first_seen_at_utc timestamptz, '
+            'ADD COLUMN retrieved_at_utc timestamptz, ADD COLUMN source_url text, ADD COLUMN raw_hash text'
+        )
+        self.conn.execute(
+            'UPDATE actual.tge_fix1 SET first_seen_at_utc=%s, retrieved_at_utc=%s, source_url=%s, raw_hash=%s',
+            ('2026-11-02T10:00:00Z', '2026-11-02T10:00:00Z', 'https://example.test/fix1', 'a' * 64),
+        )
+        self.conn.execute(
+            'ALTER TABLE raw.snapshots ADD COLUMN created_at timestamptz, ADD COLUMN source_version text'
+        )
+        pk5 = [{'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': 1000,
+                'publication_ts': '2026-11-02T08:00:00Z'} for period in expected_periods(day)]
+        self.conn.execute(
+            'INSERT INTO raw.snapshots VALUES (%s,%s,%s,%s,%s,%s)',
+            (1, day, '2026-11-02T08:30:00Z', Jsonb({'pk5l-wp': pk5}),
+             '2026-11-02T08:40:00Z', 'energy-collector-v3'),
+        )
         report = audit_connection(self.conn, start_day=day, end_day=day, reference_rows=reference)
+        self.assertEqual(report['provisional_comparison_coverage']['paired_days'], 1)
         self.assertEqual(report['fix1_reference']['matched_days'], 1)
         self.assertEqual(report['fix1_reference']['compared_periods'], 24)
         self.assertEqual(report['fix1_reference']['different_periods'], 0)
@@ -486,7 +515,10 @@ class ReadonlyAuditTests(unittest.TestCase):
                          'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')
 
         self.conn.execute('UPDATE actual.tge_fix1 SET price_pln_mwh=price_pln_mwh+1 WHERE hour=24')
-        comparison = audit_connection(self.conn, reference_rows=reference)['fix1_reference']
+        report = audit_connection(self.conn, reference_rows=reference)
+        self.assertEqual(report['provisional_comparison_coverage']['paired_days'], 0)
+        self.assertEqual(audit_connection(self.conn)['provisional_comparison_coverage']['paired_days'], 1)
+        comparison = report['fix1_reference']
         self.assertEqual(comparison['matched_days'], 0)
         self.assertEqual(comparison['compared_days'][0]['different_periods_utc'],
                          ['2026-11-03T22:00:00+00:00'])
