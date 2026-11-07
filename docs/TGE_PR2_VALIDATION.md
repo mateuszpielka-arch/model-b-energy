@@ -641,3 +641,8 @@ Ranking SHADOW podaje liczbę wspólnie ocenionych dób 23h, 24h i 25h.
 W jednym przebiegu na danych syntetycznych sześć modeli oceniono na
 tych samych 72 godzinach z trzech dób różnej długości. Test z błędnym
 kluczem UTC potwierdza, że odrzucona doba nie zwiększa żadnego licznika.
+
+Raport rankingu deklaruje MAE jako kryterium kolejności. Test dwóch
+syntetycznych dób 24h i 25h porównuje MAE, MAPE, WAPE i bias wszystkich
+sześciu modeli z niezależnym obliczeniem na ułamkach dokładnych. Próba
+obejmuje 49 godzin, w tym ceny ujemne i dwa zera pomijane tylko w MAPE.

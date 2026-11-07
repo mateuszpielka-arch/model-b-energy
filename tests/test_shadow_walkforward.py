@@ -1,6 +1,7 @@
 from copy import deepcopy
 from datetime import date,datetime,timedelta,timezone
 from decimal import Decimal
+from fractions import Fraction
 import unittest
 from unittest.mock import patch
 import test_shadow_ols as fixtures
@@ -97,27 +98,46 @@ class WalkforwardTests(unittest.TestCase):
         kw['history'].append(deepcopy(kw['history'][0]))
         with self.assertRaisesRegex(ValueError,'Duplicate'):run_walkforward(**kw)
 
-    def test_dst_ranking_weights_49_periods_not_daily_means(self):
-        history=fixtures.OLSTests().data(92,target=date(2026,10,26))['history']
-        out=run_walkforward(history=history,target_days=[p['day'] for p in history[-2:]],
-            evaluated_at=datetime(2026,11,5,tzinfo=timezone.utc))
-        self.assertEqual(out['common_days'],2)
-        self.assertTrue(all(r['periods']==49 for r in out['ranking']))
+    def test_dst_ranking_pools_all_four_metrics_across_49_periods(self):
+        history = fixtures.OLSTests().data(92, target=date(2026, 10, 26))['history']
+        for packet in history[-2:]:
+            first, second, *remaining = packet['actual']
+            packet['actual'] = [(first[0], 0), (second[0], -50), *remaining]
+        out = run_walkforward(
+            history=history, target_days=[packet['day'] for packet in history[-2:]],
+            evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
+        )
+        self.assertEqual(out['common_days'], 2)
         self.assertEqual(out['common_periods'], 49)
+        self.assertEqual(out['ranking_metric'], 'mae')
         self.assertEqual([day['periods'] for day in out['accepted']], [24, 25])
-        total=Decimal(0);denom=Decimal(0)
-        packets={p['day'].isoformat():p for p in history}
-        for d in out['accepted']:
-            actual=dict(packets[d['day']]['actual'])
+        self.assertEqual(len(out['ranking']), len(MODELS))
+        packets = {packet['day'].isoformat(): packet for packet in history}
+        pairs_by_model = {model: [] for model in MODELS}
+        for day in out['accepted']:
+            actual = dict(packets[day['day']]['actual'])
             periods = [period.isoformat() for period in sorted(actual)]
-            self.assertEqual(d['period_starts_utc'], periods)
-            for prediction in d['predictions'].values():
-                self.assertEqual(sorted(period.isoformat() for period, _ in prediction['prices']), periods)
-            for p,v in d['predictions']['similar_level']['prices']:
-                total+=abs(v-actual[p]);denom+=abs(actual[p])
-        row=next(r for r in out['ranking'] if r['model']=='similar_level')
-        self.assertLess(abs(row['mae']-total/49),Decimal('1e-24'))
-        self.assertLess(abs(row['wape_pct']-100*total/denom),Decimal('1e-24'))
+            self.assertEqual(day['period_starts_utc'], periods)
+            for model, prediction in day['predictions'].items():
+                prices = prediction['prices']
+                self.assertEqual(sorted(period.isoformat() for period, _ in prices), periods)
+                pairs_by_model[model].extend((Fraction(price), Fraction(actual[p])) for p, price in prices)
+
+        for row in out['ranking']:
+            with self.subTest(model=row['model']):
+                pairs = pairs_by_model[row['model']]
+                self.assertEqual((row['periods'], row['mape_periods'], row['zero_actual_periods']), (49, 47, 2))
+                absolute = sum(abs(price - actual) for price, actual in pairs)
+                expected = {
+                    'mae': absolute / 49,
+                    'bias': sum(price - actual for price, actual in pairs) / 49,
+                    'wape_pct': 100 * absolute / sum(abs(actual) for _, actual in pairs),
+                    'mape_pct': 100 * sum(abs(price - actual) / abs(actual)
+                                          for price, actual in pairs if actual) / 47,
+                }
+                for metric, value in expected.items():
+                    exact = Decimal(value.numerator) / Decimal(value.denominator)
+                    self.assertLess(abs(row[metric] - exact), Decimal('1e-22'), metric)
 
     def test_ranking_reports_common_coverage_across_all_delivery_day_lengths(self):
         spring = date(2026, 3, 29)

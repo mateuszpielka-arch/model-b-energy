@@ -145,4 +145,5 @@ def run_walkforward(*,history,target_days,evaluated_at):
     return dict(skipped_days_by_stage=skipped_days_by_stage,simulation=True,evaluated_at=evaluated.isoformat(),requested_days=len(set(target_days)),
         common_days=len(accepted),
         common_days_by_hours={str(hours): common_days_by_hours[hours] for hours in (23, 24, 25)},
-        common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,ranking=ranking)
+        common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,
+        ranking_metric="mae", ranking=ranking)
