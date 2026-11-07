@@ -16,12 +16,13 @@ from tools.capture_tge_validation import extract_reference
 
 
 FIXTURES = Path(__file__).parent / 'fixtures/tge_history_2026-11-04_2026-11-06'
+NOV_7_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-07')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
-def load_session(entry):
-    raw = gzip.decompress((FIXTURES / entry['raw_file']).read_bytes())
-    reference = (FIXTURES / entry['reference_file']).read_bytes()
+def load_session(entry, directory=FIXTURES):
+    raw = gzip.decompress((directory / entry['raw_file']).read_bytes())
+    reference = (directory / entry['reference_file']).read_bytes()
     return raw, reference, list(csv.DictReader(reference.decode('utf-8').splitlines()))
 
 
@@ -38,9 +39,14 @@ def prepare_session(entry, raw, reference_rows):
 
 class RecentOfficialSessionsTests(unittest.TestCase):
     def test_captured_fixing_i_prices_pass_parser_and_archive_admission(self):
-        manifest = json.loads((FIXTURES / 'manifest.json').read_text())
+        self.check_sessions(FIXTURES, ['2026-11-04', '2026-11-05', '2026-11-06'])
+
+    def test_saturday_fixing_i_prices_pass_parser_and_archive_admission(self):
+        self.check_sessions(NOV_7_FIXTURES, ['2026-11-07'])
+
+    def check_sessions(self, directory, days):
+        manifest = json.loads((directory / 'manifest.json').read_text())
         self.assertEqual(manifest['errors'], [])
-        days = ['2026-11-04', '2026-11-05', '2026-11-06']
         self.assertEqual([entry['delivery_date'] for entry in manifest['entries']], days)
         for entry in manifest['entries']:
             day = entry['delivery_date']
@@ -48,7 +54,7 @@ class RecentOfficialSessionsTests(unittest.TestCase):
                 session = date.fromisoformat(day) - timedelta(days=1)
                 self.assertEqual(entry['session_date'], session.isoformat())
                 self.assertEqual(entry['http_status'], 200)
-                raw, reference, rows = load_session(entry)
+                raw, reference, rows = load_session(entry, directory)
                 self.assertEqual(len(raw), entry['bytes'])
                 self.assertEqual(sha256(raw).hexdigest(), entry['raw_sha256'])
                 self.assertEqual(sha256(reference).hexdigest(), entry['reference_sha256'])

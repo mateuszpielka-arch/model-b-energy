@@ -669,3 +669,8 @@ snapshotu JWCD na potrzeby kolejnych modeli i dób. Test porównuje
 całe raporty dla list i iteratorów. Drugi potwierdza, że uszkodzony
 snapshot nie wpływa na ranking przy kompletnej wersji zastępczej,
 a snapshot po D-1 09:50 pozostaje nieodczytany.
+
+Dla sobotniej dostawy 07.11.2026 zapisano osobno odpowiedź HTTP 200
+z sesji TGE 06.11.2026. Test porównuje wszystkie 24 ceny Fixing I
+z niezależną ekstrakcją lxml z tego samego HTML, weryfikuje oba SHA-256
+i potwierdza dopuszczenie paczki przez walidator archiwizacji.
