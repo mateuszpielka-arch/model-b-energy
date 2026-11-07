@@ -45,6 +45,36 @@ class AvailabilityTests(unittest.TestCase):
             ('', 'MISSING_OR_DUPLICATE_SNAPSHOT_ID'),
         ))
 
+    def test_unreadable_snapshot_rows_leave_complete_pre_cutoff_candidate(self):
+        good = self.snapshot()
+        broken = self.snapshot(sid='broken')
+        broken['retrieval_completed_at'] += timedelta(minutes=10)
+
+        def unreadable(rows):
+            yield rows[0]
+            raise OSError('Unexpected end of snapshot')
+
+        broken['rows'] = unreadable(broken['rows'])
+        result = select_snapshot(good['delivery_date'], [broken, good])
+
+        self.assertEqual(result.snapshot_id, 'early')
+        self.assertEqual(len(result.rows), 24)
+        self.assertEqual(result.rejected, (('broken', 'UNREADABLE_SNAPSHOT_ROWS'),))
+
+    def test_late_snapshot_rows_are_not_read(self):
+        late = self.snapshot(sid='late')
+        late['retrieval_completed_at'] += timedelta(hours=2)
+
+        def must_not_read():
+            self.fail('A late snapshot cannot be used')
+            yield
+
+        late['rows'] = must_not_read()
+        result = select_snapshot(late['delivery_date'], [late])
+
+        self.assertIsNone(result.snapshot_id)
+        self.assertEqual(result.rejected, (('late', 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER'),))
+
     def test_missing_completion_is_unverifiable(self):
         s=self.snapshot(); del s['retrieval_completed_at']
         self.assertIsNone(select_snapshot(s['delivery_date'],[s]).snapshot_id)

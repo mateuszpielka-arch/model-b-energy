@@ -4,7 +4,7 @@ Legacy PSE payloads need a separately verified adapter for local/DST period labe
 retrieval_completed_at must be evidenced, never inferred from a request start time.
 """
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
@@ -65,9 +65,16 @@ def select_snapshot(day, snapshots):
             completed = _utc(s.get('retrieval_completed_at'))
             if not retrieved <= completed <= cutoff:
                 raise ValueError('RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER')
+            source_rows = s.get('rows', ())
+            if isinstance(source_rows, Iterator):
+                try:
+                    source_rows = tuple(source_rows)
+                except (ValueError, TypeError, RuntimeError, OSError):
+                    rejected.append((sid, 'UNREADABLE_SNAPSHOT_ROWS'))
+                    continue
             clean = {}
             publications = {}
-            for row in s.get('rows',[]):
+            for row in source_rows:
                 if not isinstance(row, Mapping):
                     raise ValueError('INVALID_SNAPSHOT_ROW')
                 p = _utc(row.get('period_start_utc'))

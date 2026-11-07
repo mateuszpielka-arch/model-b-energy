@@ -657,3 +657,9 @@ Błąd odczytu iteratora cen lub snapshotów wyklucza całą wadliwą paczkę
 z walk-forward. Raport wskazuje jej datę i pole, a doby bez zależności
 od tej paczki nadal podlegają ocenie. Test obejmuje błąd po odczytaniu
 pierwszego elementu w danych doby docelowej i w danych treningowych.
+
+Selekcja JWCD odrzuca snapshot, którego iterator wierszy zgłasza
+błąd odczytu. Test potwierdza wybór kompletnego wcześniejszego
+snapshotu i odrzucenie uszkodzonego bez wykorzystania jego części.
+Drugi test potwierdza odrzucenie spóźnionego snapshotu jeszcze przed
+odczytem wierszy.
