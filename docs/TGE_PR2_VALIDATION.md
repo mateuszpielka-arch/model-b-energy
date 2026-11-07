@@ -686,3 +686,9 @@ do 8 MiB. SHA-256 nadal dotyczy oryginalnej odpowiedzi HTML. Suchy
 przebieg oficjalnej sesji dla dostawy 07.11.2026 potwierdza 24 ceny.
 Testy odrzucają ucięty gzip, błędną długość i błędny SHA-256 przed
 inicjalizacją bazy.
+
+Importer manifestu stosuje ścisły odczyt referencyjnego CSV.
+Test na kopii sesji 07.11.2026 odrzuca powielony nagłówek ceny,
+nadmiarowe lub brakujące pole, niedomknięty cudzysłów i brak
+wymaganego nagłówka. Błędy blokują zapis przed inicjalizacją
+bazy również wtedy, gdy SHA-256 pliku zgadza się z manifestem.

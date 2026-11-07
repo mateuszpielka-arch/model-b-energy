@@ -54,6 +54,42 @@ class ManifestTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, error):
                     ingest_manifest(manifest, conn=object())
 
+    def test_ambiguous_reference_csv_is_rejected_even_with_matching_hash(self):
+        source = FIX.with_name('tge_delivery_2026-11-07')
+        for change, error in (
+            ('duplicate', 'duplicate CSV columns'),
+            ('extra_field', 'wrong field count'),
+            ('missing_field', 'wrong field count'),
+            ('open_quote', 'Malformed Fix1 reference CSV'),
+            ('missing_header', 'Missing required Fix1 reference CSV columns'),
+        ):
+            with self.subTest(change=change), TemporaryDirectory() as tmp:
+                root = Path(tmp) / 'capture'
+                shutil.copytree(source, root)
+                manifest = root / 'manifest.json'
+                data = json.loads(manifest.read_text())
+                entry, = data['entries']
+                reference = root / entry['reference_file']
+                lines = reference.read_text().splitlines()
+                if change == 'duplicate':
+                    lines = [lines[0] + ',price_pln_mwh'] + [
+                        line + ',' + line.rsplit(',', 1)[1] for line in lines[1:]
+                    ]
+                elif change == 'extra_field':
+                    lines[1] += ',ignored'
+                elif change == 'missing_field':
+                    lines[1] = lines[1].rsplit(',', 1)[0]
+                elif change == 'open_quote':
+                    lines[-1] += ',"'
+                else:
+                    lines[0] = lines[0].replace('price_pln_mwh', 'unlabelled_price')
+                malformed = ('\n'.join(lines) + '\n').encode()
+                reference.write_bytes(malformed)
+                entry['reference_sha256'] = sha256(malformed).hexdigest()
+                manifest.write_text(json.dumps(data))
+                with self.assertRaisesRegex(ValueError, error):
+                    ingest_manifest(manifest, conn=object())
+
     def test_manifest_paths_cannot_escape_directory(self):
         with TemporaryDirectory() as tmp:
             data=json.loads(MANIFEST.read_text());data['entries'][0]['raw_file']=str((FIX/data['entries'][0]['raw_file']).resolve())

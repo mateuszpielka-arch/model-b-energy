@@ -6,10 +6,12 @@ import csv
 from datetime import datetime
 import gzip
 from hashlib import sha256
+from io import StringIO
 import json
 from pathlib import Path
 from zlib import error as ZlibError
 from shadow_archive_batch import prepare_batch
+from shadow_history_audit import read_csv_rows
 
 
 def _inside(root, filename):
@@ -49,7 +51,13 @@ def load_batches(manifest_path):
         reference=_inside(root,e['reference_file']).read_bytes()
         if sha256(raw).hexdigest()!=e['raw_sha256'] or sha256(reference).hexdigest()!=e['reference_sha256']:
             raise ValueError('Evidence hash mismatch')
-        rows=list(csv.DictReader(line for line in reference.decode('utf-8-sig').splitlines() if not line.startswith('#')))
+        with StringIO(reference.decode('utf-8-sig'), newline='') as stream:
+            try:
+                rows = read_csv_rows(stream, source='Fix1 reference CSV')
+            except csv.Error as exc:
+                raise ValueError('Malformed Fix1 reference CSV') from exc
+        if rows and not {'delivery_date', 'hour', 'price_pln_mwh'} <= rows[0].keys():
+            raise ValueError('Missing required Fix1 reference CSV columns')
         if any(r['delivery_date']!=day for r in rows): raise ValueError('Reference delivery date mismatch')
         batch=prepare_batch(raw=raw,day=day,source_url=e['url'],
             retrieved_at=datetime.fromisoformat(e['retrieved_at_utc']),
