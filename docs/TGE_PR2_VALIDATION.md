@@ -692,3 +692,9 @@ Test na kopii sesji 07.11.2026 odrzuca powielony nagłówek ceny,
 nadmiarowe lub brakujące pole, niedomknięty cudzysłów i brak
 wymaganego nagłówka. Błędy blokują zapis przed inicjalizacją
 bazy również wtedy, gdy SHA-256 pliku zgadza się z manifestem.
+
+Zapis wszystkich sesji manifestu SHADOW ma wspólną transakcję.
+Blokady dni są zakładane w kolejności dat dostawy. Test na siedmiu
+rzeczywistych sesjach wymusza błąd PostgreSQL przy drugiej dobie,
+potwierdza brak zapisanych paczek, cen i wpisów kwarantanny, a po
+usunięciu wymuszonego błędu sprawdza zapis wszystkich 168 cen.

@@ -136,3 +136,29 @@ class ManifestPostgresTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'hash mismatch'):ingest_manifest(p,conn=self.conn)
         self.assertEqual(self.conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone()[0],0)
         self.assertEqual(self.conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone()[0],0)
+
+    def test_failed_second_session_rolls_back_manifest_and_allows_retry(self):
+        from psycopg.errors import CheckViolation
+
+        self.conn.execute("""
+            ALTER TABLE fix1_shadow_test.prices ADD CONSTRAINT reject_second_manifest_day
+            CHECK (delivery_date <> DATE '2026-10-28')
+        """)
+        try:
+            with self.assertRaises(CheckViolation) as raised:
+                ingest_manifest(MANIFEST, conn=self.conn)
+            self.assertEqual(raised.exception.diag.constraint_name, 'reject_second_manifest_day')
+            counts = self.conn.execute("""
+                SELECT (SELECT count(*) FROM fix1_shadow_test.batches),
+                       (SELECT count(*) FROM fix1_shadow_test.prices),
+                       (SELECT count(*) FROM fix1_shadow_test.quarantine)
+            """).fetchone()
+            self.assertEqual(counts, (0, 0, 0))
+        finally:
+            self.conn.execute("""
+                ALTER TABLE fix1_shadow_test.prices DROP CONSTRAINT reject_second_manifest_day
+            """)
+
+        retry = ingest_manifest(MANIFEST, conn=self.conn)
+        self.assertEqual([row['status'] for row in retry['results']], ['INSERT'] * 7)
+        self.assertEqual(self.conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone(), (168,))

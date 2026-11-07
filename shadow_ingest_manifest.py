@@ -2,6 +2,7 @@
 
 Default is dry-run; no network, DATABASE_URL, production writes, or scheduling.
 """
+from contextlib import nullcontext
 import csv
 from datetime import datetime
 import gzip
@@ -74,10 +75,13 @@ def ingest_manifest(manifest_path, *, conn=None):
         from shadow_postgres_archive import initialize,archive_batch
         initialize(conn)
     report=[]
-    for batch,raw in batches:
-        status='VALIDATED_DRY_RUN' if conn is None else archive_batch(conn,batch,raw)
-        report.append(dict(day=batch.delivery_date.isoformat(),periods=len(batch.rows),status=status,
-                           raw_sha256=batch.raw_sha256,source_url=batch.source_url))
+    # Batches are sorted by delivery date, so overlapping imports acquire day
+    # locks in the same order and retain them until the manifest commits.
+    with (nullcontext() if conn is None else conn.transaction()):
+        for batch,raw in batches:
+            status='VALIDATED_DRY_RUN' if conn is None else archive_batch(conn,batch,raw)
+            report.append(dict(day=batch.delivery_date.isoformat(),periods=len(batch.rows),status=status,
+                               raw_sha256=batch.raw_sha256,source_url=batch.source_url))
     return dict(dry_run=conn is None,days=len(report),periods=sum(r['periods'] for r in report),results=report)
 
 
