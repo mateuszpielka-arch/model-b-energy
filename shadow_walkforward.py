@@ -3,6 +3,7 @@
 Simulates issuance at each D-1 09:50; never creates real FROZEN forecasts.
 No I/O. Verified canonical history is a prerequisite, not produced by this module.
 """
+from collections import Counter
 from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal, localcontext
@@ -140,5 +141,8 @@ def run_walkforward(*,history,target_days,evaluated_at):
     skipped_days_by_stage = {}
     for entry in skipped:
         skipped_days_by_stage.setdefault(entry['stage'], []).append(entry['day'])
+    common_days_by_hours = Counter(day["periods"] for day in accepted)
     return dict(skipped_days_by_stage=skipped_days_by_stage,simulation=True,evaluated_at=evaluated.isoformat(),requested_days=len(set(target_days)),
-        common_days=len(accepted),common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,ranking=ranking)
+        common_days=len(accepted),
+        common_days_by_hours={str(hours): common_days_by_hours[hours] for hours in (23, 24, 25)},
+        common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,ranking=ranking)

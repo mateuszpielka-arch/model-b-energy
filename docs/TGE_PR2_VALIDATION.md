@@ -636,3 +636,8 @@ Raport walk-forward z CSV podaje zwarte przedziały brakujących dat
 dostawy w zakresie oceny. Daty obecne w CSV, które odrzucił audyt,
 pozostają w wykazie odrzuceń. Testy obejmują rzeczywiste referencje TGE
 przycięte do zakresu oceny oraz pusty zbiór z zadanym zakresem.
+
+Ranking SHADOW podaje liczbę wspólnie ocenionych dób 23h, 24h i 25h.
+W jednym przebiegu na danych syntetycznych sześć modeli oceniono na
+tych samych 72 godzinach z trzech dób różnej długości. Test z błędnym
+kluczem UTC potwierdza, że odrzucona doba nie zwiększa żadnego licznika.

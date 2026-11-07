@@ -119,6 +119,26 @@ class WalkforwardTests(unittest.TestCase):
         self.assertLess(abs(row['mae']-total/49),Decimal('1e-24'))
         self.assertLess(abs(row['wape_pct']-100*total/denom),Decimal('1e-24'))
 
+    def test_ranking_reports_common_coverage_across_all_delivery_day_lengths(self):
+        spring = date(2026, 3, 29)
+        autumn = date(2026, 10, 25)
+        history = (
+            fixtures.OLSTests().data(92, target=spring + timedelta(days=1))['history']
+            + fixtures.OLSTests().data(92, target=autumn + timedelta(days=1))['history']
+        )
+        target_days = [autumn, autumn - timedelta(days=1), spring]
+        result = run_walkforward(
+            history=history, target_days=target_days,
+            evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
+        )
+        self.assertEqual(result['common_days_by_hours'], {'23': 1, '24': 1, '25': 1})
+        self.assertEqual(result['common_periods'], 72)
+        self.assertEqual(result['skipped'], [])
+        self.assertEqual([day['periods'] for day in result['accepted']], [23, 24, 25])
+        self.assertEqual(len(result['ranking']), len(MODELS))
+        for row in result['ranking']:
+            self.assertEqual((row['days'], row['periods']), (3, 72))
+
     def test_wrong_utc_period_excludes_spring_dst_day_from_every_model(self):
         history = fixtures.OLSTests().data(92, target=date(2026, 3, 30))['history']
         target_days = [packet['day'] for packet in history[-2:]]
@@ -146,6 +166,7 @@ class WalkforwardTests(unittest.TestCase):
         with patch('shadow_walkforward.predict_similar', side_effect=wrong_period):
             result = run()
         self.assertEqual(result['common_periods'], 24)
+        self.assertEqual(result['common_days_by_hours'], {'23': 0, '24': 1, '25': 0})
         self.assertEqual(result['skipped_days_by_stage'], {'scoring': [spring.isoformat()]})
         self.assertEqual(result['skipped'][0]['model'], 'similar_level')
         self.assertEqual(result['skipped'][0]['reason'], 'Incomplete or mismatched delivery periods')
