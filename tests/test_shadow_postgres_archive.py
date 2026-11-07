@@ -2,11 +2,23 @@
 import os
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import Mock, patch
 from shadow_postgres_archive import connect_test_database, initialize, archive_batch
 import test_shadow_archive_batch as fixtures
 from shadow_archive_batch import prepare_batch
 
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
+
+class PostgresConnectionGuardTests(unittest.TestCase):
+    def test_claimed_local_host_with_nonlocal_peer_is_rejected_before_sql(self):
+        conn = Mock()
+        conn.info.dbname = 'fix1_shadow_test'
+        conn.info.host = 'localhost'
+        conn.info.hostaddr = '192.0.2.1'
+        with self.assertRaisesRegex(ValueError, 'Only isolated local'):
+            initialize(conn)
+        conn.transaction.assert_not_called()
+
 
 @unittest.skipUnless(DSN, 'Set FIX1_SHADOW_TEST_DSN for isolated PostgreSQL integration')
 class PostgresArchiveTests(unittest.TestCase):
@@ -25,6 +37,19 @@ class PostgresArchiveTests(unittest.TestCase):
         self.assertEqual(archive_batch(self.conn,self.batch,self.raw),'INSERT')
         self.assertEqual(archive_batch(self.conn,self.batch,self.raw),'REPLAY')
         self.assertEqual(self.count('prices'),24); self.assertEqual(self.count('batches'),1)
+
+    def test_rejects_remote_hostaddr_before_connecting(self):
+        dsn = 'host=localhost hostaddr=192.0.2.1 dbname=fix1_shadow_test'
+        with patch('psycopg.connect') as connect:
+            with self.assertRaisesRegex(ValueError, 'Explicit local'):
+                connect_test_database(dsn)
+            connect.assert_not_called()
+
+    def test_ambient_hostaddr_cannot_override_local_dsn(self):
+        with patch.dict(os.environ, {'PGHOSTADDR': '192.0.2.1'}):
+            with connect_test_database(DSN) as conn:
+                self.assertIn(conn.info.hostaddr, ('127.0.0.1', '::1'))
+                self.assertEqual(conn.execute('SELECT 1').fetchone(), (1,))
 
     def test_conflicting_day_quarantined_without_overwrite(self):
         archive_batch(self.conn,self.batch,self.raw)

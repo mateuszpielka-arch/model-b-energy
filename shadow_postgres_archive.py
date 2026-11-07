@@ -4,6 +4,9 @@ Only accepts a dedicated local test database. Not a production integration.
 """
 from shadow_archive_batch import classify_existing, revalidate_batch
 
+LOOPBACK_ADDRESSES = ('127.0.0.1', '::1')
+LOCAL_HOSTS = (*LOOPBACK_ADDRESSES, 'localhost')
+
 DDL = '''
 CREATE SCHEMA IF NOT EXISTS fix1_shadow_test;
 CREATE TABLE IF NOT EXISTS fix1_shadow_test.batches (
@@ -26,19 +29,22 @@ CREATE TABLE IF NOT EXISTS fix1_shadow_test.quarantine (
 
 
 def connect_test_database(dsn):
-    """Reject remote/production DSNs before connecting; no ambient credential lookup."""
+    """Connect only to a loopback address in the dedicated test database."""
     import psycopg
     from psycopg.conninfo import conninfo_to_dict
     info = conninfo_to_dict(dsn)
+    host = info.get('host')
+    address = info.get('hostaddr') or ('127.0.0.1' if host == 'localhost' else host)
     if (not info.get('dbname','').startswith('fix1_shadow_test') or
-            info.get('host') not in ('127.0.0.1','localhost','::1')):
+            host not in LOCAL_HOSTS or address not in LOOPBACK_ADDRESSES):
         raise ValueError('Explicit local fix1_shadow_test database required')
-    return psycopg.connect(dsn, autocommit=True)
+    # An explicit address prevents PGHOSTADDR or name resolution rerouting the connection.
+    return psycopg.connect(dsn, hostaddr=address, autocommit=True)
 
 
 def _guard(conn):
     if (not conn.info.dbname.startswith('fix1_shadow_test') or
-            conn.info.host not in ('127.0.0.1','localhost','::1')):
+            conn.info.host not in LOCAL_HOSTS or conn.info.hostaddr not in LOOPBACK_ADDRESSES):
         raise ValueError('Only isolated local test database allowed')
     if not conn.autocommit:
         raise ValueError('Dedicated autocommit connection required for transaction ownership')

@@ -758,3 +758,10 @@ pobrania przed D-1 09:50, lecz różne znaczniki publikacji w godzinach
 UTC. Test używa identycznych wartości MW i potwierdza, że kolejność
 wejściowa nie rozstrzyga sprzecznych metadanych. Reguła wyboru przy
 różnych czasach pobrania pozostaje taka sama.
+
+Adapter zapisu SHADOW sprawdza rzeczywisty adres IP połączenia PostgreSQL
+przed wykonaniem SQL. Przy otwieraniu połączenia jawnie ustawia adres
+loopback, aby `PGHOSTADDR` nie przekierował lokalnego DSN. Nazwa
+`localhost` bez jawnego adresu używa IPv4. Dla IPv6 można podać `::1`.
+Testy obejmują odrzucenie zdalnego `hostaddr` przed połączeniem i przed
+SQL oraz połączenie z izolowanym PostgreSQL mimo wartości w środowisku.
