@@ -17,8 +17,12 @@ from tempfile import NamedTemporaryFile
 from urllib.request import Request, urlopen
 
 
-def extract_reference(raw, day):
+def extract_reference(raw, day, *, autumn_25h=False):
+    """Read Fixing I prices, optionally preserving autumn labels without mapping to UTC."""
     from lxml import html
+    expected = [f'H{hour:02d}' for hour in range(1, 25)]
+    if autumn_25h:
+        expected.insert(2, 'H02a')
     tree=html.fromstring(raw)
     tables=tree.xpath('//table[@id="rdn"]')
     if len(tables)!=1: raise ValueError('Expected one official RDN table')
@@ -51,13 +55,13 @@ def extract_reference(raw, day):
             raise ValueError('Hourly reference row does not match header')
         if cells[1]!='60': raise ValueError('Bad hourly instrument row')
         label=cells[0].split('_',1)[1]
-        if not re.fullmatch(r'H(?:0[1-9]|1[0-9]|2[0-4])',label):
-            raise ValueError('Capture utility supports standard days only')
+        if label not in expected:
+            raise ValueError('Unexpected hourly label in Fix1 reference')
         if not re.fullmatch(r'[-−]?\d[\d ]*(?:,\d+)?',cells[2]):
             raise ValueError('Invalid reference number')
         rows.append((label,Decimal(cells[2].replace(' ','').replace('−','-').replace(',','.'))))
-    if [h for h,_ in rows]!=[f'H{i:02d}' for i in range(1,25)]:
-        raise ValueError('Not a complete standard day in requested session')
+    if [h for h,_ in rows] != expected:
+        raise ValueError('Incomplete or reordered hourly labels in Fix1 reference')
     return rows
 
 

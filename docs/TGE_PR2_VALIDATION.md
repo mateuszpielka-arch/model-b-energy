@@ -765,3 +765,10 @@ loopback, aby `PGHOSTADDR` nie przekierował lokalnego DSN. Nazwa
 `localhost` bez jawnego adresu używa IPv4. Dla IPv6 można podać `::1`.
 Testy obejmują odrzucenie zdalnego `hostaddr` przed połączeniem i przed
 SQL oraz połączenie z izolowanym PostgreSQL mimo wartości w środowisku.
+
+Dla dostawy 25.10.2026 porównano wszystkie 25 etykiet i cen Fixing I
+z niezależną ekstrakcją lxml. Test odtwarza porównanie z utrwalonej
+odpowiedzi TGE, sprawdza jej SHA-256 i odrzuca brak H02a. Ponowny odczyt
+tej samej sesji z TGE 08.11.2026 dał identyczne etykiety i ceny mimo
+różnicy w bajtach HTML. Weryfikacja dotyczy kolejności etykiet TGE.
+Mapowanie na UTC i zapis dób zmiany czasu pozostają zablokowane.
