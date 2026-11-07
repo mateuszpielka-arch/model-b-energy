@@ -128,6 +128,33 @@ class ManifestTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'hour count.*2026-11-08'):
                     ingest_manifest(manifest, conn=object())
 
+    def test_manifest_requires_explicit_historical_session_url(self):
+        source = FIX.with_name('tge_delivery_2026-11-08')
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'capture'
+            shutil.copytree(source, root)
+            manifest = root / 'manifest.json'
+            data = json.loads(manifest.read_text())
+            entry, = data['entries']
+            url = entry['url']
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+
+            for source_url, error in (
+                (None, 'Historical TGE session URL required'),
+                (url.split('?')[0], 'Historical TGE session URL required'),
+                (url.replace('07-11-2026', '08-11-2026'), 'session URL does not match'),
+                (url + '&dateShow=07-11-2026', 'session URL does not match'),
+            ):
+                with self.subTest(source_url=source_url):
+                    if source_url is None:
+                        del entry['url']
+                    else:
+                        entry['url'] = source_url
+                    manifest.write_text(json.dumps(data))
+
+                    with self.assertRaisesRegex(ValueError, error):
+                        ingest_manifest(manifest, conn=object())
+
     def test_manifest_paths_cannot_escape_directory(self):
         with TemporaryDirectory() as tmp:
             data=json.loads(MANIFEST.read_text());data['entries'][0]['raw_file']=str((FIX/data['entries'][0]['raw_file']).resolve())

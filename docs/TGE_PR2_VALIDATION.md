@@ -744,3 +744,10 @@ Importer wymaga, aby pole `hours` było liczbą całkowitą zgodną z liczbą
 zweryfikowanych okresów Fixing I. Test regresji na oficjalnej sesji dla
 08.11.2026 potwierdza, że brak pola, błędna liczba godzin i niewłaściwy
 typ wartości zatrzymują import przed inicjalizacją bazy.
+
+Importer manifestu wymaga historycznego adresu TGE z parametrem
+`dateShow` zgodnym z sesją. Test na oficjalnej dostawie 08.11.2026
+potwierdza 24 ceny dla poprawnego adresu oraz odrzucenie braku adresu,
+adresu bieżącej strony, innej daty i powtórzonego parametru przed
+inicjalizacją bazy. Bezpośrednia walidacja paczek nadal dopuszcza
+adres bieżącej strony w dotychczasowych wywołaniach.

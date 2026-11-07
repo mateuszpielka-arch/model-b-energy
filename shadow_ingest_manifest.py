@@ -9,6 +9,7 @@ import gzip
 from hashlib import sha256
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
 from zlib import error as ZlibError
 from shadow_archive_batch import prepare_batch, read_reference_csv
 
@@ -46,6 +47,9 @@ def load_batches(manifest_path):
         session = (date.fromisoformat(day) - timedelta(days=1)).isoformat()
         if e.get('session_date') != session:
             raise ValueError(f'TGE session date must be {session} for delivery {day}')
+        source_url = e.get('url')
+        if not isinstance(source_url, str) or not urlsplit(source_url).query:
+            raise ValueError(f'Historical TGE session URL required for delivery {day}')
         if day in dates: raise ValueError('Duplicate delivery date in manifest')
         dates.add(day)
         if e['http_status']!=200: raise ValueError('Unsuccessful source HTTP status')
@@ -53,7 +57,7 @@ def load_batches(manifest_path):
         reference=_inside(root,e['reference_file']).read_bytes()
         if sha256(raw).hexdigest()!=e['raw_sha256'] or sha256(reference).hexdigest()!=e['reference_sha256']:
             raise ValueError('Evidence hash mismatch')
-        batch=prepare_batch(raw=raw,day=day,source_url=e['url'],
+        batch=prepare_batch(raw=raw,day=day,source_url=source_url,
             retrieved_at=datetime.fromisoformat(e['retrieved_at_utc']),
             reference_rows=read_reference_csv(reference, day),
             reference_sha256=e['reference_sha256'])
