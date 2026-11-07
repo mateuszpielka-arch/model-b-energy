@@ -8,7 +8,7 @@ from collections import Counter
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from decimal import Decimal, localcontext
-from shadow_asof import select_snapshot
+from shadow_asof import preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
 from shadow_similar_consensus import MEDIAN_MEMBERS, median_consensus, predict_similar
 from shadow_scoring import _utc, _prices, expected_periods, score_day
@@ -46,6 +46,8 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 unreadable_packets[day] = field
                 break
         else:
+            if 'snapshots' in packet:
+                packet = {**packet, 'snapshots': preserve_snapshot_rows(packet['snapshots'])}
             packets[day] = packet
     history = list(packets.values())
     accepted=[]; skipped=[]; totals={m:dict(n=0,nz=0,ae=Decimal(0),err=Decimal(0),

@@ -8,6 +8,7 @@ from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
+from functools import cached_property
 from shadow_scoring import WARSAW, _utc, expected_periods
 
 @dataclass(frozen=True)
@@ -32,6 +33,36 @@ def snapshot_identifier(snapshot):
     if type(identifier) not in (str, int) or not str(identifier).strip():
         return ''
     return str(identifier)
+
+
+class _ReplayableRows:
+    """Keep a single read outcome for repeated SHADOW selection."""
+    def __init__(self, rows):
+        self._source = rows
+
+    @cached_property
+    def rows(self):
+        try:
+            return tuple(self._source)
+        except (ValueError, TypeError, RuntimeError, OSError):
+            return None
+
+    def __iter__(self):
+        if self.rows is None:
+            raise ValueError('UNREADABLE_SNAPSHOT_ROWS')
+        return iter(self.rows)
+
+
+def preserve_snapshot_rows(snapshots):
+    """Wrap one-shot rows without reading any snapshot before its cutoff check."""
+    if not isinstance(snapshots, (list, tuple)):
+        return snapshots
+    return tuple(
+        {**snapshot, 'rows': _ReplayableRows(snapshot['rows'])}
+        if isinstance(snapshot, Mapping) and isinstance(snapshot.get('rows'), Iterator)
+        else snapshot
+        for snapshot in snapshots
+    )
 
 
 def select_snapshot(day, snapshots):
@@ -66,7 +97,7 @@ def select_snapshot(day, snapshots):
             if not retrieved <= completed <= cutoff:
                 raise ValueError('RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER')
             source_rows = s.get('rows', ())
-            if isinstance(source_rows, Iterator):
+            if isinstance(source_rows, (Iterator, _ReplayableRows)):
                 try:
                     source_rows = tuple(source_rows)
                 except (ValueError, TypeError, RuntimeError, OSError):

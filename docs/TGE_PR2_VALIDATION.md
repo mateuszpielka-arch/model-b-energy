@@ -663,3 +663,9 @@ błąd odczytu. Test potwierdza wybór kompletnego wcześniejszego
 snapshotu i odrzucenie uszkodzonego bez wykorzystania jego części.
 Drugi test potwierdza odrzucenie spóźnionego snapshotu jeszcze przed
 odczytem wierszy.
+
+Walk-forward zachowuje wynik pierwszego odczytu iteratora wierszy
+snapshotu JWCD na potrzeby kolejnych modeli i dób. Test porównuje
+całe raporty dla list i iteratorów. Drugi potwierdza, że uszkodzony
+snapshot nie wpływa na ranking przy kompletnej wersji zastępczej,
+a snapshot po D-1 09:50 pozostaje nieodczytany.

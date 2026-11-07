@@ -481,6 +481,44 @@ class WalkforwardTests(unittest.TestCase):
         ]
         self.assertEqual(run_walkforward(**args), expected)
 
+    def test_snapshot_row_iterators_match_lists_across_models_and_days(self):
+        args = self.args()
+        expected = run_walkforward(**args)
+        self.assertEqual(expected['common_days'], 2)
+        for packet in args['history']:
+            for snapshot in packet['snapshots']:
+                snapshot['rows'] = iter(snapshot['rows'])
+
+        self.assertEqual(run_walkforward(**args), expected)
+
+    def test_unreadable_and_late_snapshot_rows_are_ignored_across_models(self):
+        args = self.args()
+        expected = run_walkforward(**args)
+        target = args['history'][-1]
+        original = target['snapshots'][0]
+
+        def broken():
+            yield original['rows'][0]
+            raise OSError('Unreadable snapshot')
+
+        def late():
+            self.fail('Post-cutoff rows were read')
+            yield
+
+        target['snapshots'] += [
+            {**original, 'id': 'broken', 'rows': broken()},
+            {**original, 'id': 'late', 'rows': late(),
+             'retrieval_completed_at': cutoff_for_day(target['day']) + timedelta(seconds=1)},
+        ]
+
+        result = run_walkforward(**args)
+        self.assertEqual(result['ranking'], expected['ranking'])
+        self.assertEqual(result['accepted'][-1]['predictions'], expected['accepted'][-1]['predictions'])
+        self.assertEqual(dict(result['accepted'][-1]['rejected_snapshots']), {
+            'broken': 'UNREADABLE_SNAPSHOT_ROWS',
+            'late': 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER',
+        })
+
     def test_actual_iterators_match_lists_for_training_and_targets(self):
         args = self.args()
         expected = run_walkforward(**args)
