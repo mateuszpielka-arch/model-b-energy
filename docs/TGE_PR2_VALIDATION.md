@@ -751,3 +751,10 @@ potwierdza 24 ceny dla poprawnego adresu oraz odrzucenie braku adresu,
 adresu bieżącej strony, innej daty i powtórzonego parametru przed
 inicjalizacją bazy. Bezpośrednia walidacja paczek nadal dopuszcza
 adres bieżącej strony w dotychczasowych wywołaniach.
+
+Selekcja JWCD zgłasza `CONFLICTING_LATEST_SNAPSHOTS`, gdy kompletne,
+nierozstrzygnięte wersje mają te same czasy rozpoczęcia i zakończenia
+pobrania przed D-1 09:50, lecz różne znaczniki publikacji w godzinach
+UTC. Test używa identycznych wartości MW i potwierdza, że kolejność
+wejściowa nie rozstrzyga sprzecznych metadanych. Reguła wyboru przy
+różnych czasach pobrania pozostaje taka sama.

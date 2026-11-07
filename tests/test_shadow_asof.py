@@ -137,6 +137,21 @@ class AvailabilityTests(unittest.TestCase):
         self.assertEqual(result.snapshot_id, 'second')
         self.assertEqual(result.rejected, ())
 
+    def test_equal_values_with_ambiguous_latest_publication_metadata_are_rejected(self):
+        first = self.snapshot(sid='first')
+        second = deepcopy(first)
+        second['id'] = 'second'
+        first['rows'][0]['publication_ts'] += timedelta(minutes=15)
+        second['rows'][1]['publication_ts'] += timedelta(minutes=20)
+        for snapshots in ([first, second], [second, first]):
+            result = select_snapshot(first['delivery_date'], snapshots)
+            self.assertIsNone(result.snapshot_id)
+            self.assertEqual(result.rows, ())
+            self.assertEqual(result.rejected, (
+                ('first', 'CONFLICTING_LATEST_SNAPSHOTS'),
+                ('second', 'CONFLICTING_LATEST_SNAPSHOTS'),
+            ))
+
     def test_same_publication_with_changed_jwcd_blocks_later_download(self):
         original = self.snapshot(sid='original')
         later = deepcopy(original)

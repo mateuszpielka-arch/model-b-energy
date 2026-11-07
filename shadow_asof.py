@@ -143,10 +143,11 @@ def select_snapshot(day, snapshots):
         else:
             freshest.append(candidate)
     completed, retrieved, sid, rows, publications = max(freshest)
-    latest = [(candidate_id, candidate_rows, publications)
-              for end, start, candidate_id, candidate_rows, publications in freshest
+    latest = [(candidate_id, candidate_rows, candidate_publications)
+              for end, start, candidate_id, candidate_rows, candidate_publications in freshest
               if (end, start) == (completed, retrieved)]
-    if any(candidate_rows != rows for _, candidate_rows, _ in latest):
+    if any(candidate_rows != rows or candidate_publications != publications
+           for _, candidate_rows, candidate_publications in latest):
         rejected.extend((candidate_id, 'CONFLICTING_LATEST_SNAPSHOTS')
                         for candidate_id, _, _ in sorted(latest))
         return SnapshotSelection(None, cutoff, (), tuple(rejected))
