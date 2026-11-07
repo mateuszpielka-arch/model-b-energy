@@ -172,6 +172,27 @@ def audit_rows(rows):
                 })
 
 
+def missing_delivery_ranges(coverage, start_day, end_day):
+    """Return compact inclusive ranges absent from observed delivery dates."""
+    observed = sorted({date.fromisoformat(entry['day']).toordinal() for entry in coverage})
+    if not observed and (start_day is None or end_day is None):
+        return []
+    first = start_day.toordinal() if start_day is not None else observed[0]
+    last = end_day.toordinal() if end_day is not None else observed[-1]
+    gaps = []
+    cursor = first
+    within_bounds = [day for day in observed if first <= day <= last]
+    for boundary in (*within_bounds, last + 1):
+        if cursor < boundary:
+            gaps.append(dict(
+                start_day=date.fromordinal(cursor).isoformat(),
+                end_day=date.fromordinal(boundary - 1).isoformat(),
+                days=boundary - cursor,
+            ))
+        cursor = boundary + 1
+    return gaps
+
+
 def comparison_coverage(ready_at):
     """Measure contiguous calendar coverage and respect each target cutoff."""
     longest_run = run = 0

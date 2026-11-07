@@ -5,7 +5,9 @@ No ambient DATABASE_URL. Never exports credentials or complete raw payloads.
 from datetime import date, datetime, timedelta, timezone
 from collections import Counter, defaultdict
 from shadow_asof import cutoff_for_day, select_snapshot
-from shadow_history_audit import _number, _stamp, audit_rows, comparison_coverage, read_csv
+from shadow_history_audit import (
+    _number, _stamp, audit_rows, comparison_coverage, missing_delivery_ranges, read_csv,
+)
 from shadow_history_bundle import compare_fix1_reference
 from shadow_scoring import expected_periods
 
@@ -74,26 +76,6 @@ def summarize_delivery_coverage(snapshots, actuals, candidate_selection):
             fix1_status = 'COMPLETE_UNVERIFIED'
         coverage.append(dict(day=day, pk5_status=pk5_status, fix1_status=fix1_status))
     return coverage
-
-
-def missing_delivery_ranges(coverage, start_day, end_day):
-    """Return compact inclusive ranges absent from both audited sources."""
-    observed = [date.fromisoformat(entry['day']).toordinal() for entry in coverage]
-    if not observed and (start_day is None or end_day is None):
-        return []
-    first = start_day.toordinal() if start_day is not None else observed[0]
-    last = end_day.toordinal() if end_day is not None else observed[-1]
-    gaps = []
-    cursor = first
-    for boundary in (*observed, last + 1):
-        if cursor < boundary:
-            gaps.append(dict(
-                start_day=date.fromordinal(cursor).isoformat(),
-                end_day=date.fromordinal(boundary - 1).isoformat(),
-                days=boundary - cursor,
-            ))
-        cursor = boundary + 1
-    return gaps
 
 
 def provisional_comparison_coverage(

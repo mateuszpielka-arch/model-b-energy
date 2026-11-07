@@ -631,3 +631,8 @@ włączne granice dat dostawy do oceny. Wcześniejsze doby nadal wchodzą
 do treningu, jeśli spełniają warunki dostępności dla danej prognozy.
 Test z 90 dobami treningowymi i docelową dobą 25h potwierdza identyczny
 ranking sześciu modeli po ograniczeniu oceny do tej jednej doby.
+
+Raport walk-forward z CSV podaje zwarte przedziały brakujących dat
+dostawy w zakresie oceny. Daty obecne w CSV, które odrzucił audyt,
+pozostają w wykazie odrzuceń. Testy obejmują rzeczywiste referencje TGE
+przycięte do zakresu oceny oraz pusty zbiór z zadanym zakresem.

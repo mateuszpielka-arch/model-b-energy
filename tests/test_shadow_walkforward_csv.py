@@ -79,3 +79,26 @@ class WalkforwardCSVTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Target start"):
             evaluate_csv_rows([], evaluated_at=datetime(2026, 11, 4, tzinfo=timezone.utc),
                               target_from=date(2026, 11, 4), target_to=date(2026, 11, 3))
+
+    def test_target_missing_ranges_distinguish_absent_from_rejected_days(self):
+        fixtures = Path(__file__).parent / "fixtures"
+        rows = read_csv(fixtures / "tge_fix1_2026-11-03_reference.csv")
+        rows += read_csv(fixtures / "tge_fix1_2026-11-02_reference.csv")
+        result = evaluate_csv_rows(
+            rows, evaluated_at=datetime(2026, 11, 7, tzinfo=timezone.utc),
+            target_from=date(2026, 11, 3), target_to=date(2026, 11, 6),
+        )
+        self.assertIn("2026-11-03", result["csv_admission"]["excluded_days"])
+        self.assertEqual(result["walkforward"]["target_missing_ranges"], [
+            {"start_day": "2026-11-04", "end_day": "2026-11-06", "days": 3},
+        ])
+        self.assertEqual(result["walkforward"]["ranking"], [])
+
+    def test_empty_source_reports_full_explicit_target_range(self):
+        result = evaluate_csv_rows(
+            [], evaluated_at=datetime(2026, 11, 7, tzinfo=timezone.utc),
+            target_from=date(2026, 10, 24), target_to=date(2026, 10, 26),
+        )
+        self.assertEqual(result["walkforward"]["target_missing_ranges"], [
+            {"start_day": "2026-10-24", "end_day": "2026-10-26", "days": 3},
+        ])

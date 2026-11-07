@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 import json
 
-from shadow_history_audit import FIX1_COLUMNS, _stamp, audit_rows, read_csv
+from shadow_history_audit import FIX1_COLUMNS, _stamp, audit_rows, missing_delivery_ranges, read_csv
 from shadow_scoring import expected_periods
 from shadow_walkforward import run_walkforward
 
@@ -63,6 +63,9 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None):
     comparison = run_walkforward(history=history, target_days=targets, evaluated_at=evaluated_at)
     comparison["target_from"] = target_from.isoformat() if target_from is not None else None
     comparison["target_to"] = target_to.isoformat() if target_to is not None else None
+    comparison["target_missing_ranges"] = missing_delivery_ranges(
+        readiness["days"], target_from, target_to,
+    )
     admission = {
         "delivery_days": len(readiness["days"]),
         "admitted_days": len(ready_days),
