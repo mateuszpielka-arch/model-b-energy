@@ -92,6 +92,24 @@ class ManifestTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, error):
                     ingest_manifest(manifest, conn=object())
 
+    def test_manifest_requires_matching_session_date_before_database_initialization(self):
+        source = FIX.with_name('tge_delivery_2026-11-08')
+        for session_date in (None, '2026-11-06', '2026-11-08', '07-11-2026'):
+            with self.subTest(session_date=session_date), TemporaryDirectory() as tmp:
+                root = Path(tmp) / 'capture'
+                shutil.copytree(source, root)
+                manifest = root / 'manifest.json'
+                data = json.loads(manifest.read_text())
+                entry, = data['entries']
+                if session_date is None:
+                    del entry['session_date']
+                else:
+                    entry['session_date'] = session_date
+                manifest.write_text(json.dumps(data))
+
+                with self.assertRaisesRegex(ValueError, 'session date must be 2026-11-07'):
+                    ingest_manifest(manifest, conn=object())
+
     def test_manifest_paths_cannot_escape_directory(self):
         with TemporaryDirectory() as tmp:
             data=json.loads(MANIFEST.read_text());data['entries'][0]['raw_file']=str((FIX/data['entries'][0]['raw_file']).resolve())

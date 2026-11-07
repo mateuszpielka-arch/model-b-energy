@@ -4,7 +4,7 @@ Default is dry-run; no network, DATABASE_URL, production writes, or scheduling.
 """
 from collections import Counter
 from contextlib import nullcontext
-from datetime import datetime
+from datetime import date, datetime, timedelta
 import gzip
 from hashlib import sha256
 import json
@@ -43,6 +43,9 @@ def load_batches(manifest_path):
     batches=[];dates=set()
     for e in manifest['entries']:
         day=e['delivery_date']
+        session = (date.fromisoformat(day) - timedelta(days=1)).isoformat()
+        if e.get('session_date') != session:
+            raise ValueError(f'TGE session date must be {session} for delivery {day}')
         if day in dates: raise ValueError('Duplicate delivery date in manifest')
         dates.add(day)
         if e['http_status']!=200: raise ValueError('Unsuccessful source HTTP status')

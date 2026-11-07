@@ -734,3 +734,8 @@ Dla niedzielnej dostawy 08.11.2026 zapisano osobną odpowiedź HTTP 200
 z sesji TGE 07.11.2026, CSV i manifest. Test porównuje wszystkie 24 ceny
 Fixing I z osobną ekstrakcją lxml z tego samego HTML i weryfikuje oba
 SHA-256. Importer potwierdził komplet cen w suchym przebiegu.
+
+Importer sprawdza, czy `session_date` w manifeście przypada dzień
+przed datą dostawy. Test na kopii oficjalnej sesji dla 08.11.2026
+potwierdza odrzucenie brakującej lub błędnej daty przed inicjalizacją
+bazy, mimo prawidłowego URL i niezmienionych plików HTML oraz CSV.
