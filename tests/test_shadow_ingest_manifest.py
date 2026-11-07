@@ -1,3 +1,4 @@
+from hashlib import sha256
 import json
 import os
 import shutil
@@ -17,6 +18,41 @@ class ManifestTests(unittest.TestCase):
         self.assertTrue(report['dry_run']);self.assertEqual((report['days'],report['periods']),(7,168))
         self.assertTrue(all(r['status']=='VALIDATED_DRY_RUN' for r in report['results']))
         self.assertTrue(all('?dateShow=' in r['source_url'] for r in report['results']))
+
+    def test_compressed_official_saturday_evidence_passes_dry_run(self):
+        manifest = FIX.with_name('tge_delivery_2026-11-07') / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        (batch, raw), = load_batches(manifest)
+        self.assertEqual(len(raw), entry['bytes'])
+        self.assertEqual(sha256(raw).hexdigest(), entry['raw_sha256'])
+        self.assertEqual(batch.reference_sha256, entry['reference_sha256'])
+        report = ingest_manifest(manifest)
+        self.assertTrue(report['dry_run'])
+        self.assertEqual((report['days'], report['periods']), (1, 24))
+
+    def test_bad_compressed_evidence_fails_before_database_initialization(self):
+        source = FIX.with_name('tge_delivery_2026-11-07')
+        for change, error in (
+            ('truncated', 'Invalid gzip'),
+            ('wrong_size', 'byte count mismatch'),
+            ('wrong_hash', 'hash mismatch'),
+        ):
+            with self.subTest(change=change), TemporaryDirectory() as tmp:
+                root = Path(tmp) / 'capture'
+                shutil.copytree(source, root)
+                manifest = root / 'manifest.json'
+                data = json.loads(manifest.read_text())
+                entry, = data['entries']
+                if change == 'truncated':
+                    raw = root / entry['raw_file']
+                    raw.write_bytes(raw.read_bytes()[:-8])
+                elif change == 'wrong_size':
+                    entry['bytes'] -= 1
+                else:
+                    entry['raw_sha256'] = '0' * 64
+                manifest.write_text(json.dumps(data))
+                with self.assertRaisesRegex(ValueError, error):
+                    ingest_manifest(manifest, conn=object())
 
     def test_manifest_paths_cannot_escape_directory(self):
         with TemporaryDirectory() as tmp:

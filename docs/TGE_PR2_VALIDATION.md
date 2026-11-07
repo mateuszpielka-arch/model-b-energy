@@ -679,3 +679,10 @@ Test integracyjny uruchamia cztery równoczesne importy paczki TGE
 dla dostawy 07.11.2026 na osobnych połączeniach z izolowanym PostgreSQL.
 Sprawdza jeden zapis, trzy ponowienia, 24 ceny przypisane do jednej
 paczki dowodowej i pustą kwarantannę.
+
+Importer manifestu SHADOW obsługuje HTML zapisany jako gzip. Odczyt
+wymaga podanej w manifeście długości po rozpakowaniu i ogranicza ją
+do 8 MiB. SHA-256 nadal dotyczy oryginalnej odpowiedzi HTML. Suchy
+przebieg oficjalnej sesji dla dostawy 07.11.2026 potwierdza 24 ceny.
+Testy odrzucają ucięty gzip, błędną długość i błędny SHA-256 przed
+inicjalizacją bazy.

@@ -4,9 +4,11 @@ Default is dry-run; no network, DATABASE_URL, production writes, or scheduling.
 """
 import csv
 from datetime import datetime
+import gzip
 from hashlib import sha256
 import json
 from pathlib import Path
+from zlib import error as ZlibError
 from shadow_archive_batch import prepare_batch
 
 
@@ -15,6 +17,22 @@ def _inside(root, filename):
     if not path.is_relative_to(root.resolve()) or not path.is_file():
         raise ValueError('Evidence file must exist inside manifest directory')
     return path
+
+
+def _read_raw_evidence(path, entry):
+    if path.suffix != '.gz':
+        return path.read_bytes()
+    size = entry.get('bytes')
+    if type(size) is not int or not 0 < size <= 8 * 1024 * 1024:
+        raise ValueError('Compressed HTML evidence requires a byte count up to 8 MiB')
+    try:
+        with gzip.open(path, 'rb') as stream:
+            raw = stream.read(size + 1)
+    except (OSError, EOFError, ZlibError) as exc:
+        raise ValueError('Invalid gzip HTML evidence') from exc
+    if len(raw) != size:
+        raise ValueError('Uncompressed HTML evidence byte count mismatch')
+    return raw
 
 
 def load_batches(manifest_path):
@@ -27,7 +45,7 @@ def load_batches(manifest_path):
         if day in dates: raise ValueError('Duplicate delivery date in manifest')
         dates.add(day)
         if e['http_status']!=200: raise ValueError('Unsuccessful source HTTP status')
-        raw=_inside(root,e['raw_file']).read_bytes()
+        raw=_read_raw_evidence(_inside(root,e['raw_file']), e)
         reference=_inside(root,e['reference_file']).read_bytes()
         if sha256(raw).hexdigest()!=e['raw_sha256'] or sha256(reference).hexdigest()!=e['reference_sha256']:
             raise ValueError('Evidence hash mismatch')
