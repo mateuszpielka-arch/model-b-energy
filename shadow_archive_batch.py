@@ -3,12 +3,15 @@
 Admission is restricted to standard 24h days. DST requires verified source labels.
 A batch is a staging candidate, not a certification of external TGE authenticity.
 """
+import csv
 from dataclasses import dataclass
 from datetime import date, datetime, timezone, timedelta
 from urllib.parse import urlsplit, parse_qs
 from decimal import Decimal, InvalidOperation
 from hashlib import sha256
+from io import StringIO
 import re
+from shadow_history_audit import read_csv_rows
 from shadow_scoring import expected_periods
 from tge_parser_safe import parse_complete_standard_day
 
@@ -30,6 +33,20 @@ class ArchiveBatch:
     def identity(self):
         return (self.delivery_date.isoformat(), self.raw_sha256,
                 self.reference_sha256, self.parser_version)
+
+
+def read_reference_csv(reference, day):
+    """Read reference pairs from the original bytes, preserving duplicate hours."""
+    with StringIO(reference.decode('utf-8-sig'), newline='') as stream:
+        try:
+            rows = read_csv_rows(stream, source='Fix1 reference CSV')
+        except csv.Error as exc:
+            raise ValueError('Malformed Fix1 reference CSV') from exc
+    if rows and not {'delivery_date', 'hour', 'price_pln_mwh'} <= rows[0].keys():
+        raise ValueError('Missing required Fix1 reference CSV columns')
+    if any(row['delivery_date'] != day for row in rows):
+        raise ValueError('Reference delivery date mismatch')
+    return [(row['hour'], row['price_pln_mwh']) for row in rows]
 
 
 def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: datetime,

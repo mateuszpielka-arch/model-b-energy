@@ -169,7 +169,7 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
     def test_score_fixed_forecast_against_archived_official_prices(self):
         entry = json.loads((FIXTURES / 'manifest.json').read_text())['entries'][0]
-        raw, _, rows = load_session(entry)
+        raw, reference, rows = load_session(entry)
         batch = prepare_session(entry, raw, [(row['hour'], row['price_pln_mwh']) for row in rows])
         # Synthetic forecast and timestamps. Only actual prices come from TGE.
         cutoff = datetime(2026, 11, 3, 8, 50, tzinfo=timezone.utc)
@@ -182,6 +182,7 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             issued_at=cutoff,
             publication_ts=cutoff - timedelta(minutes=10),
             retrieved_at=cutoff,
+            reference_csv=reference,
         )
         # Independently calculated from the reference CSV using exact fractions.
         expected = {
@@ -215,6 +216,19 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             after_cutoff = cutoff + timedelta(seconds=1)
             with self.assertRaisesRegex(ValueError, 'unavailable before D-1 09:50'):
                 score_archived_day(conn, **{**inputs, 'issued_at': after_cutoff, 'retrieved_at': after_cutoff})
+            self.assertEqual(conn.execute(query).fetchall(), stored)
+
+            changed_reference = reference.replace(b'H01,983.00', b'H01,983.01', 1)
+            self.assertNotEqual(changed_reference, reference)
+            with self.assertRaisesRegex(ValueError, 'Archived reference CSV hash mismatch'):
+                score_archived_day(conn, **{**inputs, 'reference_csv': changed_reference})
+
+            conn.execute(
+                'UPDATE fix1_shadow_test.batches SET reference_sha256 = %s',
+                (sha256(changed_reference).hexdigest(),),
+            )
+            with self.assertRaisesRegex(ValueError, 'Official reference mismatch.*H01'):
+                score_archived_day(conn, **{**inputs, 'reference_csv': changed_reference})
             self.assertEqual(conn.execute(query).fetchall(), stored)
 
     def test_concurrent_saturday_imports_write_one_official_batch(self):

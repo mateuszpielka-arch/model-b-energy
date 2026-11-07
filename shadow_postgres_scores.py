@@ -4,7 +4,7 @@ from decimal import Decimal
 from hashlib import sha256
 import json
 import re
-from shadow_archive_batch import PARSER_VERSION
+from shadow_archive_batch import PARSER_VERSION, prepare_batch, read_reference_csv
 from shadow_postgres_archive import _guard
 from shadow_scoring import SCORING_VERSION, _utc, expected_periods, score_day
 from tge_parser_safe import parse_complete_standard_day
@@ -39,12 +39,13 @@ def initialize_scores(conn):
 
 
 def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
-                       forecast_status, issued_at, publication_ts, retrieved_at):
+                       forecast_status, issued_at, publication_ts, retrieved_at, reference_csv=None):
     """Validate archived actuals, calculate and persist an immutable score.
 
     Caller must supply immutable forecast inputs/provenance. No actual_verified
     flag from caller is accepted. The archived raw hash and every stored actual
-    are rechecked. Standard 24h days only until source DST mapping is verified.
+    are rechecked. Supplying the original reference CSV also verifies its
+    archived hash and hourly prices. Standard 24h days only.
     """
     _guard(conn)
     forecast = list(forecast)
@@ -67,18 +68,29 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         ).fetchone()
         if conflict:
             raise ValueError('Quarantined delivery day cannot be scored')
-        raw_hash,ref_hash,parser,raw,delivery = conn.execute('''SELECT raw_sha256,
-            reference_sha256,parser_version,raw_html,delivery_date
+        raw_hash,ref_hash,parser,raw,delivery,source_url,captured_at = conn.execute('''SELECT raw_sha256,
+            reference_sha256,parser_version,raw_html,delivery_date,source_url,retrieved_at
             FROM fix1_shadow_test.batches WHERE id=%s''',(bid,)).fetchone()
-        if delivery != day or sha256(bytes(raw)).hexdigest() != raw_hash:
+        raw = bytes(raw)
+        if delivery != day or sha256(raw).hexdigest() != raw_hash:
             raise ValueError('Archived evidence hash/date mismatch')
         if not re.fullmatch(r'[0-9a-f]{64}', ref_hash):
             raise ValueError('Invalid archived reference SHA-256')
         if parser != PARSER_VERSION:
             raise ValueError('Unsupported archived parser version')
-        parsed = parse_complete_standard_day(bytes(raw).decode('utf-8'), day.isoformat())
-        expected = expected_periods(day)
-        parsed_rows = [(expected[h-1], Decimal(str(parsed[h]))) for h in range(1,25)]
+        if reference_csv is None:
+            parsed = parse_complete_standard_day(raw.decode('utf-8'), day.isoformat())
+            expected = expected_periods(day)
+            parsed_rows = [(expected[h-1], Decimal(str(parsed[h]))) for h in range(1,25)]
+        else:
+            if not isinstance(reference_csv, bytes) or sha256(reference_csv).hexdigest() != ref_hash:
+                raise ValueError('Archived reference CSV hash mismatch')
+            verified_batch = prepare_batch(
+                raw=raw, day=day.isoformat(), source_url=source_url, retrieved_at=captured_at,
+                reference_rows=read_reference_csv(reference_csv, day.isoformat()),
+                reference_sha256=ref_hash,
+            )
+            parsed_rows = list(verified_batch.rows)
         actual_rows = [(p,v) for p,v,_ in actual]
         if actual_rows != parsed_rows:
             raise ValueError('Stored actual prices/periods differ from archived raw')

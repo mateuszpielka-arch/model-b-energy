@@ -711,3 +711,9 @@ wyniku. Test modyfikuje w bazie testowej HTML, odcisk referencji
 i wersję parsera po zapisie wyniku. Każdy przypadek blokuje ponowienie,
 a zapisany wynik pozostaje bez zmian. Odcisk referencji w bazie
 poświadcza identyfikator pliku. Ponowne sprawdzenie jego treści wymaga CSV.
+
+Scoring SHADOW przyjmuje opcjonalnie oryginalne bajty CSV referencji.
+Przed zapisem sprawdza SHA-256 z archiwum oraz zgodność wszystkich
+cen CSV z zachowanym HTML i wierszami bazy. Test rzeczywistej sesji
+odrzuca zmienioną cenę H01 zarówno przy starym, jak i podmienionym
+odcisku referencji. Tryb bez CSV pozostaje dostępny dla starszych wywołań.
