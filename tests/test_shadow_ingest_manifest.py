@@ -110,6 +110,24 @@ class ManifestTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'session date must be 2026-11-07'):
                     ingest_manifest(manifest, conn=object())
 
+    def test_manifest_requires_matching_hour_count_before_database_initialization(self):
+        source = FIX.with_name('tge_delivery_2026-11-08')
+        for hours in (None, 23, 25, '24', 24.0, True):
+            with self.subTest(hours=hours), TemporaryDirectory() as tmp:
+                root = Path(tmp) / 'capture'
+                shutil.copytree(source, root)
+                manifest = root / 'manifest.json'
+                data = json.loads(manifest.read_text())
+                entry, = data['entries']
+                if hours is None:
+                    del entry['hours']
+                else:
+                    entry['hours'] = hours
+                manifest.write_text(json.dumps(data))
+
+                with self.assertRaisesRegex(ValueError, 'hour count.*2026-11-08'):
+                    ingest_manifest(manifest, conn=object())
+
     def test_manifest_paths_cannot_escape_directory(self):
         with TemporaryDirectory() as tmp:
             data=json.loads(MANIFEST.read_text());data['entries'][0]['raw_file']=str((FIX/data['entries'][0]['raw_file']).resolve())

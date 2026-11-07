@@ -57,6 +57,9 @@ def load_batches(manifest_path):
             retrieved_at=datetime.fromisoformat(e['retrieved_at_utc']),
             reference_rows=read_reference_csv(reference, day),
             reference_sha256=e['reference_sha256'])
+        hours = e.get('hours')
+        if type(hours) is not int or hours != len(batch.rows):
+            raise ValueError(f'Manifest hour count does not match validated Fix1 prices for {day}')
         batches.append((batch,raw))
     return tuple(sorted(batches,key=lambda b:b[0].delivery_date))
 

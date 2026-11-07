@@ -739,3 +739,8 @@ Importer sprawdza, czy `session_date` w manifeście przypada dzień
 przed datą dostawy. Test na kopii oficjalnej sesji dla 08.11.2026
 potwierdza odrzucenie brakującej lub błędnej daty przed inicjalizacją
 bazy, mimo prawidłowego URL i niezmienionych plików HTML oraz CSV.
+
+Importer wymaga, aby pole `hours` było liczbą całkowitą zgodną z liczbą
+zweryfikowanych okresów Fixing I. Test regresji na oficjalnej sesji dla
+08.11.2026 potwierdza, że brak pola, błędna liczba godzin i niewłaściwy
+typ wartości zatrzymują import przed inicjalizacją bazy.
