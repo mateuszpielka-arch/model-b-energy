@@ -45,7 +45,8 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
     Caller must supply immutable forecast inputs/provenance. No actual_verified
     flag from caller is accepted. The archived raw hash and every stored actual
     are rechecked. Supplying the original reference CSV also verifies its
-    archived hash and hourly prices. Standard 24h days only.
+    archived hash and hourly prices. The archived capture must follow
+    issuance. Standard 24h days only.
     """
     _guard(conn)
     forecast = list(forecast)
@@ -74,6 +75,8 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         raw = bytes(raw)
         if delivery != day or sha256(raw).hexdigest() != raw_hash:
             raise ValueError('Archived evidence hash/date mismatch')
+        if _utc(captured_at) <= _utc(issued_at):
+            raise ValueError('Archived Fix1 capture must be after forecast issuance')
         if not re.fullmatch(r'[0-9a-f]{64}', ref_hash):
             raise ValueError('Invalid archived reference SHA-256')
         if parser != PARSER_VERSION:

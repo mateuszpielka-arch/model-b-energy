@@ -717,3 +717,9 @@ Przed zapisem sprawdza SHA-256 z archiwum oraz zgodność wszystkich
 cen CSV z zachowanym HTML i wierszami bazy. Test rzeczywistej sesji
 odrzuca zmienioną cenę H01 zarówno przy starym, jak i podmienionym
 odcisku referencji. Tryb bez CSV pozostaje dostępny dla starszych wywołań.
+
+Scoring w izolowanym PostgreSQL odrzuca archiwalny odczyt Fix1 z czasem
+pobrania wcześniejszym niż wydanie prognozy lub równym mu. Test obejmuje
+sekundę przed, dokładny czas wydania i sekundę po nim oraz zachowanie
+wcześniej zapisanego wyniku przy odrzuconym ponowieniu. Czas odczytu
+archiwalnego nie określa czasu publikacji ceny przez TGE.

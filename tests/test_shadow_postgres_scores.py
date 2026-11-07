@@ -169,6 +169,26 @@ class ScorePersistenceTests(unittest.TestCase):
             previous_score,
         )
 
+    def test_archived_actual_capture_must_follow_issuance(self):
+        issued = self.kw['issued_at']
+        for seconds in (-1, 0, 1):
+            with self.subTest(seconds_after_issuance=seconds):
+                self.conn.execute(
+                    'UPDATE fix1_shadow_test.batches SET retrieved_at = %s',
+                    (issued + timedelta(seconds=seconds),),
+                )
+                if seconds <= 0:
+                    with self.assertRaisesRegex(ValueError, 'capture must be after forecast issuance'):
+                        score_archived_day(self.conn, **self.kw)
+                    self.assertEqual(self.count(), 0)
+                else:
+                    self.assertEqual(score_archived_day(self.conn, **self.kw)[0], 'INSERT')
+
+        self.conn.execute('UPDATE fix1_shadow_test.batches SET retrieved_at = %s', (issued,))
+        with self.assertRaisesRegex(ValueError, 'capture must be after forecast issuance'):
+            score_archived_day(self.conn, **self.kw)
+        self.assertEqual(self.count(), 1)
+
     def test_late_forecast_has_no_stored_score(self):
         self.kw['issued_at']=datetime(2026,11,1,8,51,tzinfo=timezone.utc)
         with self.assertRaises(ValueError): score_archived_day(self.conn,**self.kw)
