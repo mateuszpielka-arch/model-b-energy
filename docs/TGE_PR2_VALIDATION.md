@@ -698,3 +698,9 @@ Blokady dni są zakładane w kolejności dat dostawy. Test na siedmiu
 rzeczywistych sesjach wymusza błąd PostgreSQL przy drugiej dobie,
 potwierdza brak zapisanych paczek, cen i wpisów kwarantanny, a po
 usunięciu wymuszonego błędu sprawdza zapis wszystkich 168 cen.
+
+Raport importu manifestu rozdziela liczbę sesji według wyniku oraz
+liczbę faktycznie dopisanych godzin od liczby godzin sprawdzonych.
+Test na siedmiu sesjach TGE obejmuje w jednej transakcji pięć zapisów,
+jedno ponowienie i jedną kwarantannę. Powtórka nie dopisuje cen ani
+kolejnego wpisu kwarantanny, a konfliktowa cena pozostaje bez zmian.

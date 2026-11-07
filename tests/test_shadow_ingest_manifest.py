@@ -17,6 +17,8 @@ class ManifestTests(unittest.TestCase):
         report=ingest_manifest(MANIFEST)
         self.assertTrue(report['dry_run']);self.assertEqual((report['days'],report['periods']),(7,168))
         self.assertTrue(all(r['status']=='VALIDATED_DRY_RUN' for r in report['results']))
+        self.assertEqual(report['days_by_status'], {'VALIDATED_DRY_RUN': 7})
+        self.assertEqual(report['inserted_periods'], 0)
         self.assertTrue(all('?dateShow=' in r['source_url'] for r in report['results']))
 
     def test_compressed_official_saturday_evidence_passes_dry_run(self):
@@ -162,3 +164,42 @@ class ManifestPostgresTests(unittest.TestCase):
         retry = ingest_manifest(MANIFEST, conn=self.conn)
         self.assertEqual([row['status'] for row in retry['results']], ['INSERT'] * 7)
         self.assertEqual(self.conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone(), (168,))
+
+    def test_manifest_commits_insert_replay_and_quarantine_together(self):
+        from shadow_postgres_archive import archive_batch
+
+        first, second, *_ = load_batches(MANIFEST)
+        self.assertEqual(archive_batch(self.conn, *first), 'INSERT')
+        self.assertEqual(archive_batch(self.conn, *second), 'INSERT')
+        period, _ = second[0].rows[0]
+        # Simulate a conflicting archived value in the isolated test database.
+        self.conn.execute(
+            'UPDATE fix1_shadow_test.prices SET price = price + 1 WHERE period_start_utc = %s',
+            (period,),
+        )
+        original = self.conn.execute(
+            'SELECT price, batch_id FROM fix1_shadow_test.prices WHERE period_start_utc = %s',
+            (period,),
+        ).fetchone()
+
+        report = ingest_manifest(MANIFEST, conn=self.conn)
+        self.assertEqual([row['status'] for row in report['results']],
+                         ['REPLAY', 'QUARANTINE'] + ['INSERT'] * 5)
+        self.assertEqual(report['days_by_status'], {'INSERT': 5, 'QUARANTINE': 1, 'REPLAY': 1})
+        self.assertEqual((report['periods'], report['inserted_periods']), (168, 120))
+        replay = ingest_manifest(MANIFEST, conn=self.conn)
+        self.assertEqual(replay['days_by_status'], {'QUARANTINE': 1, 'REPLAY': 6})
+        self.assertEqual(replay['inserted_periods'], 0)
+
+        self.assertEqual(self.conn.execute(
+            'SELECT price, batch_id FROM fix1_shadow_test.prices WHERE period_start_utc = %s',
+            (period,),
+        ).fetchone(), original)
+        self.assertEqual(self.conn.execute(
+            'SELECT count(*) FROM fix1_shadow_test.prices',
+        ).fetchone(), (168,))
+        self.assertEqual(self.conn.execute("""
+            SELECT batch.delivery_date
+            FROM fix1_shadow_test.quarantine AS quarantine
+            JOIN fix1_shadow_test.batches AS batch ON batch.id = quarantine.batch_id
+        """).fetchall(), [(second[0].delivery_date,)])

@@ -2,6 +2,7 @@
 
 Default is dry-run; no network, DATABASE_URL, production writes, or scheduling.
 """
+from collections import Counter
 from contextlib import nullcontext
 import csv
 from datetime import datetime
@@ -82,7 +83,14 @@ def ingest_manifest(manifest_path, *, conn=None):
             status='VALIDATED_DRY_RUN' if conn is None else archive_batch(conn,batch,raw)
             report.append(dict(day=batch.delivery_date.isoformat(),periods=len(batch.rows),status=status,
                                raw_sha256=batch.raw_sha256,source_url=batch.source_url))
-    return dict(dry_run=conn is None,days=len(report),periods=sum(r['periods'] for r in report),results=report)
+    return dict(
+        dry_run=conn is None,
+        days=len(report),
+        periods=sum(row['periods'] for row in report),
+        days_by_status=dict(sorted(Counter(row['status'] for row in report).items())),
+        inserted_periods=sum(row['periods'] for row in report if row['status'] == 'INSERT'),
+        results=report,
+    )
 
 
 if __name__=='__main__':
