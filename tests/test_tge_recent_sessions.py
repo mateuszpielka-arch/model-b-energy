@@ -19,6 +19,7 @@ from tools.capture_tge_validation import extract_reference
 
 FIXTURES = Path(__file__).parent / 'fixtures/tge_history_2026-11-04_2026-11-06'
 NOV_7_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-07')
+NOV_8_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-08')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
@@ -45,6 +46,9 @@ class RecentOfficialSessionsTests(unittest.TestCase):
 
     def test_saturday_fixing_i_prices_pass_parser_and_archive_admission(self):
         self.check_sessions(NOV_7_FIXTURES, ['2026-11-07'])
+
+    def test_sunday_fixing_i_prices_pass_parser_and_archive_admission(self):
+        self.check_sessions(NOV_8_FIXTURES, ['2026-11-08'])
 
     def check_sessions(self, directory, days):
         manifest = json.loads((directory / 'manifest.json').read_text())

@@ -729,3 +729,8 @@ później blokuje zapis i ponowienie. Test obejmuje sekundę przed
 odczytem, dokładną chwilę zapisaną z innym przesunięciem UTC i sekundę
 po odczycie. Czas oceny ogranicza dostępność odczytu. Kontrola
 kwarantanny nadal uwzględnia bieżący stan bazy.
+
+Dla niedzielnej dostawy 08.11.2026 zapisano osobną odpowiedź HTTP 200
+z sesji TGE 07.11.2026, CSV i manifest. Test porównuje wszystkie 24 ceny
+Fixing I z osobną ekstrakcją lxml z tego samego HTML i weryfikuje oba
+SHA-256. Importer potwierdził komplet cen w suchym przebiegu.
