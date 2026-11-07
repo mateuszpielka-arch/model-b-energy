@@ -3,6 +3,8 @@ from dataclasses import asdict
 from decimal import Decimal
 from hashlib import sha256
 import json
+import re
+from shadow_archive_batch import PARSER_VERSION
 from shadow_postgres_archive import _guard
 from shadow_scoring import SCORING_VERSION, _utc, expected_periods, score_day
 from tge_parser_safe import parse_complete_standard_day
@@ -70,6 +72,10 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
             FROM fix1_shadow_test.batches WHERE id=%s''',(bid,)).fetchone()
         if delivery != day or sha256(bytes(raw)).hexdigest() != raw_hash:
             raise ValueError('Archived evidence hash/date mismatch')
+        if not re.fullmatch(r'[0-9a-f]{64}', ref_hash):
+            raise ValueError('Invalid archived reference SHA-256')
+        if parser != PARSER_VERSION:
+            raise ValueError('Unsupported archived parser version')
         parsed = parse_complete_standard_day(bytes(raw).decode('utf-8'), day.isoformat())
         expected = expected_periods(day)
         parsed_rows = [(expected[h-1], Decimal(str(parsed[h]))) for h in range(1,25)]

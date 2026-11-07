@@ -704,3 +704,10 @@ liczbę faktycznie dopisanych godzin od liczby godzin sprawdzonych.
 Test na siedmiu sesjach TGE obejmuje w jednej transakcji pięć zapisów,
 jedno ponowienie i jedną kwarantannę. Powtórka nie dopisuje cen ani
 kolejnego wpisu kwarantanny, a konfliktowa cena pozostaje bez zmian.
+
+Scoring w izolowanym PostgreSQL sprawdza również format SHA-256
+referencji i obsługiwaną wersję parsera przed zapisem lub ponowieniem
+wyniku. Test modyfikuje w bazie testowej HTML, odcisk referencji
+i wersję parsera po zapisie wyniku. Każdy przypadek blokuje ponowienie,
+a zapisany wynik pozostaje bez zmian. Odcisk referencji w bazie
+poświadcza identyfikator pliku. Ponowne sprawdzenie jego treści wymaga CSV.

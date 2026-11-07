@@ -112,6 +112,29 @@ class ScorePersistenceTests(unittest.TestCase):
         self.conn.execute('DELETE FROM fix1_shadow_test.prices WHERE period_start_utc=%s',(p,))
         with self.assertRaises(ValueError): score_archived_day(self.conn,**self.kw)
 
+    def test_invalid_evidence_blocks_score_replay_without_changing_saved_score(self):
+        score_archived_day(self.conn, **self.kw)
+        query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+        stored = self.conn.execute(query).fetchall()
+        for field, value, error in (
+            ('raw_html', b'corrupt HTML', 'Archived evidence hash/date mismatch'),
+            ('reference_sha256', 'missing', 'Invalid archived reference SHA-256'),
+            ('parser_version', 'unknown', 'Unsupported archived parser version'),
+        ):
+            with self.subTest(field=field):
+                original, = self.conn.execute(
+                    f'SELECT {field} FROM fix1_shadow_test.batches'
+                ).fetchone()
+                try:
+                    self.conn.execute(f'UPDATE fix1_shadow_test.batches SET {field} = %s', (value,))
+                    with self.assertRaisesRegex(ValueError, error):
+                        score_archived_day(self.conn, **self.kw)
+                    self.assertEqual(self.conn.execute(query).fetchall(), stored)
+                finally:
+                    self.conn.execute(f'UPDATE fix1_shadow_test.batches SET {field} = %s', (original,))
+
+        self.assertEqual(score_archived_day(self.conn, **self.kw)[0], 'REPLAY')
+
     def test_quarantined_batch_blocks_scoring(self):
         bid=self.conn.execute('SELECT id FROM fix1_shadow_test.batches').fetchone()[0]
         self.conn.execute('INSERT INTO fix1_shadow_test.quarantine(batch_id,reason) VALUES (%s,%s)',(bid,'test'))
