@@ -674,3 +674,8 @@ Dla sobotniej dostawy 07.11.2026 zapisano osobno odpowiedź HTTP 200
 z sesji TGE 06.11.2026. Test porównuje wszystkie 24 ceny Fixing I
 z niezależną ekstrakcją lxml z tego samego HTML, weryfikuje oba SHA-256
 i potwierdza dopuszczenie paczki przez walidator archiwizacji.
+
+Test integracyjny uruchamia cztery równoczesne importy paczki TGE
+dla dostawy 07.11.2026 na osobnych połączeniach z izolowanym PostgreSQL.
+Sprawdza jeden zapis, trzy ponowienia, 24 ceny przypisane do jednej
+paczki dowodowej i pustą kwarantannę.

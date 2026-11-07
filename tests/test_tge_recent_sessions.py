@@ -1,4 +1,5 @@
 import csv
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 import gzip
@@ -6,6 +7,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+from threading import Barrier
 import unittest
 
 from shadow_archive_batch import prepare_batch
@@ -214,3 +216,38 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'unavailable before D-1 09:50'):
                 score_archived_day(conn, **{**inputs, 'issued_at': after_cutoff, 'retrieved_at': after_cutoff})
             self.assertEqual(conn.execute(query).fetchall(), stored)
+
+    def test_concurrent_saturday_imports_write_one_official_batch(self):
+        manifest = json.loads((NOV_7_FIXTURES / 'manifest.json').read_text())
+        entry, = manifest['entries']
+        raw, _, rows = load_session(entry, NOV_7_FIXTURES)
+        reference_rows = [(row['hour'], row['price_pln_mwh']) for row in rows]
+        batch = prepare_session(entry, raw, reference_rows)
+        start = Barrier(4, timeout=10)
+
+        def import_batch(_):
+            with connect_test_database(DSN) as worker_conn:
+                start.wait()
+                return archive_batch(worker_conn, batch, raw)
+
+        with self.isolated_connection() as conn:
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                self.assertCountEqual(
+                    list(pool.map(import_batch, range(4))),
+                    ['INSERT', 'REPLAY', 'REPLAY', 'REPLAY'],
+                )
+            evidence = conn.execute('''
+                SELECT id, delivery_date, raw_sha256, reference_sha256, raw_html
+                FROM fix1_shadow_test.batches
+            ''').fetchall()
+            self.assertEqual(len(evidence), 1)
+            batch_id, *stored_evidence = evidence[0]
+            self.assertEqual(stored_evidence, [
+                batch.delivery_date, entry['raw_sha256'], entry['reference_sha256'], raw,
+            ])
+            prices = conn.execute('''
+                SELECT period_start_utc, price, batch_id FROM fix1_shadow_test.prices
+                ORDER BY period_start_utc
+            ''').fetchall()
+            self.assertEqual(prices, [(period, price, batch_id) for period, price in batch.rows])
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.quarantine').fetchone(), (0,))
