@@ -80,6 +80,25 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(before['accepted'][0]['predictions'],after['accepted'][0]['predictions'])
         self.assertNotEqual(before['ranking'],after['ranking'])
 
+    def test_out_of_window_payloads_are_not_read_for_earlier_ranking(self):
+        args = self.args()
+        target, future = args['target_days']
+        args['target_days'] = [target]
+        baseline = run_walkforward(**args)
+        self.assertEqual(len(baseline['ranking']), len(MODELS))
+
+        def unreadable():
+            self.fail('An irrelevant history payload was read')
+            yield
+
+        for packet in args['history']:
+            if packet['day'] == future:
+                packet.update(snapshots=unreadable(), actual=unreadable())
+        args['history'].append(dict(
+            day=target - timedelta(days=91), snapshots=unreadable(), actual=unreadable(),
+        ))
+        self.assertEqual(run_walkforward(**args), baseline)
+
     def test_no_available_target_actual_means_no_ranking(self):
         kw=self.args();kw['evaluated_at']=datetime(2026,1,1,tzinfo=timezone.utc)
         out=run_walkforward(**kw)

@@ -646,3 +646,9 @@ Raport rankingu deklaruje MAE jako kryterium kolejności. Test dwóch
 syntetycznych dób 24h i 25h porównuje MAE, MAPE, WAPE i bias wszystkich
 sześciu modeli z niezależnym obliczeniem na ułamkach dokładnych. Próba
 obejmuje 49 godzin, w tym ceny ujemne i dwa zera pomijane tylko w MAPE.
+
+Walk-forward SHADOW odczytuje zawartość paczek tylko dla zadanych dób
+oceny i ich maksymalnie 90-dniowych okien treningowych. Test podstawia
+nieczytelne iteratory dla przyszłej doby i doby sprzed 91 dni.
+Raport, prognozy i ranking sześciu modeli dla wcześniejszej doby
+pozostają identyczne.

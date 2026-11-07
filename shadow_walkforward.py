@@ -3,9 +3,10 @@
 Simulates issuance at each D-1 09:50; never creates real FROZEN forecasts.
 No I/O. Verified canonical history is a prerequisite, not produced by this module.
 """
+from bisect import bisect_left
 from collections import Counter
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal, localcontext
 from shadow_asof import select_snapshot
 from shadow_ols import predict_ols
@@ -21,12 +22,17 @@ def run_walkforward(*,history,target_days,evaluated_at):
     Fixed preset: similar days 90D/k5 (shape and level), median of OLS30/60/90
     plus shape. No parameter search on evaluation data. Simulated cutoff is
     explicitly reported and must never be mistaken for a real issuance timestamp.
+    Only requested delivery dates and their preceding 90-day windows are read.
     """
     evaluated = _utc(evaluated_at)
-    target_days = tuple(target_days)
+    target_days = sorted(set(target_days))
+    max_window = timedelta(days=90)
     packets = {}
     for packet in history:
         day = packet['day']
+        next_target = bisect_left(target_days, day)
+        if next_target == len(target_days) or target_days[next_target] - day > max_window:
+            continue
         if day in packets:
             raise ValueError('Duplicate historical packet day')
         snapshots = packet.get('snapshots')
@@ -41,7 +47,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
                                            denom=Decimal(0),ape=Decimal(0)) for m in MODELS}
     with localcontext() as ctx:
         ctx.prec=34
-        for day in sorted(set(target_days)):
+        for day in target_days:
             stage='actual'
             scoring_model = None
             try:
@@ -142,7 +148,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
     for entry in skipped:
         skipped_days_by_stage.setdefault(entry['stage'], []).append(entry['day'])
     common_days_by_hours = Counter(day["periods"] for day in accepted)
-    return dict(skipped_days_by_stage=skipped_days_by_stage,simulation=True,evaluated_at=evaluated.isoformat(),requested_days=len(set(target_days)),
+    return dict(skipped_days_by_stage=skipped_days_by_stage,simulation=True,evaluated_at=evaluated.isoformat(),requested_days=len(target_days),
         common_days=len(accepted),
         common_days_by_hours={str(hours): common_days_by_hours[hours] for hours in (23, 24, 25)},
         common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,
