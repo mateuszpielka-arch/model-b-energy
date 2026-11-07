@@ -492,6 +492,31 @@ class WalkforwardTests(unittest.TestCase):
 
         self.assertEqual(run_walkforward(**args), expected)
 
+    def test_unreadable_iterator_rejects_only_dependent_delivery_days(self):
+        def broken_after_first(rows):
+            yield rows[0]
+            raise ValueError('Broken source record')
+
+        for packet_index, field, rejected_index in ((-1, 'actual', -1), (0, 'snapshots', 0)):
+            with self.subTest(field=field):
+                args = self.args()
+                packet = args['history'][packet_index]
+                packet[field] = broken_after_first(packet[field])
+                rejected_day = args['target_days'][rejected_index]
+                other_day = next(day for day in args['target_days'] if day != rejected_day)
+
+                result = run_walkforward(**args)
+
+                self.assertEqual(result['unreadable_packets'], {packet['day'].isoformat(): field})
+                self.assertEqual([entry['day'] for entry in result['accepted']], [other_day.isoformat()])
+                skipped, = result['skipped']
+                self.assertEqual(skipped['day'], rejected_day.isoformat())
+                if packet['day'] == rejected_day:
+                    self.assertEqual(skipped['stage'], 'packet')
+                    self.assertIn(field, skipped['reason'])
+                else:
+                    self.assertIn(f'first missing day {packet["day"]}', skipped['reason'])
+
     def test_scoring_reuses_validated_target_prices(self):
         args = self.args()
         target = args['history'][-1]

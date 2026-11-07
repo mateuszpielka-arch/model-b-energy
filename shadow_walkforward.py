@@ -28,20 +28,25 @@ def run_walkforward(*,history,target_days,evaluated_at):
     target_days = sorted(set(target_days))
     max_window = timedelta(days=90)
     packets = {}
+    unreadable_packets = {}
     for packet in history:
         day = packet['day']
         next_target = bisect_left(target_days, day)
         if next_target == len(target_days) or target_days[next_target] - day > max_window:
             continue
-        if day in packets:
+        if day in packets or day in unreadable_packets:
             raise ValueError('Duplicate historical packet day')
-        snapshots = packet.get('snapshots')
-        if isinstance(snapshots, Iterator):
-            packet = {**packet, 'snapshots': tuple(snapshots)}
-        actual = packet.get('actual')
-        if isinstance(actual, Iterator):
-            packet = {**packet, 'actual': tuple(actual)}
-        packets[day] = packet
+        for field in ('snapshots', 'actual'):
+            values = packet.get(field)
+            if not isinstance(values, Iterator):
+                continue
+            try:
+                packet = {**packet, field: tuple(values)}
+            except (ValueError, TypeError, RuntimeError, OSError):
+                unreadable_packets[day] = field
+                break
+        else:
+            packets[day] = packet
     history = list(packets.values())
     accepted=[]; skipped=[]; totals={m:dict(n=0,nz=0,ae=Decimal(0),err=Decimal(0),
                                            denom=Decimal(0),ape=Decimal(0)) for m in MODELS}
@@ -51,6 +56,9 @@ def run_walkforward(*,history,target_days,evaluated_at):
             stage='actual'
             scoring_model = None
             try:
+                if day in unreadable_packets:
+                    stage = 'packet'
+                    raise ValueError(f'Unreadable target packet field: {unreadable_packets[day]}')
                 if day not in packets: raise ValueError('Missing target packet')
                 target=packets[day]
                 if target.get('actual_verified') is not True or not target.get('actual_version'):
@@ -152,4 +160,5 @@ def run_walkforward(*,history,target_days,evaluated_at):
         common_days=len(accepted),
         common_days_by_hours={str(hours): common_days_by_hours[hours] for hours in (23, 24, 25)},
         common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,
+        unreadable_packets={day.isoformat(): unreadable_packets[day] for day in sorted(unreadable_packets)},
         ranking_metric="mae", ranking=ranking)
