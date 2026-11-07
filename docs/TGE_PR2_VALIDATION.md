@@ -723,3 +723,9 @@ pobrania wcześniejszym niż wydanie prognozy lub równym mu. Test obejmuje
 sekundę przed, dokładny czas wydania i sekundę po nim oraz zachowanie
 wcześniej zapisanego wyniku przy odrzuconym ponowieniu. Czas odczytu
 archiwalnego nie określa czasu publikacji ceny przez TGE.
+
+Scoring SHADOW może przyjąć jawny czas oceny. Odczyt Fix1 dokonany
+później blokuje zapis i ponowienie. Test obejmuje sekundę przed
+odczytem, dokładną chwilę zapisaną z innym przesunięciem UTC i sekundę
+po odczycie. Czas oceny ogranicza dostępność odczytu. Kontrola
+kwarantanny nadal uwzględnia bieżący stan bazy.

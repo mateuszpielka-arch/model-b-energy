@@ -189,6 +189,21 @@ class ScorePersistenceTests(unittest.TestCase):
             score_archived_day(self.conn, **self.kw)
         self.assertEqual(self.count(), 1)
 
+    def test_evaluation_time_rejects_later_capture_and_allows_exact_boundary(self):
+        captured = self.batch.retrieved_at
+        too_early = captured - timedelta(seconds=1)
+        with self.assertRaisesRegex(ValueError, 'not yet available at evaluation time'):
+            score_archived_day(self.conn, **self.kw, evaluated_at=too_early)
+        self.assertEqual(self.count(), 0)
+
+        same_time = captured.astimezone(timezone(timedelta(hours=1)))
+        self.assertEqual(score_archived_day(self.conn, **self.kw, evaluated_at=same_time)[0], 'INSERT')
+        self.assertEqual(score_archived_day(self.conn, **self.kw,
+                                            evaluated_at=captured + timedelta(seconds=1))[0], 'REPLAY')
+        with self.assertRaisesRegex(ValueError, 'not yet available at evaluation time'):
+            score_archived_day(self.conn, **self.kw, evaluated_at=too_early)
+        self.assertEqual(self.count(), 1)
+
     def test_late_forecast_has_no_stored_score(self):
         self.kw['issued_at']=datetime(2026,11,1,8,51,tzinfo=timezone.utc)
         with self.assertRaises(ValueError): score_archived_day(self.conn,**self.kw)
