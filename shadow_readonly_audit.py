@@ -213,9 +213,15 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     model_ready=False))
         if present['actual.tge_fix1']:
             columns = table_columns(conn, 'actual.tge_fix1')
-            # A legacy timestamp without time zone cannot establish a UTC cutoff.
-            first_seen = 'first_seen_at_utc' if columns.get('first_seen_at_utc') else 'NULL::timestamptz'
-            retrieved = 'retrieved_at_utc' if columns.get('retrieved_at_utc') else 'NULL::timestamptz'
+            # Only finite, timezone-aware values can establish a UTC cutoff.
+            first_seen = (
+                'CASE WHEN isfinite(first_seen_at_utc) THEN first_seen_at_utc END'
+                if columns.get('first_seen_at_utc') else 'NULL::timestamptz'
+            )
+            retrieved = (
+                'CASE WHEN isfinite(retrieved_at_utc) THEN retrieved_at_utc END'
+                if columns.get('retrieved_at_utc') else 'NULL::timestamptz'
+            )
             source_url = 'source_url' if 'source_url' in columns else 'NULL::text'
             raw_hash = 'raw_hash' if 'raw_hash' in columns else 'NULL::text'
             hour_column = 'hour' if 'hour' in columns else 'NULL::int'

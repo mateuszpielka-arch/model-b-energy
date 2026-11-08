@@ -500,6 +500,31 @@ class ReadonlyAuditTests(unittest.TestCase):
                     f"USING {column} AT TIME ZONE 'UTC'"
                 )
 
+    def test_fix1_audit_treats_infinite_timestamps_as_unavailable(self):
+        day = date(2026, 11, 2)
+        self.conn.execute(
+            'ALTER TABLE actual.tge_fix1 ADD COLUMN first_seen_at_utc timestamptz, '
+            'ADD COLUMN retrieved_at_utc timestamptz'
+        )
+        self.conn.execute(
+            "INSERT INTO actual.tge_fix1 SELECT %s, hour, 100, '2026-11-01T09:05:00Z', "
+            "'2026-11-01T09:05:00Z' FROM generate_series(1, 24) AS hours(hour)", (day,),
+        )
+        self.conn.execute(
+            "UPDATE actual.tge_fix1 SET retrieved_at_utc='infinity' WHERE hour=1"
+        )
+        self.conn.execute(
+            "UPDATE actual.tge_fix1 SET first_seen_at_utc='-infinity' WHERE hour=2"
+        )
+        actual, = audit_connection(self.conn)['actual_days']
+        self.assertTrue(actual['complete_finite_prices'])
+        self.assertEqual(actual['next_delivery_training_timing'], 'UNPROVEN')
+        self.assertEqual(actual['rows_missing_price_timing'], 2)
+        self.assertEqual(actual['rows_with_invalid_price_timing'], 0)
+        self.assertEqual(actual['rows_retrieved_after_first_seen'], 0)
+        self.assertEqual(actual['latest_first_seen_at_utc'], '2026-11-01T09:05:00+00:00')
+        self.assertEqual(actual['latest_retrieved_at_utc'], '2026-11-01T09:05:00+00:00')
+
     def test_fix1_audit_reports_single_mixed_and_missing_recorded_sources(self):
         day = date(2026, 11, 2)
         with self.conn.cursor() as cursor:
