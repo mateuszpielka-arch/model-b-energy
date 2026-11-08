@@ -180,6 +180,23 @@ class ManifestTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, error):
                         ingest_manifest(manifest, conn=object())
 
+    def test_manifest_rejects_duplicate_retrieval_time_before_database_initialization(self):
+        source = FIX.with_name('tge_delivery_2026-11-09')
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'capture'
+            shutil.copytree(source, root)
+            manifest = root / 'manifest.json'
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+            original = manifest.read_text()
+            duplicate = original.replace(
+                '"retrieved_at_utc":',
+                '"retrieved_at_utc": "2026-11-08T08:49:59Z", "retrieved_at_utc":',
+                1,
+            )
+            manifest.write_text(duplicate)
+            with self.assertRaisesRegex(ValueError, 'Duplicate manifest field: retrieved_at_utc'):
+                ingest_manifest(manifest, conn=object())
+
     def test_manifest_requires_fix1_retrieval_after_forecast_cutoff(self):
         source = FIX.with_name('tge_delivery_2026-11-09')
         with TemporaryDirectory() as tmp:

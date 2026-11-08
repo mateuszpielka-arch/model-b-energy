@@ -18,6 +18,15 @@ from shadow_scoring import _utc
 MAX_HTML_BYTES = 8 * 1024 * 1024
 
 
+def _unique_manifest_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f'Duplicate manifest field: {key}')
+        result[key] = value
+    return result
+
+
 def _inside(root, filename):
     path=(root/filename).resolve()
     if not path.is_relative_to(root.resolve()) or not path.is_file():
@@ -48,7 +57,9 @@ def _read_raw_evidence(path, entry):
 
 
 def load_batches(manifest_path):
-    path=Path(manifest_path);manifest=json.loads(path.read_text());root=path.parent
+    path = Path(manifest_path)
+    manifest = json.loads(path.read_text(), object_pairs_hook=_unique_manifest_object)
+    root = path.parent
     if manifest.get('errors') or not manifest.get('entries'):
         raise ValueError('Incomplete capture manifest')
     batches=[];dates=set()

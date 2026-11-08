@@ -890,3 +890,8 @@ deklarowaną długość, jeśli manifest ją podaje. Test na oficjalnej sesji
 potwierdza akceptację poprawnego pliku oraz odrzucenie błędnej długości
 i przekroczenia limitu przed inicjalizacją bazy, również przy zgodnym
 SHA-256 nadmiarowego pliku.
+
+Importer odrzuca powielone pola JSON w manifeście. Test na kopii
+oficjalnej sesji dla 09.11.2026 dodaje wcześniejszy `retrieved_at_utc`
+przed poprawnym znacznikiem. Oba wpisy powodują odrzucenie manifestu
+przed inicjalizacją bazy, zamiast cichego przyjęcia ostatniej wartości.
