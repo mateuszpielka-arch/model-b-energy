@@ -866,3 +866,9 @@ Scoring z izolowanego archiwum sprawdza, czy Fix1 pobrano ściśle po
 D-1 09:50, również gdy prognozę wydano wcześniej. Test na PostgreSQL
 odrzuca pobranie sekundę przed granicą i w chwili granicznej, a sekundę
 później zapisuje wynik. Kontrola dotyczy czasu pobrania.
+
+Bezpośredni zapis paczki Fix1 do izolowanego PostgreSQL stosuje ten
+sam warunek czasu pobrania co importer manifestu. Test modyfikuje
+wyłącznie znacznik paczki opartej na oficjalnym HTML. Przed D-1 09:50
+i dokładnie o 09:50 nie powstaje paczka, cena ani wpis kwarantanny.
+Znacznik sekundę po granicy pozwala zapisać komplet 24 cen.

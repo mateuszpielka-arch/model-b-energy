@@ -11,6 +11,7 @@ from decimal import Decimal, InvalidOperation
 from hashlib import sha256
 from io import StringIO
 import re
+from shadow_asof import cutoff_for_day
 from shadow_history_audit import read_csv_rows
 from shadow_scoring import expected_periods
 from tge_parser_safe import parse_complete_standard_day
@@ -75,6 +76,10 @@ def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: dateti
     if (not isinstance(retrieved_at, datetime) or retrieved_at.tzinfo is None
             or retrieved_at.utcoffset() is None):
         raise ValueError('Aware retrieval timestamp required')
+    d = date.fromisoformat(day)
+    retrieved_at = retrieved_at.astimezone(timezone.utc)
+    if retrieved_at <= cutoff_for_day(d):
+        raise ValueError('Fix1 retrieval must be after D-1 09:50 Europe/Warsaw')
     if not re.fullmatch('[0-9a-f]{64}', reference_sha256):
         raise ValueError('Independent reference artifact SHA256 required')
     parsed = parse_complete_standard_day(raw.decode('utf-8', errors='strict'), day)
@@ -100,10 +105,9 @@ def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: dateti
     if prices != reference:
         mismatches = sorted(k for k in expected if prices[k] != reference[k])
         raise ValueError(f'Official reference mismatch: {mismatches}')
-    d = date.fromisoformat(day)
     periods = expected_periods(d)
     return ArchiveBatch(d, sha256(raw).hexdigest(), reference_sha256,
-                        retrieved_at.astimezone(timezone.utc),
+                        retrieved_at,
                         tuple((periods[h-1], reference[f'H{h:02d}']) for h in range(1,25)),
                         source_url=source_url)
 

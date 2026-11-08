@@ -5,6 +5,7 @@ import os
 import unittest
 import test_shadow_archive_batch as fixtures
 from shadow_archive_batch import prepare_batch,revalidate_batch
+from shadow_asof import cutoff_for_day
 from shadow_postgres_archive import connect_test_database,initialize,archive_batch
 
 DSN=os.environ.get('FIX1_SHADOW_TEST_DSN')
@@ -58,6 +59,24 @@ class WriterBoundaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):archive_batch(self.conn,self.forged(),self.raw)
         for table in ('batches','prices','quarantine'):
             self.assertEqual(self.conn.execute('SELECT count(*) FROM fix1_shadow_test.'+table).fetchone()[0],0)
+
+    def test_direct_writer_rejects_backdated_capture_before_writing(self):
+        cutoff = cutoff_for_day(self.batch.delivery_date)
+        for seconds in (-1, 0):
+            with self.subTest(seconds=seconds):
+                backdated = replace(self.batch, retrieved_at=cutoff + timedelta(seconds=seconds))
+                with self.assertRaisesRegex(ValueError, 'retrieval must be after D-1 09:50'):
+                    archive_batch(self.conn, backdated, self.raw)
+                for table in ('batches', 'prices', 'quarantine'):
+                    self.assertEqual(self.conn.execute(
+                        'SELECT count(*) FROM fix1_shadow_test.' + table
+                    ).fetchone(), (0,))
+
+        after_cutoff = replace(self.batch, retrieved_at=cutoff + timedelta(seconds=1))
+        self.assertEqual(archive_batch(self.conn, after_cutoff, self.raw), 'INSERT')
+        self.assertEqual(self.conn.execute(
+            'SELECT count(*) FROM fix1_shadow_test.prices'
+        ).fetchone(), (24,))
 
     def test_forged_replay_does_not_touch_good_archive(self):
         archive_batch(self.conn,self.batch,self.raw)
