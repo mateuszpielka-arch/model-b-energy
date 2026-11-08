@@ -15,6 +15,8 @@ from shadow_archive_batch import prepare_batch, read_reference_csv
 from shadow_asof import cutoff_for_day
 from shadow_scoring import _utc
 
+MAX_HTML_BYTES = 8 * 1024 * 1024
+
 
 def _inside(root, filename):
     path=(root/filename).resolve()
@@ -25,9 +27,15 @@ def _inside(root, filename):
 
 def _read_raw_evidence(path, entry):
     if path.suffix != '.gz':
-        return path.read_bytes()
+        with path.open('rb') as stream:
+            raw = stream.read(MAX_HTML_BYTES + 1)
+        if len(raw) > MAX_HTML_BYTES:
+            raise ValueError('HTML evidence exceeds 8 MiB')
+        if 'bytes' in entry and (type(entry['bytes']) is not int or entry['bytes'] != len(raw)):
+            raise ValueError('HTML evidence byte count mismatch')
+        return raw
     size = entry.get('bytes')
-    if type(size) is not int or not 0 < size <= 8 * 1024 * 1024:
+    if type(size) is not int or not 0 < size <= MAX_HTML_BYTES:
         raise ValueError('Compressed HTML evidence requires a byte count up to 8 MiB')
     try:
         with gzip.open(path, 'rb') as stream:

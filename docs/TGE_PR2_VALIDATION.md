@@ -884,3 +884,9 @@ odczytem HTML. Przekierowanie na stronę bez daty, inną sesję lub inną
 domenę nie tworzy plików HTML ani CSV. Ponowny odczyt oficjalnej
 sesji TGE z 08.11.2026 przeszedł kontrolę i zwrócił 24 ceny dla
 dostawy 09.11.2026.
+
+Importer ogranicza również nieskompresowany HTML do 8 MiB i sprawdza
+deklarowaną długość, jeśli manifest ją podaje. Test na oficjalnej sesji
+potwierdza akceptację poprawnego pliku oraz odrzucenie błędnej długości
+i przekroczenia limitu przed inicjalizacją bazy, również przy zgodnym
+SHA-256 nadmiarowego pliku.

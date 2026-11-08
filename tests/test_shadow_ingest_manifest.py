@@ -56,6 +56,31 @@ class ManifestTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, error):
                     ingest_manifest(manifest, conn=object())
 
+    def test_plain_html_size_is_validated_before_database_initialization(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = json.loads(MANIFEST.read_text())
+            entry = data['entries'][0]
+            data['entries'] = [entry]
+            for key in ('raw_file', 'reference_file'):
+                shutil.copyfile(FIX / entry[key], root / entry[key])
+            manifest = root / 'manifest.json'
+            manifest.write_text(json.dumps(data))
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+
+            entry['bytes'] -= 1
+            manifest.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError, 'byte count mismatch'):
+                ingest_manifest(manifest, conn=object())
+
+            raw = root / entry['raw_file']
+            oversized = raw.read_bytes().ljust(8 * 1024 * 1024 + 1, b' ')
+            raw.write_bytes(oversized)
+            entry.update(bytes=len(oversized), raw_sha256=sha256(oversized).hexdigest())
+            manifest.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError, 'exceeds 8 MiB'):
+                ingest_manifest(manifest, conn=object())
+
     def test_ambiguous_reference_csv_is_rejected_even_with_matching_hash(self):
         source = FIX.with_name('tge_delivery_2026-11-07')
         for change, error in (
