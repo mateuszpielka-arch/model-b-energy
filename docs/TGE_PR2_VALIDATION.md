@@ -778,3 +778,8 @@ CSV z kolumną `tge_hour_label`. Test na odpowiedzi TGE dla 25.10.2026
 potwierdza osobne wartości dla H02 i H02a oraz SHA-256 CSV.
 Manifest oznacza tę paczkę jako `TGE_LABEL_ONLY`. Importer odrzuca ją
 przed inicjalizacją bazy, ponieważ paczka nie zawiera mapowania UTC.
+
+Eksport referencji odróżnia brak godzin dla żądanej dostawy od
+niekompletnego lub przestawionego zestawu. Test na odpowiedzi TGE
+dla 02.11.2026 sprawdza poprawne 24 godziny, brak danych dla innej
+dostawy i odrzucenie zestawu po usunięciu H01.

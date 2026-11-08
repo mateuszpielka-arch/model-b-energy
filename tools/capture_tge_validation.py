@@ -61,8 +61,14 @@ def extract_reference(raw, day, *, autumn_25h=False):
         if not re.fullmatch(r'[-−]?\d[\d ]*(?:,\d+)?',cells[2]):
             raise ValueError('Invalid reference number')
         rows.append((label,Decimal(cells[2].replace(' ','').replace('−','-').replace(',','.'))))
-    if [h for h,_ in rows] != expected:
-        raise ValueError('Incomplete or reordered hourly labels in Fix1 reference')
+    observed = [label for label, _ in rows]
+    if not observed:
+        raise ValueError(f'No hourly Fixing I rows in TGE response for {day}')
+    if observed != expected:
+        raise ValueError(
+            f'Incomplete or reordered hourly labels in Fix1 reference for {day}: '
+            f'expected {len(expected)}, found {len(observed)}'
+        )
     return rows
 
 

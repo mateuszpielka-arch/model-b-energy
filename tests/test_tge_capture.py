@@ -84,6 +84,21 @@ class CaptureOutputTest(unittest.TestCase):
 
 
 class CaptureReferenceTest(unittest.TestCase):
+    def test_distinguishes_absent_delivery_from_partial_fixing_i(self):
+        from lxml import html
+
+        fixture = Path(__file__).parent / 'fixtures/tge_rdn_captured_2026-11-01.html'
+        raw = fixture.read_bytes()
+        self.assertEqual(len(extract_reference(raw, '2026-11-02')), 24)
+        with self.assertRaisesRegex(ValueError, 'No hourly Fixing I rows.*2026-11-09'):
+            extract_reference(raw, '2026-11-09')
+
+        document = html.fromstring(raw)
+        row, = document.xpath('//table[@id="rdn"]/tbody/tr[td[1]="2026-11-02_H01"]')
+        row.getparent().remove(row)
+        with self.assertRaisesRegex(ValueError, '2026-11-02: expected 24, found 23'):
+            extract_reference(html.tostring(document), '2026-11-02')
+
     def test_duplicate_fixing_group_cannot_create_reference(self):
         fixture = Path(__file__).parent / "fixtures/tge_rdn_captured_2026-11-01.html"
         source = fixture.read_text(encoding="utf-8")
