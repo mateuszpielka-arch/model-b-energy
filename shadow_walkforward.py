@@ -36,6 +36,14 @@ def run_walkforward(*,history,target_days,evaluated_at):
             continue
         if day in packets or day in unreadable_packets:
             raise ValueError('Duplicate historical packet day')
+        try:
+            actual_available = _utc(packet.get('actual_available_at'))
+        except ValueError:
+            actual_available = None
+        if actual_available is None or actual_available > evaluated:
+            # Keep the packet for cutoff diagnostics without consuming its payload.
+            packets[day] = packet
+            continue
         for field in ('snapshots', 'actual'):
             values = packet.get(field)
             if not isinstance(values, Iterator):

@@ -821,3 +821,8 @@ najpóźniejszy czas spośród modeli składowych. Dodatkowa kontrola scoringu
 usuwa dobę ze wspólnego rankingu, jeśli choć jeden model zgłosi ceny
 treningowe dostępne po D-1 09:50. Testy obejmują dokładny cutoff i sekundę
 po nim na syntetycznej historii z udokumentowanymi znacznikami.
+
+Walk-forward sprawdza dostępność Fix1 przed odczytaniem iteratorów
+danej paczki. Test potwierdza, że ceny i snapshoty doby dostępnej
+sekundę po czasie oceny pozostają nieodczytane, a wcześniejsza doba
+zachowuje identyczne prognozy, scoring i ranking.

@@ -566,6 +566,21 @@ class WalkforwardTests(unittest.TestCase):
 
         self.assertEqual(run_walkforward(**args), expected)
 
+    def test_unavailable_target_payload_is_not_read_before_evaluation(self):
+        args = self.args()
+        earlier, target = args['history'][-2:]
+        args['evaluated_at'] = target['actual_available_at'] - timedelta(seconds=1)
+        baseline = run_walkforward(**args)
+        self.assertEqual([entry['day'] for entry in baseline['accepted']], [earlier['day'].isoformat()])
+        self.assertEqual(baseline['skipped'][0]['reason'], 'Target actual not yet available for evaluation')
+
+        def unavailable():
+            self.fail('Payload was read before its availability time')
+            yield
+
+        target.update(snapshots=unavailable(), actual=unavailable())
+        self.assertEqual(run_walkforward(**args), baseline)
+
     def test_unreadable_iterator_rejects_only_dependent_delivery_days(self):
         def broken_after_first(rows):
             yield rows[0]
