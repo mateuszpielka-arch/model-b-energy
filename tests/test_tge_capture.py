@@ -20,6 +20,7 @@ class CaptureOutputTest(unittest.TestCase):
             output = Path(directory)
             response = fetch.return_value.__enter__.return_value
             response.status = 200
+            response.geturl.return_value = 'https://tge.pl/energia-elektryczna-rdn?dateShow=24-10-2026'
             response.read.return_value = fixture.read_bytes()
 
             with self.assertRaisesRegex(ValueError, 'requires a 25-hour Warsaw day'):
@@ -38,6 +39,23 @@ class CaptureOutputTest(unittest.TestCase):
             write_manifest(output, {'entries': [entry], 'errors': []})
             with self.assertRaisesRegex(ValueError, 'label-only evidence'):
                 ingest_manifest(output / 'manifest.json', conn=object())
+
+    def test_capture_rejects_redirected_session_before_reading_response(self):
+        with tempfile.TemporaryDirectory() as directory, patch('tools.capture_tge_validation.urlopen') as fetch:
+            output = Path(directory)
+            response = fetch.return_value.__enter__.return_value
+            response.status = 200
+            for url in (
+                'https://tge.pl/energia-elektryczna-rdn',
+                'https://tge.pl/energia-elektryczna-rdn?dateShow=07-11-2026',
+                'https://example.test/energia-elektryczna-rdn?dateShow=08-11-2026',
+            ):
+                with self.subTest(url=url):
+                    response.geturl.return_value = url
+                    with self.assertRaisesRegex(ValueError, 'URL differs from requested session.*2026-11-09'):
+                        capture(date(2026, 11, 9), output)
+            response.read.assert_not_called()
+            self.assertEqual(list(output.iterdir()), [])
 
     def test_existing_capture_is_preserved(self):
         script = Path(__file__).resolve().parents[1] / "tools/capture_tge_validation.py"

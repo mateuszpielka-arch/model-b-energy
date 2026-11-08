@@ -82,6 +82,8 @@ def capture(day, directory, *, autumn_25h=False):
     session=day-timedelta(days=1)
     url='https://tge.pl/energia-elektryczna-rdn?dateShow='+session.strftime('%d-%m-%Y')
     with urlopen(Request(url,headers={'User-Agent':'model-b-energy-shadow-validation/1.0'}),timeout=35) as r:
+        if r.geturl() != url:
+            raise ValueError(f'TGE response URL differs from requested session for {day}')
         raw=r.read();status=r.status
     completed=datetime.now(timezone.utc).isoformat()
     if status!=200: raise ValueError(f'HTTP {status}')

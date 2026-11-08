@@ -878,3 +878,9 @@ różnych paczek dowodowych lub do paczki z innej daty dostawy.
 Test na oficjalnych cenach w izolowanym PostgreSQL podmienia
 powiązanie jednej godziny bez zmiany ceny. Dwa ponowienia zostawiają
 jeden wpis kwarantanny i zachowują istniejące wiersze.
+
+Narzędzie pobierania referencji sprawdza końcowy URL odpowiedzi przed
+odczytem HTML. Przekierowanie na stronę bez daty, inną sesję lub inną
+domenę nie tworzy plików HTML ani CSV. Ponowny odczyt oficjalnej
+sesji TGE z 08.11.2026 przeszedł kontrolę i zwrócił 24 ceny dla
+dostawy 09.11.2026.
