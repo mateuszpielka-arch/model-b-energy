@@ -798,3 +798,9 @@ nie ma kolumny `retrieved_at_utc` lub zawiera NULL. Taki snapshot otrzymuje
 status `UNPROVEN_NO_VALID_RETRIEVAL_START` i odpada z selekcji przed
 D-1 09:50. Test w izolowanym PostgreSQL obejmuje oba przypadki i potwierdza,
 że audyt nadal zwraca dane Fix1 dla tej samej doby.
+
+Audyt Fix1 używa do oceny dostępności tylko kolumn PostgreSQL
+`timestamptz`. Starsze `timestamp` bez strefy są liczone jako brak
+wiarygodnego czasu. Test na pełnej dobie 24h potwierdza, że zmiana typu
+każdego z dwóch znaczników wyklucza dobę z kandydatów czasowych,
+zachowując informację o komplecie cen.

@@ -98,10 +98,11 @@ def provisional_comparison_coverage(
 
 
 def table_columns(conn, table):
-    return {name for (name,) in conn.execute(
-        'SELECT attname FROM pg_attribute WHERE attrelid = %s::regclass '
+    return dict(conn.execute(
+        "SELECT attname, atttypid = 'timestamptz'::regtype "
+        'FROM pg_attribute WHERE attrelid = %s::regclass '
         'AND attnum > 0 AND NOT attisdropped', (table,),
-    )}
+    ))
 
 
 def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None):
@@ -212,8 +213,9 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     model_ready=False))
         if present['actual.tge_fix1']:
             columns = table_columns(conn, 'actual.tge_fix1')
-            first_seen = 'first_seen_at_utc' if 'first_seen_at_utc' in columns else 'NULL::timestamptz'
-            retrieved = 'retrieved_at_utc' if 'retrieved_at_utc' in columns else 'NULL::timestamptz'
+            # A legacy timestamp without time zone cannot establish a UTC cutoff.
+            first_seen = 'first_seen_at_utc' if columns.get('first_seen_at_utc') else 'NULL::timestamptz'
+            retrieved = 'retrieved_at_utc' if columns.get('retrieved_at_utc') else 'NULL::timestamptz'
             source_url = 'source_url' if 'source_url' in columns else 'NULL::text'
             raw_hash = 'raw_hash' if 'raw_hash' in columns else 'NULL::text'
             period_column = 'period_start_utc' if 'period_start_utc' in columns else 'NULL::timestamptz'

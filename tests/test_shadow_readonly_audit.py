@@ -471,6 +471,35 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(actual['rows_retrieved_after_first_seen'], 1)
         self.assertEqual(actual['quality_status'], 'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')
 
+    def test_fix1_audit_does_not_infer_timezone_for_legacy_timestamps(self):
+        day = date(2026, 11, 2)
+        self.conn.execute(
+            'ALTER TABLE actual.tge_fix1 ADD COLUMN first_seen_at_utc timestamptz, '
+            'ADD COLUMN retrieved_at_utc timestamptz'
+        )
+        self.conn.execute(
+            "INSERT INTO actual.tge_fix1 SELECT %s, hour, 100, '2026-11-01T09:05:00Z', "
+            "'2026-11-01T09:05:00Z' FROM generate_series(1, 24) AS hours(hour)", (day,),
+        )
+        baseline, = audit_connection(self.conn)['actual_days']
+        self.assertEqual(baseline['next_delivery_training_timing'], 'TIMING_CANDIDATE')
+
+        for column in ('retrieved_at_utc', 'first_seen_at_utc'):
+            with self.subTest(column=column):
+                self.conn.execute(
+                    f'ALTER TABLE actual.tge_fix1 ALTER COLUMN {column} TYPE timestamp '
+                    f"USING {column} AT TIME ZONE 'UTC'"
+                )
+                actual, = audit_connection(self.conn)['actual_days']
+                self.assertIsNone(actual[f'latest_{column}'])
+                self.assertTrue(actual['complete_finite_prices'])
+                self.assertEqual(actual['next_delivery_training_timing'], 'UNPROVEN')
+                self.assertEqual(actual['rows_missing_price_timing'], 24)
+                self.conn.execute(
+                    f'ALTER TABLE actual.tge_fix1 ALTER COLUMN {column} TYPE timestamptz '
+                    f"USING {column} AT TIME ZONE 'UTC'"
+                )
+
     def test_fix1_audit_reports_single_mixed_and_missing_recorded_sources(self):
         day = date(2026, 11, 2)
         with self.conn.cursor() as cursor:
