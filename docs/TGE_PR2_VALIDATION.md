@@ -872,3 +872,9 @@ sam warunek czasu pobrania co importer manifestu. Test modyfikuje
 wyłącznie znacznik paczki opartej na oficjalnym HTML. Przed D-1 09:50
 i dokładnie o 09:50 nie powstaje paczka, cena ani wpis kwarantanny.
 Znacznik sekundę po granicy pozwala zapisać komplet 24 cen.
+
+Archiwum SHADOW odrzuca jako konflikt dobę z cenami przypisanymi do
+różnych paczek dowodowych lub do paczki z innej daty dostawy.
+Test na oficjalnych cenach w izolowanym PostgreSQL podmienia
+powiązanie jednej godziny bez zmiany ceny. Dwa ponowienia zostawiają
+jeden wpis kwarantanny i zachowują istniejące wiersze.

@@ -68,10 +68,19 @@ def archive_batch(conn, batch, raw):
     with conn.transaction():
         # Stable numeric date key, no Python hash randomization across workers.
         conn.execute('SELECT pg_advisory_xact_lock(716101, %s)', (batch.delivery_date.toordinal(),))
-        existing = conn.execute('SELECT period_start_utc,price FROM fix1_shadow_test.prices '
-                                'WHERE delivery_date=%s ORDER BY period_start_utc',
-                                (batch.delivery_date,)).fetchall()
-        decision = classify_existing(batch, existing)
+        existing = conn.execute('''
+            SELECT price.period_start_utc, price.price, price.batch_id, source.delivery_date
+            FROM fix1_shadow_test.prices AS price
+            JOIN fix1_shadow_test.batches AS source ON source.id = price.batch_id
+            WHERE price.delivery_date = %s ORDER BY price.period_start_utc
+        ''', (batch.delivery_date,)).fetchall()
+        source_batches = {(batch_id, day) for _, _, batch_id, day in existing}
+        if len(source_batches) > 1 or any(day != batch.delivery_date for _, day in source_batches):
+            decision = 'QUARANTINE'
+            reason = 'Existing prices do not point to one batch for the delivery day'
+        else:
+            decision = classify_existing(batch, [(period, price) for period, price, _, _ in existing])
+            reason = 'Existing prices differ or day is partial'
         conn.execute('''INSERT INTO fix1_shadow_test.batches
             (delivery_date,raw_sha256,reference_sha256,parser_version,source_url,retrieved_at,raw_html)
             VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING''',
@@ -82,7 +91,7 @@ def archive_batch(conn, batch, raw):
             batch.identity).fetchone()[0]
         if decision == 'QUARANTINE':
             conn.execute('INSERT INTO fix1_shadow_test.quarantine(batch_id,reason) VALUES (%s,%s) '
-                         'ON CONFLICT DO NOTHING', (bid,'Existing prices differ or day is partial'))
+                         'ON CONFLICT DO NOTHING', (bid, reason))
         elif decision == 'INSERT':
             with conn.cursor() as cur:
                 cur.executemany('INSERT INTO fix1_shadow_test.prices '

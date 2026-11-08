@@ -66,6 +66,28 @@ class PostgresArchiveTests(unittest.TestCase):
         self.assertEqual(archive_batch(self.conn,self.batch,self.raw),'QUARANTINE')
         self.assertEqual(self.count('prices'),23)
 
+    def test_matching_prices_with_mixed_source_batches_are_quarantined(self):
+        self.assertEqual(archive_batch(self.conn, self.batch, self.raw), 'INSERT')
+        second_id, = self.conn.execute('''
+            INSERT INTO fix1_shadow_test.batches
+                (delivery_date, raw_sha256, reference_sha256, parser_version,
+                 source_url, retrieved_at, raw_html)
+            SELECT delivery_date, raw_sha256, %s, parser_version,
+                   source_url, retrieved_at, raw_html
+            FROM fix1_shadow_test.batches RETURNING id
+        ''', ('a' * 64,)).fetchone()
+        self.conn.execute('UPDATE fix1_shadow_test.prices SET batch_id=%s WHERE period_start_utc=%s',
+                          (second_id, self.batch.rows[0][0]))
+        query = 'SELECT * FROM fix1_shadow_test.prices ORDER BY period_start_utc'
+        before = self.conn.execute(query).fetchall()
+        for _ in range(2):
+            self.assertEqual(archive_batch(self.conn, self.batch, self.raw), 'QUARANTINE')
+        self.assertEqual(self.conn.execute(query).fetchall(), before)
+        self.assertEqual(self.count('batches'), 2)
+        self.assertEqual(self.conn.execute(
+            'SELECT reason FROM fix1_shadow_test.quarantine'
+        ).fetchall(), [('Existing prices do not point to one batch for the delivery day',)])
+
     def test_mid_insert_failure_rolls_back_evidence_and_rows(self):
         import psycopg
         self.conn.execute('ALTER TABLE fix1_shadow_test.prices ADD CONSTRAINT force_test_failure CHECK(price<1000)')
