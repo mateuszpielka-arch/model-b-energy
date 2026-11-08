@@ -120,8 +120,11 @@ class ScorePersistenceTests(unittest.TestCase):
             ('raw_html', b'corrupt HTML', 'Archived evidence hash/date mismatch'),
             ('reference_sha256', 'missing', 'Invalid archived reference SHA-256'),
             ('parser_version', 'unknown', 'Unsupported archived parser version'),
+            ('source_url', 'https://example.test/energia-elektryczna-rdn', 'Unexpected source URL'),
+            ('source_url', 'https://tge.pl/energia-elektryczna-rdn?dateShow=01-01-2026',
+             'Historical session URL does not match delivery date'),
         ):
-            with self.subTest(field=field):
+            with self.subTest(field=field, error=error):
                 original, = self.conn.execute(
                     f'SELECT {field} FROM fix1_shadow_test.batches'
                 ).fetchone()

@@ -49,13 +49,8 @@ def read_reference_csv(reference, day):
     return [(row['hour'], row['price_pln_mwh']) for row in rows]
 
 
-def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: datetime,
-                  reference_rows, reference_sha256: str):
-    """Bind complete parsed prices to an independent reference artifact hash.
-
-    Reference rows are (H01..H24, Decimal-compatible price) pairs. Preserve
-    duplicates for detection. Caller retains raw/reference bytes immutably.
-    """
+def validate_source_url(source_url: str, day: str):
+    """Check the official RDN endpoint and any declared historical session."""
     url = urlsplit(source_url)
     if (url.scheme != 'https' or url.netloc != 'tge.pl' or
             url.path != '/energia-elektryczna-rdn' or url.fragment):
@@ -65,6 +60,16 @@ def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: dateti
         session = (date.fromisoformat(day)-timedelta(days=1)).strftime('%d-%m-%Y')
         if query != {'dateShow': [session]}:
             raise ValueError('Historical session URL does not match delivery date')
+
+
+def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: datetime,
+                  reference_rows, reference_sha256: str):
+    """Bind complete parsed prices to an independent reference artifact hash.
+
+    Reference rows are (H01..H24, Decimal-compatible price) pairs. Preserve
+    duplicates for detection. Caller retains raw/reference bytes immutably.
+    """
+    validate_source_url(source_url, day)
     if not isinstance(raw, bytes) or not raw:
         raise ValueError('Nonempty raw HTTP bytes required')
     if (not isinstance(retrieved_at, datetime) or retrieved_at.tzinfo is None

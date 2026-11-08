@@ -848,3 +848,9 @@ Test scoringu po imporcie manifestu 09.11.2026 używa oficjalnych
 WAPE i bias względem obliczeń na ułamkach z CSV. Sekundę przed
 pobraniem TGE wynik nie powstaje. W chwili pobrania wynik zapisuje
 się raz, a powtórzenie zwraca ten sam wynik.
+
+Scoring SHADOW bez referencji CSV sprawdza teraz także zapisany adres
+źródła. Test na izolowanym PostgreSQL potwierdza odrzucenie obcej domeny
+i niewłaściwej daty sesji przy ponowieniu oceny. Zapisany wynik pozostaje
+nienaruszony. Poprawny adres jest warunkiem walidacji pochodzenia,
+a sam adres nie potwierdza treści odpowiedzi.
