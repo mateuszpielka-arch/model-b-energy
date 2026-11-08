@@ -8,7 +8,7 @@ from collections import Counter
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from decimal import Decimal, localcontext
-from shadow_asof import preserve_snapshot_rows, select_snapshot
+from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
 from shadow_similar_consensus import MEDIAN_MEMBERS, median_consensus, predict_similar
 from shadow_scoring import _utc, _prices, expected_periods, score_day
@@ -40,7 +40,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
             actual_available = _utc(packet.get('actual_available_at'))
         except ValueError:
             actual_available = None
-        if actual_available is None or actual_available > evaluated:
+        if actual_available is None or not cutoff_for_day(day) < actual_available <= evaluated:
             # Keep the packet for cutoff diagnostics without consuming its payload.
             packets[day] = packet
             continue
@@ -76,11 +76,12 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 actual_available = _utc(target.get('actual_available_at'))
                 if actual_available > evaluated:
                     raise ValueError('Target actual not yet available for evaluation')
-                selected = select_snapshot(day, target.get('snapshots', ()))
-                if evaluated < selected.cutoff_utc:
+                cutoff = cutoff_for_day(day)
+                if evaluated < cutoff:
                     raise ValueError('Simulated issuance is after evaluation time')
-                if actual_available <= selected.cutoff_utc:
+                if actual_available <= cutoff:
                     raise ValueError('Target actual timestamp precedes simulated issuance or coincides with it')
+                selected = select_snapshot(day, target.get('snapshots', ()))
                 actual=_prices(target.get('actual', ()))
                 if set(actual)!=set(expected_periods(day)): raise ValueError('Incomplete target actual periods')
                 if selected.snapshot_id is None:

@@ -219,7 +219,14 @@ class WalkforwardTests(unittest.TestCase):
     def test_backdated_target_actual_is_rejected(self):
         kw = self.args()
         kw['target_days'] = kw['target_days'][-1:]
-        kw['history'][-1]['actual_available_at'] = datetime(2026, 11, 1, 8, tzinfo=timezone.utc)
+        target = kw['history'][-1]
+        target['actual_available_at'] = datetime(2026, 11, 1, 8, tzinfo=timezone.utc)
+
+        def unreadable():
+            self.fail('Payload with backdated Fix1 availability was read')
+            yield
+
+        target.update(snapshots=unreadable(), actual=unreadable())
         for evaluated, reason in [
             (datetime(2026, 11, 1, 8, 49, tzinfo=timezone.utc), 'after evaluation time'),
             (kw['evaluated_at'], 'precedes simulated issuance'),

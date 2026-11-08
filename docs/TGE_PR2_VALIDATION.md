@@ -826,3 +826,8 @@ Walk-forward sprawdza dostępność Fix1 przed odczytaniem iteratorów
 danej paczki. Test potwierdza, że ceny i snapshoty doby dostępnej
 sekundę po czasie oceny pozostają nieodczytane, a wcześniejsza doba
 zachowuje identyczne prognozy, scoring i ranking.
+
+Walk-forward odrzuca metadane Fix1 datowane na czas wydania prognozy
+lub wcześniej przed odczytem cen i snapshotów. Test z syntetyczną
+paczką potwierdza brak odczytu zarówno przy ocenie przed D-1 09:50,
+jak i po tym czasie.
