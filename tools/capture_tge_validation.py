@@ -17,6 +17,8 @@ from tempfile import NamedTemporaryFile
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
+MAX_HTML_BYTES = 8 * 1024 * 1024
+
 
 def extract_reference(raw, day, *, autumn_25h=False):
     """Read Fixing I prices, optionally preserving autumn labels without mapping to UTC."""
@@ -84,9 +86,13 @@ def capture(day, directory, *, autumn_25h=False):
     with urlopen(Request(url,headers={'User-Agent':'model-b-energy-shadow-validation/1.0'}),timeout=35) as r:
         if r.geturl() != url:
             raise ValueError(f'TGE response URL differs from requested session for {day}')
-        raw=r.read();status=r.status
+        status = r.status
+        if status != 200:
+            raise ValueError(f'HTTP {status}')
+        raw = r.read(MAX_HTML_BYTES + 1)
     completed=datetime.now(timezone.utc).isoformat()
-    if status!=200: raise ValueError(f'HTTP {status}')
+    if len(raw) > MAX_HTML_BYTES:
+        raise ValueError(f'TGE response exceeds 8 MiB for {day}')
     rows=extract_reference(raw,day.isoformat(),autumn_25h=autumn_25h)
     stem='tge_delivery_'+day.isoformat()
     raw_path=directory/(stem+'.html');ref_path=directory/(stem+'.csv')

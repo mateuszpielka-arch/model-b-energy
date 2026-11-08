@@ -895,3 +895,9 @@ Importer odrzuca powielone pola JSON w manifeście. Test na kopii
 oficjalnej sesji dla 09.11.2026 dodaje wcześniejszy `retrieved_at_utc`
 przed poprawnym znacznikiem. Oba wpisy powodują odrzucenie manifestu
 przed inicjalizacją bazy, zamiast cichego przyjęcia ostatniej wartości.
+
+Pobieranie referencji ogranicza odpowiedź HTTP TGE do 8 MiB, zgodnie
+z importerem. Test odrzuca HTTP 206 przed odczytem treści i zatrzymuje
+nadmiarową odpowiedź przed parserem oraz zapisem. Kontrolny odczyt
+oficjalnej sesji 08.11.2026 zwrócił ten sam CSV z 24 cenami dla dostawy
+09.11.2026, a manifest przeszedł import w trybie bez zapisu.

@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from shadow_ingest_manifest import ingest_manifest
+from shadow_ingest_manifest import MAX_HTML_BYTES, ingest_manifest
 from tools.capture_tge_validation import capture, extract_reference, write_manifest
 
 
@@ -55,6 +55,25 @@ class CaptureOutputTest(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, 'URL differs from requested session.*2026-11-09'):
                         capture(date(2026, 11, 9), output)
             response.read.assert_not_called()
+            self.assertEqual(list(output.iterdir()), [])
+
+    def test_capture_bounds_html_before_parsing_or_writing(self):
+        with tempfile.TemporaryDirectory() as directory, patch('tools.capture_tge_validation.urlopen') as fetch:
+            output = Path(directory)
+            response = fetch.return_value.__enter__.return_value
+            response.geturl.return_value = 'https://tge.pl/energia-elektryczna-rdn?dateShow=08-11-2026'
+            response.status = 206
+            with self.assertRaisesRegex(ValueError, 'HTTP 206'):
+                capture(date(2026, 11, 9), output)
+            response.read.assert_not_called()
+
+            response.status = 200
+            response.read.return_value = b' ' * (MAX_HTML_BYTES + 1)
+            with patch('tools.capture_tge_validation.extract_reference') as extract:
+                with self.assertRaisesRegex(ValueError, 'exceeds 8 MiB'):
+                    capture(date(2026, 11, 9), output)
+                extract.assert_not_called()
+            response.read.assert_called_once_with(MAX_HTML_BYTES + 1)
             self.assertEqual(list(output.iterdir()), [])
 
     def test_existing_capture_is_preserved(self):
