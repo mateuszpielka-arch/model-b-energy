@@ -814,3 +814,10 @@ Audyt Fix1 w trybie tylko do odczytu traktuje wartości PostgreSQL
 `infinity` i `-infinity` jako brak wiarygodnego czasu dostępności.
 Test na izolowanej bazie zachowuje komplet 24 cen i najpóźniejsze
 poprawne znaczniki, lecz wyklucza dobę z kwalifikacji czasowej.
+
+Walk-forward SHADOW raportuje przy scoringu każdego modelu najpóźniejszy
+czas dostępności cen Fix1 wykorzystanych w treningu. Dla mediany stosuje
+najpóźniejszy czas spośród modeli składowych. Dodatkowa kontrola scoringu
+usuwa dobę ze wspólnego rankingu, jeśli choć jeden model zgłosi ceny
+treningowe dostępne po D-1 09:50. Testy obejmują dokładny cutoff i sekundę
+po nim na syntetycznej historii z udokumentowanymi znacznikami.

@@ -98,20 +98,28 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 for name in MODELS[:-1]:
                     scoring_model = name
                     latest_publication, latest_retrieval = publication, retrieved
-                    for evidence in predictions[name]['training_timing']:
+                    training_timing = predictions[name]['training_timing']
+                    latest_training_actual = max(
+                        _utc(datetime.fromisoformat(evidence['actual_available_at_utc']))
+                        for evidence in training_timing
+                    )
+                    for evidence in training_timing:
                         latest_publication = max(latest_publication,
                             datetime.fromisoformat(evidence['latest_publication_ts_utc']))
                         latest_retrieval = max(latest_retrieval,
                             datetime.fromisoformat(evidence['retrieval_completed_at_utc']))
-                    input_times[name] = (latest_publication, latest_retrieval)
+                    input_times[name] = (latest_publication, latest_retrieval, latest_training_actual)
                 scoring_model = 'median4'
                 input_times['median4'] = (
                     max(input_times[name][0] for name in MEDIAN_MEMBERS),
                     max(input_times[name][1] for name in MEDIAN_MEMBERS),
+                    max(input_times[name][2] for name in MEDIAN_MEMBERS),
                 )
                 scores={}
-                for name, (latest_publication, latest_retrieval) in input_times.items():
+                for name, (latest_publication, latest_retrieval, latest_training_actual) in input_times.items():
                     scoring_model = name
+                    if latest_training_actual > selected.cutoff_utc:
+                        raise ValueError('Training Fix1 prices unavailable at D-1 09:50')
                     scores[name]=score_day(day=day,forecast=predictions[name]['prices'],actual=actual.items(),
                         forecast_id=f'simulated:{day}:{name}',model_version=predictions[name]['model_version'],
                         actual_version=target['actual_version'],forecast_status='SHADOW',actual_verified=True,
@@ -140,8 +148,9 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 target_retrieval_completed_at=retrieved.isoformat(),
                 scoring_input_timing={
                     name: dict(latest_publication_ts_utc=published.isoformat(),
-                               latest_retrieval_completed_at_utc=completed.isoformat())
-                    for name, (published, completed) in input_times.items()
+                               latest_retrieval_completed_at_utc=completed.isoformat(),
+                               latest_training_actual_available_at_utc=training_actual.isoformat())
+                    for name, (published, completed, training_actual) in input_times.items()
                 },
                 rejected_snapshots=selected.rejected,
                 simulated_issue_at=selected.cutoff_utc.isoformat(),predictions=predictions,scores=scores))

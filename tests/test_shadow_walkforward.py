@@ -40,6 +40,10 @@ class WalkforwardTests(unittest.TestCase):
         training['snapshots'].append(revision)
 
         accepted, = run_walkforward(**args)['accepted']
+        self.assertTrue(all(
+            timing['latest_training_actual_available_at_utc'] == target_cutoff.isoformat()
+            for timing in accepted['scoring_input_timing'].values()
+        ))
         for model in ('ols30', 'ols60', 'ols90', 'similar_shape', 'similar_level'):
             prediction = accepted['predictions'][model]
             evidence = prediction['training_timing'][-1]
@@ -306,6 +310,7 @@ class WalkforwardTests(unittest.TestCase):
             self.assertEqual(accepted['scoring_input_timing'][name], {
                 'latest_publication_ts_utc': publication.isoformat(),
                 'latest_retrieval_completed_at_utc': completed.isoformat(),
+                'latest_training_actual_available_at_utc': training['actual_available_at'].isoformat(),
             })
 
     def test_scoring_rejection_identifies_model_with_late_input(self):
@@ -329,6 +334,28 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(result['skipped'], [{
             'day': target.isoformat(), 'stage': 'scoring', 'model': 'ols60',
             'reason': 'Invalid chronology or data unavailable before D-1 09:50',
+        }])
+
+    def test_scoring_excludes_common_day_if_model_reports_late_training_fix1(self):
+        args = self.args()
+        target = args['target_days'][-1]
+        args['target_days'] = [target]
+
+        def late_training(**kwargs):
+            prediction = predict_ols(**kwargs)
+            if kwargs['window_days'] == 60:
+                prediction['training_timing'][-1]['actual_available_at_utc'] = (
+                    cutoff_for_day(target) + timedelta(seconds=1)
+                ).isoformat()
+            return prediction
+
+        with patch('shadow_walkforward.predict_ols', side_effect=late_training):
+            result = run_walkforward(**args)
+        self.assertEqual(result['ranking'], [])
+        self.assertEqual(result['common_periods'], 0)
+        self.assertEqual(result['skipped'], [{
+            'day': target.isoformat(), 'stage': 'scoring', 'model': 'ols60',
+            'reason': 'Training Fix1 prices unavailable at D-1 09:50',
         }])
 
     def test_ranked_day_identifies_actual_version_and_availability(self):
@@ -378,7 +405,16 @@ class WalkforwardTests(unittest.TestCase):
         args['target_days'] = [target['day']]
 
         def forecast(error):
-            return dict(model_version='test', training_timing=(), prices=[
+            training = args['history'][-2]
+            snapshot, = training['snapshots']
+            timing = ({
+                'actual_available_at_utc': training['actual_available_at'].isoformat(),
+                'latest_publication_ts_utc': max(
+                    row['publication_ts'] for row in snapshot['rows']
+                ).isoformat(),
+                'retrieval_completed_at_utc': snapshot['retrieval_completed_at'].isoformat(),
+            },)
+            return dict(model_version='test', training_timing=timing, prices=[
                 (period, price + error) for period, price in target['actual']
             ])
 
