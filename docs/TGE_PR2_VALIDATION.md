@@ -831,3 +831,9 @@ Walk-forward odrzuca metadane Fix1 datowane na czas wydania prognozy
 lub wcześniej przed odczytem cen i snapshotów. Test z syntetyczną
 paczką potwierdza brak odczytu zarówno przy ocenie przed D-1 09:50,
 jak i po tym czasie.
+
+Po pojawieniu się cen dla dostawy 09.11.2026 zapisano oficjalny HTML
+sesji TGE z 08.11.2026, referencję CSV i manifest. Test porównuje
+wszystkie 24 ceny Fixing I z osobną ekstrakcją lxml z tego samego HTML,
+sprawdza oba SHA-256 i potwierdza komplet w importerze w trybie bez
+zapisu. Manifest zawiera czas pobrania, bez ustalania czasu publikacji.

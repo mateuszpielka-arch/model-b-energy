@@ -11,6 +11,7 @@ from threading import Barrier
 import unittest
 
 from shadow_archive_batch import prepare_batch
+from shadow_ingest_manifest import ingest_manifest
 from shadow_postgres_archive import archive_batch, connect_test_database, initialize
 from shadow_postgres_scores import initialize_scores, score_archived_day
 from tge_parser_safe import parse_complete_standard_day
@@ -20,6 +21,7 @@ from tools.capture_tge_validation import extract_reference
 FIXTURES = Path(__file__).parent / 'fixtures/tge_history_2026-11-04_2026-11-06'
 NOV_7_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-07')
 NOV_8_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-08')
+NOV_9_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-09')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
@@ -49,6 +51,12 @@ class RecentOfficialSessionsTests(unittest.TestCase):
 
     def test_sunday_fixing_i_prices_pass_parser_and_archive_admission(self):
         self.check_sessions(NOV_8_FIXTURES, ['2026-11-08'])
+
+    def test_monday_fixing_i_prices_pass_parser_and_manifest_admission(self):
+        self.check_sessions(NOV_9_FIXTURES, ['2026-11-09'])
+        report = ingest_manifest(NOV_9_FIXTURES / 'manifest.json')
+        self.assertEqual(report['days_by_status'], {'VALIDATED_DRY_RUN': 1})
+        self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
 
     def check_sessions(self, directory, days):
         manifest = json.loads((directory / 'manifest.json').read_text())
