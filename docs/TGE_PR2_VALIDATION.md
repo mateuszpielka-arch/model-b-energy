@@ -907,3 +907,9 @@ jednorazowego iteratora na potrzeby sprawdzenia kompletności i cen.
 Test używa oficjalnego CSV dla 09.11.2026. Potwierdza porównanie 24
 okresów i wskazanie tylko ostatniej godziny UTC po zmianie jednej ceny
 w kopii historii.
+
+Test współbieżności archiwum i scoringu wykorzystuje oficjalny HTML
+Fixing I oraz testową zmianę ceny H01. PostgreSQL potwierdza, że ponowna
+ocena czeka na blokadzie doby, gdy zapis konfliktu jest w toku. Po
+zatwierdzeniu kwarantanny scoring odrzuca ponowienie i zachowuje
+wcześniejszy wynik bez zmian.

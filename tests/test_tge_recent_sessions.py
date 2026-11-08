@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 from threading import Barrier
+from time import monotonic, sleep
 import unittest
 
 from shadow_archive_batch import prepare_batch
@@ -188,7 +189,34 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
         with self.isolated_connection() as conn:
             self.assertEqual(archive_batch(conn, original, raw), 'INSERT')
-            self.assertEqual(archive_batch(conn, revised, revised_raw), 'QUARANTINE')
+            initialize_scores(conn)
+            cutoff = cutoff_for_day(original.delivery_date)
+            inputs = dict(
+                day=original.delivery_date, forecast=original.rows,
+                forecast_id='before-conflicting-revision', model_version='synthetic-test',
+                forecast_status='SHADOW', issued_at=cutoff,
+                publication_ts=cutoff - timedelta(minutes=10), retrieved_at=cutoff,
+                reference_csv=reference,
+            )
+            self.assertEqual(score_archived_day(conn, **inputs)[0], 'INSERT')
+            score_query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+            original_score = conn.execute(score_query).fetchall()
+            with connect_test_database(DSN) as scorer, ThreadPoolExecutor(max_workers=1) as pool:
+                scorer.execute("SET statement_timeout = '10s'")
+                scorer_pid = scorer.info.backend_pid
+                with conn.transaction():
+                    self.assertEqual(archive_batch(conn, revised, revised_raw), 'QUARANTINE')
+                    pending = pool.submit(score_archived_day, scorer, **inputs)
+                    deadline = monotonic() + 5
+                    while conn.info.backend_pid not in conn.execute(
+                        'SELECT pg_blocking_pids(%s)', (scorer_pid,),
+                    ).fetchone()[0]:
+                        self.assertFalse(pending.done(), 'Scoring completed before quarantine committed')
+                        self.assertLess(monotonic(), deadline, 'Scoring did not wait for the archive lock')
+                        sleep(0.02)
+                with self.assertRaisesRegex(ValueError, 'Quarantined delivery day'):
+                    pending.result(timeout=5)
+            self.assertEqual(conn.execute(score_query).fetchall(), original_score)
             self.assertEqual(archive_batch(conn, revised, revised_raw), 'QUARANTINE')
             self.assertEqual(archive_batch(conn, original, raw), 'REPLAY')
 
