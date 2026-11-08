@@ -804,3 +804,8 @@ Audyt Fix1 używa do oceny dostępności tylko kolumn PostgreSQL
 wiarygodnego czasu. Test na pełnej dobie 24h potwierdza, że zmiana typu
 każdego z dwóch znaczników wyklucza dobę z kandydatów czasowych,
 zachowując informację o komplecie cen.
+
+Audyt Fix1 w PostgreSQL porównuje teraz okresy UTC z referencją również
+w schemacie bez kolumny legacy `hour`. Test na izolowanej bazie obejmuje
+72 okresy w dobach 23h, 24h i 25h z jawnymi znacznikami UTC. Audyt
+nie wyprowadza mapowania UTC z samych etykiet TGE.

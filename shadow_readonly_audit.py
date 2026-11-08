@@ -218,10 +218,11 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
             retrieved = 'retrieved_at_utc' if columns.get('retrieved_at_utc') else 'NULL::timestamptz'
             source_url = 'source_url' if 'source_url' in columns else 'NULL::text'
             raw_hash = 'raw_hash' if 'raw_hash' in columns else 'NULL::text'
+            hour_column = 'hour' if 'hour' in columns else 'NULL::int'
             period_column = 'period_start_utc' if 'period_start_utc' in columns else 'NULL::timestamptz'
             source_present = f"(btrim({source_url}) <> '' AND {raw_hash} ~ '^[0-9A-Fa-f]{{64}}$')"
             rows=conn.execute(f'''SELECT delivery_date,count(*),
-                array_agg(DISTINCT hour) FILTER (WHERE hour IS NOT NULL),
+                array_agg(DISTINCT {hour_column}) FILTER (WHERE {hour_column} IS NOT NULL),
                 count(*) FILTER (WHERE price_pln_mwh IN (60,2026)),
                 count(*) FILTER (WHERE price_pln_mwh IS NULL),
                 count(*) FILTER (WHERE price_pln_mwh::text IN ('NaN','Infinity','-Infinity')),
@@ -234,7 +235,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     FILTER (WHERE {source_present}),
                 array_agg({period_column} ORDER BY {period_column})
                     FILTER (WHERE {period_column} IS NOT NULL),
-                array_agg(hour ORDER BY {period_column})
+                array_agg({hour_column} ORDER BY {period_column})
                     FILTER (WHERE {period_column} IS NOT NULL)
                 FROM actual.tge_fix1 WHERE delivery_date BETWEEN
                 COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date)
@@ -316,7 +317,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
             history = []
             if present['actual.tge_fix1']:
                 rows = conn.execute(
-                    f'SELECT delivery_date,hour,price_pln_mwh,{period_column} FROM actual.tge_fix1 '
+                    f'SELECT delivery_date,{hour_column},price_pln_mwh,{period_column} FROM actual.tge_fix1 '
                     'WHERE delivery_date = ANY(%s::date[])', (reference_days,),
                 )
                 history = [

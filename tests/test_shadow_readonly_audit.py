@@ -629,6 +629,29 @@ class ReadonlyAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'outside the audit range'):
             audit_connection(self.conn, end_day=date(2026, 11, 2), reference_rows=reference)
 
+    def test_audit_accepts_explicit_utc_periods_without_legacy_hour_column(self):
+        self.conn.execute(
+            'ALTER TABLE actual.tge_fix1 DROP COLUMN hour, ADD COLUMN period_start_utc timestamptz'
+        )
+        reference = []
+        for day in (date(2026, 3, 29), date(2026, 10, 25), date(2026, 11, 2)):
+            prices = list(enumerate(expected_periods(day), 1))
+            with self.conn.cursor() as cursor:
+                cursor.executemany(
+                    'INSERT INTO actual.tge_fix1 (delivery_date, price_pln_mwh, period_start_utc) '
+                    'VALUES (%s,%s,%s)',
+                    [(day, price, period) for price, period in prices],
+                )
+            reference.extend(dict(delivery_date=day.isoformat(), period_start_utc=period.isoformat(),
+                                  fix1=str(price)) for price, period in prices)
+
+        report = audit_connection(self.conn, reference_rows=reference)
+        self.assertEqual([day['expected_periods'] for day in report['actual_days']], [23, 25, 24])
+        self.assertTrue(all(day['structurally_complete'] and day['period_basis'] == 'EXPLICIT_UTC'
+                            and day['distinct_legacy_hours'] == 0 for day in report['actual_days']))
+        self.assertEqual(report['fix1_reference']['matched_days'], 3)
+        self.assertEqual(report['fix1_reference']['compared_periods'], 72)
+
     def test_reconcile_dst_days_requires_explicit_distinct_utc_periods(self):
         self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz')
         reference = []
