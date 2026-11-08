@@ -792,3 +792,9 @@ Rozszerzone porównanie referencji TGE potwierdziło 216 zgodnych cen
 z 27.10–04.11.2026. Doby 05–08.11.2026 są poza zakresem paczki.
 Brak historycznych znaczników dostępności nadal wyklucza ranking.
 SHA-256 paczki przed audytem i po nim był identyczny.
+
+Audyt PostgreSQL zachowuje raport o pozostałych danych, gdy legacy PK5
+nie ma kolumny `retrieved_at_utc` lub zawiera NULL. Taki snapshot otrzymuje
+status `UNPROVEN_NO_VALID_RETRIEVAL_START` i odpada z selekcji przed
+D-1 09:50. Test w izolowanym PostgreSQL obejmuje oba przypadki i potwierdza,
+że audyt nadal zwraca dane Fix1 dla tej samej doby.

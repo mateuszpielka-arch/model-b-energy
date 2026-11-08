@@ -225,6 +225,34 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(snapshot['availability_status'], 'PUBLICATION_AFTER_CUTOFF')
         self.assertFalse(snapshot['model_ready'])
 
+    def test_missing_legacy_retrieval_evidence_does_not_abort_audit(self):
+        from psycopg.types.json import Jsonb
+
+        self.seed_dst()
+        day = date(2026, 10, 25)
+        rows = [{'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': 1000,
+                 'publication_ts': '2026-10-24T06:50:00Z'} for period in expected_periods(day)]
+        self.conn.execute(
+            'ALTER TABLE raw.snapshots ADD COLUMN created_at timestamptz, ADD COLUMN source_version text'
+        )
+        self.conn.execute(
+            'UPDATE raw.snapshots SET payload=%s, created_at=%s, source_version=%s',
+            (Jsonb({'pk5l-wp': rows}), '2026-10-24T07:45:00Z', 'energy-collector-v3'),
+        )
+        self.assertTrue(audit_connection(self.conn)['snapshots'][0]['archive_hourly_candidate'])
+        self.conn.execute('UPDATE raw.snapshots SET retrieved_at_utc = NULL')
+        for missing_column in (False, True):
+            with self.subTest(missing_column=missing_column):
+                if missing_column:
+                    self.conn.execute('ALTER TABLE raw.snapshots DROP COLUMN retrieved_at_utc')
+                report = audit_connection(self.conn)
+                snapshot, = report['snapshots']
+                self.assertIsNone(snapshot['retrieved_at_utc'])
+                self.assertEqual(snapshot['availability_status'], 'UNPROVEN_NO_VALID_RETRIEVAL_START')
+                self.assertFalse(snapshot['archive_timing_candidate'])
+                self.assertEqual(report['archive_hourly_candidate_selection'], {})
+                self.assertEqual(report['actual_days'][0]['day'], '2026-10-25')
+
     def test_missing_tables_reported_without_creation(self):
         self.conn.execute('DROP SCHEMA raw CASCADE');self.conn.execute('DROP SCHEMA actual CASCADE')
         out=audit_connection(self.conn)

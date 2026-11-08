@@ -128,14 +128,16 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
         hourly_candidates = defaultdict(list)
         if present['raw.snapshots']:
             columns = table_columns(conn, 'raw.snapshots')
-            # Both expressions are fixed identifiers or NULL for older schemas.
+            # These expressions are fixed identifiers or NULL for older schemas.
+            retrieval_column = 'retrieved_at_utc' if 'retrieved_at_utc' in columns else 'NULL::timestamptz'
             archived_column = 'created_at' if 'created_at' in columns else 'NULL'
             source_column = 'source_version' if 'source_version' in columns else 'NULL'
             rows = conn.execute(
-                f'SELECT id,business_date,retrieved_at_utc,payload,{archived_column},{source_column} '
+                f'SELECT id,business_date,{retrieval_column} AS retrieval_time,'
+                f'payload,{archived_column},{source_column} '
                 'FROM raw.snapshots WHERE business_date BETWEEN '
                 "COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date) "
-                'ORDER BY business_date,retrieved_at_utc,id', bounds,
+                'ORDER BY business_date,retrieval_time,id', bounds,
             ).fetchall()
             for sid,day,retrieved,payload,archived,source_version in rows:
                 values=payload.get('pk5l-wp',[]) if isinstance(payload,dict) else None
@@ -159,7 +161,13 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     if stamp.utcoffset() is not None:
                         publications.append(stamp)
                 late_publications = sum(stamp > cutoff for stamp in publications)
-                if retrieved > cutoff:
+                try:
+                    retrieved_utc = _stamp(retrieved)
+                except (ValueError, TypeError):
+                    retrieved_utc = None
+                if retrieved_utc is None:
+                    availability = 'UNPROVEN_NO_VALID_RETRIEVAL_START'
+                elif retrieved_utc > cutoff:
                     availability = 'RETRIEVAL_STARTED_AFTER_CUTOFF'
                 elif late_publications:
                     availability = 'PUBLICATION_AFTER_CUTOFF'
@@ -169,8 +177,9 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 # A recorded archive timestamp is a candidate bound, pending provenance review.
                 archive_timing_candidate = (
                     source_version == 'energy-collector-v3'
+                    and retrieved_utc is not None
                     and isinstance(archived, datetime) and archived.utcoffset() is not None
-                    and retrieved <= archived <= cutoff
+                    and retrieved_utc <= archived <= cutoff
                     and bool(publications) and len(publications) == len(values)
                     and max(publications) <= archived
                 )
@@ -179,7 +188,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                                     and utc_hours['valid_jwcd_rows'] == len(values))
                 if hourly_candidate:
                     hourly_candidates[day].append(dict(
-                        id=sid, delivery_date=day, retrieved_at=retrieved,
+                        id=sid, delivery_date=day, retrieved_at=retrieved_utc,
                         retrieval_completed_at=archived,
                         rows=[dict(period_start_utc=_stamp(row['period_start_utc']),
                                    publication_ts=_stamp(row['publication_ts']),
@@ -191,7 +200,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     publication_nonnull=len(publication_values),
                     publication_unverified=len(publication_values)-len(publications),
                     publication_after_cutoff=late_publications,
-                    retrieved_at_utc=retrieved.isoformat(),
+                    retrieved_at_utc=retrieved_utc.isoformat() if retrieved_utc is not None else None,
                     cutoff_utc=cutoff.isoformat(),
                     archived_at_utc=archived.astimezone(timezone.utc).isoformat()
                     if isinstance(archived, datetime) and archived.utcoffset() is not None else None,
