@@ -11,15 +11,16 @@ from shadow_scoring import expected_periods
 
 
 class HistoryBundleTests(unittest.TestCase):
-    def make_bundle(self, path, *, manifest_changes=None, corrupt_csv=False):
+    def make_bundle(self, path, *, manifest_changes=None, corrupt_csv=False,
+                    days=("2026-10-24", "2026-10-26")):
         workbook = b"opaque workbook bytes"
         csv_data = b"delivery_date,hour,fix1_pln_mwh,jwcd_mw\n" + b"".join(
             f"{day},H{hour:02d},-10,1200\n".encode()
-            for day in ("2026-10-24", "2026-10-26")
+            for day in days
             for hour in range(1, 25)
         )
         manifest = dict(
-            hourly_rows=48, days=2, first_date="2026-10-24", last_date="2026-10-26",
+            hourly_rows=24 * len(days), days=len(days), first_date=days[0], last_date=days[-1],
             sha256={"test.xlsb": sha256(workbook).hexdigest(),
                     CSV_NAME: sha256(csv_data).hexdigest()},
         )
@@ -38,7 +39,11 @@ class HistoryBundleTests(unittest.TestCase):
             self.assertEqual(path.read_bytes(), before)
             self.assertEqual(list(Path(tmp).iterdir()), [path])
         self.assertEqual(report["complete_pair_days"], 2)
+        self.assertEqual(report["delivery_days_by_hours"], {24: 2})
         self.assertEqual(report["missing_delivery_days_by_hours"], {25: 1})
+        self.assertEqual(report["missing_delivery_ranges"], [
+            {"start_day": "2026-10-25", "end_day": "2026-10-25", "days": 1}
+        ])
         self.assertEqual(report["days_by_issue"]["AVAILABILITY_NOT_PROVEN"], 2)
         self.assertEqual(report["model_ready_days"], 0)
         self.assertEqual(report["missing_timestamp_rows_by_field"], {
@@ -46,6 +51,17 @@ class HistoryBundleTests(unittest.TestCase):
             "retrieval_completed_at": 48, "actual_available_at": 48,
         })
         self.assertEqual(report["comparison_candidates"]["90D"], [])
+
+    def test_reports_contiguous_gap_with_23_and_24_hour_days(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "history.zip"
+            self.make_bundle(path, days=("2026-03-28", "2026-03-31"))
+            report = audit_bundle(path)
+        self.assertEqual(report["delivery_days_by_hours"], {24: 2})
+        self.assertEqual(report["missing_delivery_days_by_hours"], {23: 1, 24: 1})
+        self.assertEqual(report["missing_delivery_ranges"], [
+            {"start_day": "2026-03-29", "end_day": "2026-03-30", "days": 2}
+        ])
 
     def test_rejects_changed_csv_and_inconsistent_manifest(self):
         for options, error in (

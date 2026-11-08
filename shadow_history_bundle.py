@@ -9,7 +9,9 @@ from io import StringIO
 import json
 from zipfile import ZipFile
 
-from shadow_history_audit import FIX1_COLUMNS, _stamp, audit_rows, read_csv, read_csv_rows
+from shadow_history_audit import (
+    FIX1_COLUMNS, _stamp, audit_rows, missing_delivery_ranges, read_csv, read_csv_rows,
+)
 from shadow_scoring import expected_periods
 
 CSV_NAME = "fix1_jwcd_standard_days.csv"
@@ -53,9 +55,13 @@ def audit_bundle(path, *, reference_paths=()):
         "complete_pair_days": audit["complete_pair_days"],
         "model_ready_days": audit["model_ready_days"],
         "missing_timestamp_rows_by_field": audit["missing_timestamp_rows_by_field"],
+        "delivery_days_by_hours": dict(sorted(Counter(
+            entry["expected_periods"] for entry in audit["days"]
+        ).items())),
         "missing_delivery_days_by_hours": dict(sorted(Counter(
             len(expected_periods(day)) for day in missing
         ).items())),
+        "missing_delivery_ranges": missing_delivery_ranges(audit["days"], first, last),
         "days_by_issue": dict(sorted(Counter(
             issue for entry in audit["days"] for issue in entry["issues"]
         ).items())),

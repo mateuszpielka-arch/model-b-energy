@@ -783,3 +783,12 @@ Eksport referencji odróżnia brak godzin dla żądanej dostawy od
 niekompletnego lub przestawionego zestawu. Test na odpowiedzi TGE
 dla 02.11.2026 sprawdza poprawne 24 godziny, brak danych dla innej
 dostawy i odrzucenie zestawu po usunięciu H01.
+
+Audyt ZIP pokazuje teraz liczbę obecnych dób według długości oraz
+dokładne zakresy brakujących dat. W pełnej kopii paczki z 04.11.2026
+wykazał 2122 doby 24h i 12 pojedynczych luk (po sześć dób 23h i 25h).
+Test obejmuje także ciągłą lukę zawierającą dobę 23h i dobę 24h.
+Rozszerzone porównanie referencji TGE potwierdziło 216 zgodnych cen
+z 27.10–04.11.2026. Doby 05–08.11.2026 są poza zakresem paczki.
+Brak historycznych znaczników dostępności nadal wyklucza ranking.
+SHA-256 paczki przed audytem i po nim był identyczny.
