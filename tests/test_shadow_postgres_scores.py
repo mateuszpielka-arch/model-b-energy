@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 import test_shadow_archive_batch as fixtures
 from shadow_archive_batch import prepare_batch
+from shadow_asof import cutoff_for_day
 from shadow_postgres_archive import connect_test_database, initialize, archive_batch
 from shadow_postgres_scores import initialize_scores, score_archived_day
 
@@ -173,7 +174,7 @@ class ScorePersistenceTests(unittest.TestCase):
         )
 
     def test_archived_actual_capture_must_follow_issuance(self):
-        issued = self.kw['issued_at']
+        issued = self.kw['issued_at'] = cutoff_for_day(self.batch.delivery_date)
         for seconds in (-1, 0, 1):
             with self.subTest(seconds_after_issuance=seconds):
                 self.conn.execute(
@@ -190,6 +191,21 @@ class ScorePersistenceTests(unittest.TestCase):
         self.conn.execute('UPDATE fix1_shadow_test.batches SET retrieved_at = %s', (issued,))
         with self.assertRaisesRegex(ValueError, 'capture must be after forecast issuance'):
             score_archived_day(self.conn, **self.kw)
+        self.assertEqual(self.count(), 1)
+
+    def test_early_forecast_still_requires_fix1_captured_after_cutoff(self):
+        cutoff = cutoff_for_day(self.batch.delivery_date)
+        self.assertLess(self.kw['issued_at'], cutoff - timedelta(seconds=1))
+        for delta in (-1, 0):
+            with self.subTest(seconds_after_cutoff=delta):
+                self.conn.execute('UPDATE fix1_shadow_test.batches SET retrieved_at = %s',
+                                  (cutoff + timedelta(seconds=delta),))
+                with self.assertRaisesRegex(ValueError, 'capture must be after D-1 09:50'):
+                    score_archived_day(self.conn, **self.kw)
+                self.assertEqual(self.count(), 0)
+        self.conn.execute('UPDATE fix1_shadow_test.batches SET retrieved_at = %s',
+                          (cutoff + timedelta(seconds=1),))
+        self.assertEqual(score_archived_day(self.conn, **self.kw)[0], 'INSERT')
         self.assertEqual(self.count(), 1)
 
     def test_evaluation_time_rejects_later_capture_and_allows_exact_boundary(self):

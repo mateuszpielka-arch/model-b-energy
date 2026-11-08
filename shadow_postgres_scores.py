@@ -5,6 +5,7 @@ from hashlib import sha256
 import json
 import re
 from shadow_archive_batch import PARSER_VERSION, prepare_batch, read_reference_csv, validate_source_url
+from shadow_asof import cutoff_for_day
 from shadow_postgres_archive import _guard
 from shadow_scoring import SCORING_VERSION, _utc, expected_periods, score_day
 from tge_parser_safe import parse_complete_standard_day
@@ -47,7 +48,7 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
     flag from caller is accepted. The archived raw hash and every stored actual
     are rechecked. Supplying the original reference CSV also verifies its
     archived hash and hourly prices. The archived capture must follow
-    issuance. If evaluated_at is supplied, the capture must also be no later
+    issuance and D-1 09:50 Warsaw. If evaluated_at is supplied, it must be no later
     than that time. Current quarantine checks still apply. Standard 24h days only.
     """
     _guard(conn)
@@ -81,6 +82,8 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         capture_time = _utc(captured_at)
         if capture_time <= _utc(issued_at):
             raise ValueError('Archived Fix1 capture must be after forecast issuance')
+        if capture_time <= cutoff_for_day(day):
+            raise ValueError('Archived Fix1 capture must be after D-1 09:50 Europe/Warsaw')
         if evaluation_time is not None and capture_time > evaluation_time:
             raise ValueError('Archived Fix1 capture not yet available at evaluation time')
         if not re.fullmatch(r'[0-9a-f]{64}', ref_hash):

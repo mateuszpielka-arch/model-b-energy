@@ -861,3 +861,8 @@ test odrzuca brak strefy oraz czas przed granicą lub równy granicy
 przed inicjalizacją bazy. Zmieniony znacznik sekundę po granicy
 przechodzi suchy przebieg. Jest to test chronologii metadanych,
 a nie ustalenie rzeczywistej chwili publikacji.
+
+Scoring z izolowanego archiwum sprawdza, czy Fix1 pobrano ściśle po
+D-1 09:50, również gdy prognozę wydano wcześniej. Test na PostgreSQL
+odrzuca pobranie sekundę przed granicą i w chwili granicznej, a sekundę
+później zapisuje wynik. Kontrola dotyczy czasu pobrania.
