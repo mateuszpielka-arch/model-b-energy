@@ -77,6 +77,8 @@ def audit_bundle(path, *, reference_paths=()):
 
 def compare_fix1_reference(rows, audit, reference_rows):
     """Compare complete price days by UTC period without assigning provenance."""
+    reference_rows = list(reference_rows)
+
     def price_days(summary):
         return {
             day["day"] for day in summary["days"]

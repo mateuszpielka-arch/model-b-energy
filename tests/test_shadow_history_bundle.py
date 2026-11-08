@@ -6,11 +6,27 @@ from tempfile import TemporaryDirectory
 import unittest
 from zipfile import ZipFile
 
-from shadow_history_bundle import CSV_NAME, audit_bundle
+from shadow_history_audit import audit_rows, read_csv
+from shadow_history_bundle import CSV_NAME, audit_bundle, compare_fix1_reference
 from shadow_scoring import expected_periods
 
 
 class HistoryBundleTests(unittest.TestCase):
+    def test_official_reference_iterator_preserves_hourly_comparison(self):
+        fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-09/tge_delivery_2026-11-09.csv'
+        history = list(read_csv(fixture))
+        audit = audit_rows(history)
+        matched = compare_fix1_reference(iter(history), audit, read_csv(fixture))
+        self.assertEqual((matched['matched_days'], matched['compared_periods']), (1, 24))
+        self.assertEqual(matched['different_periods'], 0)
+
+        history[-1]['price_pln_mwh'] = '0'
+        mismatch = compare_fix1_reference(iter(history), audit_rows(history), read_csv(fixture))
+        self.assertEqual(mismatch['matched_days'], 0)
+        self.assertEqual(mismatch['compared_periods'], 24)
+        self.assertEqual(mismatch['compared_days'][0]['different_periods_utc'],
+                         ['2026-11-09T22:00:00+00:00'])
+
     def make_bundle(self, path, *, manifest_changes=None, corrupt_csv=False,
                     days=("2026-10-24", "2026-10-26")):
         workbook = b"opaque workbook bytes"

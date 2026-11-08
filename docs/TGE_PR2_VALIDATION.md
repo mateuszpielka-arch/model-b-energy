@@ -901,3 +901,9 @@ z importerem. Test odrzuca HTTP 206 przed odczytem treści i zatrzymuje
 nadmiarową odpowiedź przed parserem oraz zapisem. Kontrolny odczyt
 oficjalnej sesji 08.11.2026 zwrócił ten sam CSV z 24 cenami dla dostawy
 09.11.2026, a manifest przeszedł import w trybie bez zapisu.
+
+Porównanie archiwum z referencją Fix1 zachowuje wiersze odczytane z
+jednorazowego iteratora na potrzeby sprawdzenia kompletności i cen.
+Test używa oficjalnego CSV dla 09.11.2026. Potwierdza porównanie 24
+okresów i wskazanie tylko ostatniej godziny UTC po zmianie jednej ceny
+w kopii historii.
