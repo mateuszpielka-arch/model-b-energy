@@ -11,6 +11,7 @@ from threading import Barrier
 import unittest
 
 from shadow_archive_batch import prepare_batch
+from shadow_asof import cutoff_for_day
 from shadow_ingest_manifest import ingest_manifest
 from shadow_postgres_archive import archive_batch, connect_test_database, initialize
 from shadow_postgres_scores import initialize_scores, score_archived_day
@@ -206,6 +207,49 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             ''').fetchall()
             self.assertEqual(quarantined, [(revised.raw_sha256, revised.reference_sha256, revised_raw)])
             self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (2,))
+
+    def test_score_monday_manifest_at_capture_time_against_csv_metrics(self):
+        manifest_path = NOV_9_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest_path.read_text())['entries']
+        day = date.fromisoformat(entry['delivery_date'])
+        cutoff = cutoff_for_day(day)
+        captured = datetime.fromisoformat(entry['retrieved_at_utc'])
+        reference = (NOV_9_FIXTURES / entry['reference_file']).read_bytes()
+        inputs = dict(
+            day=day,
+            forecast=[(period, Decimal('1500')) for period in expected_periods(day)],
+            forecast_id='monday-constant-1500-test',
+            model_version='synthetic-test',
+            forecast_status='SHADOW',
+            issued_at=cutoff,
+            publication_ts=cutoff - timedelta(minutes=10),
+            retrieved_at=cutoff,
+            reference_csv=reference,
+        )
+        # Exact-fraction oracle calculated directly from the reference CSV.
+        expected = {
+            'mae': '638.960833333333',
+            'mape_pct': '47.705932238053',
+            'wape_pct': '41.476845813844',
+            'bias': '-40.524166666667',
+        }
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(ingest_manifest(manifest_path, conn=conn)['inserted_periods'], 24)
+            with self.assertRaisesRegex(ValueError, 'not yet available'):
+                score_archived_day(conn, **inputs, evaluated_at=captured - timedelta(seconds=1))
+            count = 'SELECT count(*) FROM fix1_shadow_test.scores'
+            self.assertEqual(conn.execute(count).fetchone(), (0,))
+            decision, score = score_archived_day(conn, **inputs, evaluated_at=captured)
+            self.assertEqual(decision, 'INSERT')
+            self.assertEqual((score.periods, score.mape_periods), (24, 24))
+            for metric, value in expected.items():
+                with self.subTest(metric=metric):
+                    self.assertEqual(getattr(score, metric).quantize(Decimal('1e-12')), Decimal(value))
+            self.assertEqual(
+                score_archived_day(conn, **inputs, evaluated_at=captured), ('REPLAY', score),
+            )
+            self.assertEqual(conn.execute(count).fetchone(), (1,))
 
     def test_score_fixed_forecast_against_archived_official_prices(self):
         entry = json.loads((FIXTURES / 'manifest.json').read_text())['entries'][0]

@@ -842,3 +842,9 @@ Test integracyjny importuje manifest rzeczywistej sesji dla dostawy
 09.11.2026 do izolowanego PostgreSQL. Pierwszy import zapisuje 24 ceny,
 ponowienie dopisuje zero. Oba przebiegi sprawdzają ceny i okresy UTC
 względem CSV, jeden zachowany komplet dowodów i pustą kwarantannę.
+
+Test scoringu po imporcie manifestu 09.11.2026 używa oficjalnych
+24 cen oraz syntetycznej prognozy 1500 PLN/MWh. Sprawdza MAE, MAPE,
+WAPE i bias względem obliczeń na ułamkach z CSV. Sekundę przed
+pobraniem TGE wynik nie powstaje. W chwili pobrania wynik zapisuje
+się raz, a powtórzenie zwraca ten sam wynik.
