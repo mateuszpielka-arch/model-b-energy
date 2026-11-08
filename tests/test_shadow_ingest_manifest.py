@@ -155,6 +155,30 @@ class ManifestTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, error):
                         ingest_manifest(manifest, conn=object())
 
+    def test_manifest_requires_fix1_retrieval_after_forecast_cutoff(self):
+        source = FIX.with_name('tge_delivery_2026-11-09')
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'capture'
+            shutil.copytree(source, root)
+            manifest = root / 'manifest.json'
+            data = json.loads(manifest.read_text())
+            entry, = data['entries']
+            for stamp, error in (
+                (None, 'requires an aware Fix1 retrieval timestamp'),
+                ('2026-11-08T09:51:00', 'requires an aware Fix1 retrieval timestamp'),
+                ('2026-11-08T08:49:59Z', 'retrieval must be after D-1 09:50'),
+                ('2026-11-08T09:50:00+01:00', 'retrieval must be after D-1 09:50'),
+            ):
+                with self.subTest(stamp=stamp):
+                    entry['retrieved_at_utc'] = stamp
+                    manifest.write_text(json.dumps(data))
+                    with self.assertRaisesRegex(ValueError, error):
+                        ingest_manifest(manifest, conn=object())
+
+            entry['retrieved_at_utc'] = '2026-11-08T08:50:01Z'
+            manifest.write_text(json.dumps(data))
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+
     def test_manifest_paths_cannot_escape_directory(self):
         with TemporaryDirectory() as tmp:
             data=json.loads(MANIFEST.read_text());data['entries'][0]['raw_file']=str((FIX/data['entries'][0]['raw_file']).resolve())

@@ -12,6 +12,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from zlib import error as ZlibError
 from shadow_archive_batch import prepare_batch, read_reference_csv
+from shadow_asof import cutoff_for_day
+from shadow_scoring import _utc
 
 
 def _inside(root, filename):
@@ -46,7 +48,8 @@ def load_batches(manifest_path):
         day=e['delivery_date']
         if e.get('period_basis') == 'TGE_LABEL_ONLY':
             raise ValueError(f'TGE label-only evidence has no verified UTC mapping for {day}')
-        session = (date.fromisoformat(day) - timedelta(days=1)).isoformat()
+        delivery = date.fromisoformat(day)
+        session = (delivery - timedelta(days=1)).isoformat()
         if e.get('session_date') != session:
             raise ValueError(f'TGE session date must be {session} for delivery {day}')
         source_url = e.get('url')
@@ -55,12 +58,18 @@ def load_batches(manifest_path):
         if day in dates: raise ValueError('Duplicate delivery date in manifest')
         dates.add(day)
         if e['http_status']!=200: raise ValueError('Unsuccessful source HTTP status')
+        try:
+            retrieved_at = _utc(datetime.fromisoformat(e.get('retrieved_at_utc')))
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f'Manifest requires an aware Fix1 retrieval timestamp for {day}') from exc
+        if retrieved_at <= cutoff_for_day(delivery):
+            raise ValueError(f'Fix1 retrieval must be after D-1 09:50 Europe/Warsaw for {day}')
         raw=_read_raw_evidence(_inside(root,e['raw_file']), e)
         reference=_inside(root,e['reference_file']).read_bytes()
         if sha256(raw).hexdigest()!=e['raw_sha256'] or sha256(reference).hexdigest()!=e['reference_sha256']:
             raise ValueError('Evidence hash mismatch')
         batch=prepare_batch(raw=raw,day=day,source_url=source_url,
-            retrieved_at=datetime.fromisoformat(e['retrieved_at_utc']),
+            retrieved_at=retrieved_at,
             reference_rows=read_reference_csv(reference, day),
             reference_sha256=e['reference_sha256'])
         hours = e.get('hours')

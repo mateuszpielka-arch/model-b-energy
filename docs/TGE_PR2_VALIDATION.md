@@ -854,3 +854,10 @@ Scoring SHADOW bez referencji CSV sprawdza teraz także zapisany adres
 i niewłaściwej daty sesji przy ponowieniu oceny. Zapisany wynik pozostaje
 nienaruszony. Poprawny adres jest warunkiem walidacji pochodzenia,
 a sam adres nie potwierdza treści odpowiedzi.
+
+Importer manifestu SHADOW wymaga czasu pobrania Fix1 ze strefą, ściśle
+po D-1 09:50 Europe/Warsaw. Na kopii oficjalnej sesji dla 09.11.2026
+test odrzuca brak strefy oraz czas przed granicą lub równy granicy
+przed inicjalizacją bazy. Zmieniony znacznik sekundę po granicy
+przechodzi suchy przebieg. Jest to test chronologii metadanych,
+a nie ustalenie rzeczywistej chwili publikacji.
