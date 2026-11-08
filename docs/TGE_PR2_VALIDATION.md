@@ -837,3 +837,8 @@ sesji TGE z 08.11.2026, referencję CSV i manifest. Test porównuje
 wszystkie 24 ceny Fixing I z osobną ekstrakcją lxml z tego samego HTML,
 sprawdza oba SHA-256 i potwierdza komplet w importerze w trybie bez
 zapisu. Manifest zawiera czas pobrania, bez ustalania czasu publikacji.
+
+Test integracyjny importuje manifest rzeczywistej sesji dla dostawy
+09.11.2026 do izolowanego PostgreSQL. Pierwszy import zapisuje 24 ceny,
+ponowienie dopisuje zero. Oba przebiegi sprawdzają ceny i okresy UTC
+względem CSV, jeden zachowany komplet dowodów i pustą kwarantannę.

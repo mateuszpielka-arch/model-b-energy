@@ -14,6 +14,7 @@ from shadow_archive_batch import prepare_batch
 from shadow_ingest_manifest import ingest_manifest
 from shadow_postgres_archive import archive_batch, connect_test_database, initialize
 from shadow_postgres_scores import initialize_scores, score_archived_day
+from shadow_scoring import expected_periods
 from tge_parser_safe import parse_complete_standard_day
 from tools.capture_tge_validation import extract_reference
 
@@ -95,6 +96,33 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
         conn.execute('''TRUNCATE fix1_shadow_test.quarantine, fix1_shadow_test.prices,
                         fix1_shadow_test.batches RESTART IDENTITY CASCADE''')
         return conn
+
+    def test_monday_manifest_is_archived_and_replayed_without_duplicate_rows(self):
+        manifest_path = NOV_9_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest_path.read_text())['entries']
+        raw, _, rows = load_session(entry, NOV_9_FIXTURES)
+        day = date.fromisoformat(entry['delivery_date'])
+        expected = list(zip(expected_periods(day), (Decimal(row['price_pln_mwh']) for row in rows)))
+
+        with self.isolated_connection() as conn:
+            for status, inserted in (('INSERT', 24), ('REPLAY', 0)):
+                report = ingest_manifest(manifest_path, conn=conn)
+                self.assertEqual(report['days_by_status'], {status: 1})
+                self.assertEqual((report['periods'], report['inserted_periods']), (24, inserted))
+                self.assertEqual(conn.execute('''
+                    SELECT period_start_utc, price FROM fix1_shadow_test.prices
+                    WHERE delivery_date = %s ORDER BY period_start_utc
+                ''', (day,)).fetchall(), expected)
+                self.assertEqual(conn.execute('''
+                    SELECT delivery_date, raw_sha256, reference_sha256, source_url, retrieved_at, raw_html
+                    FROM fix1_shadow_test.batches
+                ''').fetchall(), [(
+                    day, entry['raw_sha256'], entry['reference_sha256'], entry['url'],
+                    datetime.fromisoformat(entry['retrieved_at_utc']), raw,
+                )])
+                self.assertEqual(conn.execute(
+                    'SELECT count(*) FROM fix1_shadow_test.quarantine'
+                ).fetchone(), (0,))
 
     def test_archive_and_replay_three_sessions_with_original_evidence(self):
         manifest = json.loads((FIXTURES / 'manifest.json').read_text())
