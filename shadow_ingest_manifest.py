@@ -44,6 +44,8 @@ def load_batches(manifest_path):
     batches=[];dates=set()
     for e in manifest['entries']:
         day=e['delivery_date']
+        if e.get('period_basis') == 'TGE_LABEL_ONLY':
+            raise ValueError(f'TGE label-only evidence has no verified UTC mapping for {day}')
         session = (date.fromisoformat(day) - timedelta(days=1)).isoformat()
         if e.get('session_date') != session:
             raise ValueError(f'TGE session date must be {session} for delivery {day}')

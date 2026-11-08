@@ -772,3 +772,9 @@ odpowiedzi TGE, sprawdza jej SHA-256 i odrzuca brak H02a. Ponowny odczyt
 tej samej sesji z TGE 08.11.2026 dał identyczne etykiety i ceny mimo
 różnicy w bajtach HTML. Weryfikacja dotyczy kolejności etykiet TGE.
 Mapowanie na UTC i zapis dób zmiany czasu pozostają zablokowane.
+
+Tryb `--autumn-label-reference --days 1` zapisuje dla doby 25h osobny
+CSV z kolumną `tge_hour_label`. Test na odpowiedzi TGE dla 25.10.2026
+potwierdza osobne wartości dla H02 i H02a oraz SHA-256 CSV.
+Manifest oznacza tę paczkę jako `TGE_LABEL_ONLY`. Importer odrzuca ją
+przed inicjalizacją bazy, ponieważ paczka nie zawiera mapowania UTC.
