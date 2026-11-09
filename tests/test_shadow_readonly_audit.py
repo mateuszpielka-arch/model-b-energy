@@ -654,6 +654,26 @@ class ReadonlyAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'outside the audit range'):
             audit_connection(self.conn, end_day=date(2026, 11, 2), reference_rows=reference)
 
+    def test_reference_dates_use_audited_fix1_range_even_without_matching_rows(self):
+        from pathlib import Path
+        from shadow_history_audit import read_csv
+
+        fixtures = Path(__file__).parent / 'fixtures'
+        reference = [
+            row for day in ('2026-11-07', '2026-11-09')
+            for row in read_csv(fixtures / f'tge_delivery_{day}' / f'tge_delivery_{day}.csv')
+        ]
+        self.conn.execute(
+            'INSERT INTO actual.tge_fix1 VALUES (%s, 1, 42), (%s, 1, 42)',
+            (date(2026, 11, 8), date(2026, 11, 10)),
+        )
+        report = audit_connection(self.conn, reference_rows=reference)
+        comparison = report['fix1_reference']
+        self.assertTrue(report['transaction_read_only'])
+        self.assertEqual(comparison['compared_periods'], 0)
+        self.assertEqual(comparison['missing_or_invalid_within_history_range_days'], ['2026-11-09'])
+        self.assertEqual(comparison['outside_history_range_days'], ['2026-11-07'])
+
     def test_audit_accepts_explicit_utc_periods_without_legacy_hour_column(self):
         self.conn.execute(
             'ALTER TABLE actual.tge_fix1 DROP COLUMN hour, ADD COLUMN period_start_utc timestamptz'

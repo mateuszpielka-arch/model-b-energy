@@ -75,8 +75,12 @@ def audit_bundle(path, *, reference_paths=()):
     return report
 
 
-def compare_fix1_reference(rows, audit, reference_rows):
-    """Compare complete price days by UTC period without assigning provenance."""
+def compare_fix1_reference(rows, audit, reference_rows, *, history_range=None):
+    """Compare complete price days by UTC period without assigning provenance.
+
+    When rows are filtered to the reference dates, history_range can supply
+    the first and last observed Fix1 dates as ISO strings.
+    """
     reference_rows = list(reference_rows)
 
     def price_days(summary):
@@ -120,10 +124,11 @@ def compare_fix1_reference(rows, audit, reference_rows):
         compared.append({"day": day, "periods": len(reference[day]),
                          "different_periods_utc": different})
     unmatched = reference_days - history.keys()
-    history_dates = [entry["day"] for entry in audit["days"]]
+    if history_range is None and audit["days"]:
+        history_range = (audit["days"][0]["day"], audit["days"][-1]["day"])
     within_range = {
         day for day in unmatched
-        if history_dates and history_dates[0] <= day <= history_dates[-1]
+        if history_range is not None and history_range[0] <= day <= history_range[1]
     }
     return {
         "matched_days": sum(not day["different_periods_utc"] for day in compared),

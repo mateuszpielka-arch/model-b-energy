@@ -330,7 +330,12 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     dict(delivery_date=day.isoformat(), hour=hour, fix1=price, period_start_utc=period)
                     for day, hour, price, period in rows
                 ]
-            comparison = compare_fix1_reference(history, audit_rows(history), reference_rows)
+            # The reference query reads only matching dates. Use the full audited Fix1
+            # range to classify missing dates within the same read-only snapshot.
+            history_range = (actuals[0]['day'], actuals[-1]['day']) if actuals else None
+            comparison = compare_fix1_reference(
+                history, audit_rows(history), reference_rows, history_range=history_range,
+            )
             report['fix1_reference'] = comparison
             excluded_days.update(comparison['missing_or_invalid_history_days'])
             excluded_days.update(entry['day'] for entry in comparison['compared_days']

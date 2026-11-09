@@ -927,3 +927,10 @@ izolowanego PostgreSQL otwiera migawkę `REPEATABLE READ` przed zapisem
 pełnej doby na drugim połączeniu. Próba archiwizacji z tej migawki jest
 odrzucana. Ponowienie w `READ COMMITTED` zwraca `REPLAY` i pozostawia
 jedną partię, 24 ceny oraz pustą kwarantannę.
+
+Audyt SQL tylko do odczytu klasyfikuje braki względem pierwszej i ostatniej
+doby Fix1 w audytowanym zakresie, także gdy żadna data referencji nie ma
+wierszy w bazie. Test na izolowanym PostgreSQL z oficjalnymi CSV TGE
+rozpoznaje 09.11.2026 jako lukę między wpisami 08 i 10.11.2026, a
+07.11.2026 jako datę poza zakresem. Oba rozpoznania korzystają z tej samej
+migawki audytu.
