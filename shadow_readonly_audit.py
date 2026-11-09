@@ -226,7 +226,8 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
             source_url = 'source_url' if 'source_url' in columns else 'NULL::text'
             raw_hash = 'raw_hash' if 'raw_hash' in columns else 'NULL::text'
             hour_column = 'hour' if 'hour' in columns else 'NULL::int'
-            period_column = 'period_start_utc' if 'period_start_utc' in columns else 'NULL::timestamptz'
+            stored_period = 'period_start_utc' if 'period_start_utc' in columns else 'NULL::timestamptz'
+            period_column = _finite_timestamptz(columns, 'period_start_utc')
             source_present = f"(btrim({source_url}) <> '' AND {raw_hash} ~ '^[0-9A-Fa-f]{{64}}$')"
             rows=conn.execute(f'''SELECT delivery_date,count(*),
                 array_agg(DISTINCT {hour_column}) FILTER (WHERE {hour_column} IS NOT NULL),
@@ -240,6 +241,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 count(*) FILTER (WHERE {source_present} IS NOT TRUE),
                 count(DISTINCT (btrim({source_url}), lower({raw_hash})))
                     FILTER (WHERE {source_present}),
+                count({stored_period}) - count({period_column}),
                 array_agg({period_column} ORDER BY {period_column})
                     FILTER (WHERE {period_column} IS NOT NULL),
                 array_agg({hour_column} ORDER BY {period_column})
@@ -249,14 +251,14 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 GROUP BY delivery_date ORDER BY delivery_date''', bounds).fetchall()
             for (day,n,hours,suspect,missing_prices,nonfinite_prices,latest_first_seen,
                  latest_retrieved,missing_timing,invalid_timing,refetched,missing_source,source_count,
-                 explicit_periods,explicit_hours) in rows:
+                 invalid_periods,explicit_periods,explicit_hours) in rows:
                 periods = expected_periods(day)
                 expected = len(periods)
                 observed = set(hours or [])
                 required = set(range(1, expected + 1))
-                if explicit_periods:
+                if explicit_periods or invalid_periods:
                     structurally_complete = (
-                        n == expected == len(explicit_periods)
+                        not invalid_periods and n == expected == len(explicit_periods)
                         and set(explicit_periods) == set(periods)
                         and (expected != 24 or all(
                             hour is None or hour == index
@@ -277,7 +279,8 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     training_timing = 'TIMING_CANDIDATE'
                 actuals.append(dict(day=day.isoformat(),rows=n,distinct_legacy_hours=len(observed),
                     expected_periods=expected,structurally_complete=structurally_complete,
-                    period_basis='EXPLICIT_UTC' if explicit_periods else 'LEGACY_HOUR',
+                    period_basis='EXPLICIT_UTC' if explicit_periods or invalid_periods else 'LEGACY_HOUR',
+                    rows_with_invalid_utc_period=invalid_periods,
                     missing_price_rows=missing_prices,
                     nonfinite_price_rows=nonfinite_prices,
                     complete_finite_prices=complete_prices,
@@ -323,9 +326,15 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
         if reference_rows is not None:
             history = []
             if present['actual.tge_fix1']:
+                invalid_period_days = {
+                    actual['day'] for actual in actuals if actual['rows_with_invalid_utc_period']
+                }
+                comparable_days = [
+                    day for day in reference_days if day.isoformat() not in invalid_period_days
+                ]
                 rows = conn.execute(
                     f'SELECT delivery_date,{hour_column},price_pln_mwh,{period_column} FROM actual.tge_fix1 '
-                    'WHERE delivery_date = ANY(%s::date[])', (reference_days,),
+                    'WHERE delivery_date = ANY(%s::date[])', (comparable_days,),
                 )
                 history = [
                     dict(delivery_date=day.isoformat(), hour=hour, fix1=price, period_start_utc=period)

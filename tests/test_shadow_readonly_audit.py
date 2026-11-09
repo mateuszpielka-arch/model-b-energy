@@ -714,6 +714,39 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(comparison['missing_or_invalid_within_history_range_days'], ['2026-11-09'])
         self.assertEqual(comparison['outside_history_range_days'], ['2026-11-07'])
 
+    def test_invalid_fix1_utc_periods_cannot_fall_back_to_legacy_hours(self):
+        from decimal import Decimal
+        from pathlib import Path
+        from shadow_history_audit import read_csv
+
+        day = date(2026, 11, 3)
+        reference = read_csv(Path(__file__).parent / 'fixtures' / 'tge_fix1_2026-11-03_reference.csv')
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz')
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s,%s)',
+                [(day, int(row['hour'][1:]), Decimal(row['price_pln_mwh']), period)
+                 for row, period in zip(reference, expected_periods(day), strict=True)],
+            )
+        self.assertEqual(audit_connection(self.conn, reference_rows=reference)['fix1_reference']['matched_days'], 1)
+
+        self.conn.execute("UPDATE actual.tge_fix1 SET period_start_utc='infinity'")
+        for column_type in ('timestamptz', 'timestamp'):
+            with self.subTest(column_type=column_type):
+                if column_type == 'timestamp':
+                    self.conn.execute(
+                        'ALTER TABLE actual.tge_fix1 ALTER COLUMN period_start_utc TYPE timestamp '
+                        'USING (delivery_date + (hour - 1) * interval \'1 hour\')'
+                    )
+                report = audit_connection(self.conn, reference_rows=reference)
+                actual, = report['actual_days']
+                self.assertTrue(report['transaction_read_only'])
+                self.assertEqual(actual['rows_with_invalid_utc_period'], 24)
+                self.assertEqual(actual['period_basis'], 'EXPLICIT_UTC')
+                self.assertFalse(actual['structurally_complete'])
+                self.assertEqual(report['fix1_reference']['compared_periods'], 0)
+                self.assertEqual(report['fix1_reference']['missing_or_invalid_history_days'], [day.isoformat()])
+
     def test_audit_accepts_explicit_utc_periods_without_legacy_hour_column(self):
         self.conn.execute(
             'ALTER TABLE actual.tge_fix1 DROP COLUMN hour, ADD COLUMN period_start_utc timestamptz'

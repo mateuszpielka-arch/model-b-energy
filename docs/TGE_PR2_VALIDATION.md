@@ -996,3 +996,9 @@ wskazuje ten sam docelowy snapshot JWCD wybrany na D-1 09:50
 Europe/Warsaw. Test wstrzykuje inny identyfikator w prognozie dni
 podobnych według poziomu. Taka doba odpada dla wszystkich modeli
 przed liczeniem metryk, a druga doba zachowuje wspólne 24 okresy.
+
+Audyt SQL Fix1 zlicza niepoprawne jawne okresy UTC i zachowuje raport,
+gdy baza zwraca nieskończone znaczniki lub kolumnę bez strefy.
+Pełne etykiety legacy nie zastępują błędnych okresów. Test na izolowanym
+PostgreSQL porównuje 24 ceny z oficjalną referencją, a po zmianie
+okresów wyklucza dobę z porównania.
