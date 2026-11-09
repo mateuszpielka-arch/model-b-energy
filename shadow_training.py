@@ -1,12 +1,12 @@
 """Shared strict training admission for JWCD SHADOW models; no I/O."""
-from datetime import datetime,time,timedelta
-from shadow_asof import select_snapshot
-from shadow_scoring import WARSAW,_utc,_prices,expected_periods
+from datetime import timedelta
+from shadow_asof import cutoff_for_day, select_snapshot
+from shadow_scoring import _utc,_prices,expected_periods
 
 def prepare_training(*,target_day,target_snapshots,history,window_days):
     if window_days not in (30,60,90):
         raise ValueError('Only JWCD OLS 30/60/90 calendar-day windows allowed')
-    cutoff=_utc(datetime.combine(target_day-timedelta(days=1),time(9,50),WARSAW))
+    cutoff = cutoff_for_day(target_day)
     required={target_day-timedelta(days=i) for i in range(1,window_days+1)}
     packets={}
     for packet in history:
@@ -26,6 +26,8 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
         actual_available = _utc(p.get('actual_available_at'))
         if actual_available > cutoff:
             raise ValueError(f'Historical actual unavailable at target cutoff: {day}')
+        if actual_available <= cutoff_for_day(day):
+            raise ValueError(f'Historical actual available at or before its simulated issuance: {day}')
         selection=select_snapshot(day, p.get('snapshots', ()))
         if selection.snapshot_id is None:
             reason = f'Historical JWCD availability not proven: {day}'
@@ -33,8 +35,6 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
                 details = ', '.join(sorted({code for _, code in selection.rejected}))
                 reason += f' ({details})'
             raise ValueError(reason)
-        if actual_available <= selection.cutoff_utc:
-            raise ValueError('Historical actual available at or before its simulated issuance')
         actual=_prices(p.get('actual', ()))
         if set(actual)!=set(expected_periods(day)):
             raise ValueError(f'Historical actual incomplete or invalid periods: {day}')

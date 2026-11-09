@@ -80,7 +80,7 @@ class OLSTests(unittest.TestCase):
         kw=self.data();kw['target_snapshots'][0]['retrieval_completed_at']+=timedelta(days=1)
         with self.assertRaisesRegex(ValueError,'target JWCD'):predict_ols(**kw)
 
-    def test_backdated_historical_actual_blocks_fit(self):
+    def test_backdated_historical_actual_blocks_fit_before_reading_payloads(self):
         from shadow_asof import cutoff_for_day
 
         for delta in (timedelta(seconds=-1), timedelta(0)):
@@ -88,5 +88,12 @@ class OLSTests(unittest.TestCase):
                 args = self.data()
                 packet = args['history'][0]
                 packet['actual_available_at'] = cutoff_for_day(packet['day']) + delta
+
+                def unreadable():
+                    self.fail('Payload of a backdated historical day was read')
+                    yield
+
+                packet['snapshots'] = unreadable()
+                packet['actual'] = unreadable()
                 with self.assertRaisesRegex(ValueError, 'at or before its simulated issuance'):
                     predict_ols(**args)

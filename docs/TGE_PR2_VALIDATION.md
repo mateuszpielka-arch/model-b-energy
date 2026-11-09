@@ -1049,3 +1049,9 @@ mediany, aby scoring użył tych samych wartości. Rozszerzony test
 podaje prognozy wszystkich sześciu modeli jako jednorazowe iteratory.
 Mediana, wyniki dobowe i wspólny ranking dla 48 okresów pozostają
 identyczne jak przy stałych kolekcjach.
+
+Wspólna ścieżka treningu JWCD sprawdza czas dostępności historycznej
+ceny Fix1 względem D-1 09:50 danej doby przed selekcją jej snapshotów.
+Test bezpośredniego wywołania OLS potwierdza, że dla znacznika równego
+granicy lub wcześniejszego nie odczytuje ani snapshotów, ani cen.
+Komunikat wskazuje datę odrzuconej doby.
