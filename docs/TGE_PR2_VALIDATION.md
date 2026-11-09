@@ -1009,3 +1009,9 @@ wyłącznie na etykietach godzin pole diagnostyki UTC ma wartość null.
 Test na izolowanym PostgreSQL sprawdza brak godziny w dobie 23h oraz
 duplikat i okres spoza doby 25h przy zachowanej liczbie wierszy.
 Sesja bazy pracuje w Europe/Warsaw, a raport podaje okresy w UTC.
+
+Scoring walk-forward odrzuca metadane treningowe wskazujące dobę
+docelową lub późniejszą. Dla wcześniejszej doby wymaga dostępności
+Fix1 ściśle po jej własnej granicy D-1 09:50 Europe/Warsaw.
+Test regresji sprawdza obie błędne daty oraz czas równy granicy
+i sekundę po niej. Odrzucona doba nie trafia do metryk żadnego modelu.

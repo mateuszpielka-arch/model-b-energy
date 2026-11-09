@@ -379,6 +379,45 @@ class WalkforwardTests(unittest.TestCase):
                     self.assertEqual(result['common_periods'], 24)
                     self.assertEqual(len(result['ranking']), len(MODELS))
 
+    def test_scoring_checks_training_delivery_and_own_fix1_cutoff(self):
+        args = self.args()
+        training, target = args['history'][-2:]
+        args['target_days'] = [target['day']]
+        training_cutoff = cutoff_for_day(training['day'])
+        for changes, expected_reason in (
+            ({'day': target['day'].isoformat()},
+             f"Training delivery must precede target delivery: {target['day']}"),
+            ({'day': (target['day'] + timedelta(days=1)).isoformat()},
+             'Training delivery must precede target delivery: ' +
+             (target['day'] + timedelta(days=1)).isoformat()),
+            ({'actual_available_at_utc': training_cutoff.isoformat()},
+             f"Training Fix1 available at or before its own D-1 09:50: {training['day']}"),
+            ({'actual_available_at_utc': (training_cutoff + timedelta(seconds=1)).isoformat()},
+             None),
+        ):
+            with self.subTest(changes=changes):
+                def change_training(**kwargs):
+                    prediction = predict_ols(**kwargs)
+                    if kwargs['window_days'] == 60:
+                        prediction['training_timing'][-1].update(changes)
+                    return prediction
+
+                with patch('shadow_walkforward.predict_ols', side_effect=change_training), patch(
+                    'shadow_walkforward.score_day', wraps=score_day,
+                ) as scoring:
+                    result = run_walkforward(**args)
+
+                if expected_reason is None:
+                    self.assertEqual(result['common_periods'], 24)
+                    self.assertEqual(scoring.call_count, len(MODELS))
+                else:
+                    scoring.assert_not_called()
+                    self.assertEqual(result['ranking'], [])
+                    self.assertEqual(result['skipped'], [{
+                        'day': target['day'].isoformat(), 'stage': 'scoring',
+                        'model': 'ols60', 'reason': expected_reason,
+                    }])
+
     def test_scoring_excludes_common_day_if_model_reports_late_training_fix1(self):
         args = self.args()
         target = args['target_days'][-1]

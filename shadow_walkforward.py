@@ -111,20 +111,24 @@ def run_walkforward(*,history,target_days,evaluated_at):
                     scoring_model = name
                     latest_publication, latest_retrieval = publication, retrieved
                     training_timing = predictions[name]['training_timing']
-                    latest_training_actual = max(
-                        _utc(datetime.fromisoformat(evidence['actual_available_at_utc']))
-                        for evidence in training_timing
-                    )
+                    training_actual_times = []
                     for evidence in training_timing:
                         training_day = date.fromisoformat(evidence['day'])
+                        if training_day >= day:
+                            raise ValueError(f'Training delivery must precede target delivery: {training_day}')
+                        training_cutoff = cutoff_for_day(training_day)
+                        available = _utc(datetime.fromisoformat(evidence['actual_available_at_utc']))
+                        if available <= training_cutoff:
+                            raise ValueError(f'Training Fix1 available at or before its own D-1 09:50: {training_day}')
+                        training_actual_times.append(available)
                         published = _utc(datetime.fromisoformat(evidence['latest_publication_ts_utc']))
                         started = _utc(datetime.fromisoformat(evidence['retrieved_at_utc']))
                         completed = _utc(datetime.fromisoformat(evidence['retrieval_completed_at_utc']))
-                        if max(published, started) > completed or completed > cutoff_for_day(training_day):
+                        if max(published, started) > completed or completed > training_cutoff:
                             raise ValueError(f'Training JWCD chronology invalid at D-1 09:50: {training_day}')
                         latest_publication = max(latest_publication, published)
                         latest_retrieval = max(latest_retrieval, completed)
-                    input_times[name] = (latest_publication, latest_retrieval, latest_training_actual)
+                    input_times[name] = (latest_publication, latest_retrieval, max(training_actual_times))
                 scoring_model = 'median4'
                 input_times['median4'] = (
                     max(input_times[name][0] for name in MEDIAN_MEMBERS),
