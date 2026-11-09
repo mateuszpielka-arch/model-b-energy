@@ -602,11 +602,12 @@ class ReadonlyAuditTests(unittest.TestCase):
         day = date(2026, 10, 25)
         self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN first_seen_at_utc timestamptz')
         self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN retrieved_at_utc timestamptz')
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz')
         with self.conn.cursor() as cursor:
             cursor.executemany(
-                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,100,%s,%s)',
-                [(day, hour, '2026-10-24T08:00:00Z', '2026-10-25T08:50:00Z')
-                 for hour in range(1, 26)],
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,100,%s,%s,%s)',
+                [(day, hour, '2026-10-24T08:00:00Z', '2026-10-25T08:50:00Z', period)
+                 for hour, period in enumerate(expected_periods(day), 1)],
             )
 
         def timing():
