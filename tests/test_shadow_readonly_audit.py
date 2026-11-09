@@ -747,6 +747,31 @@ class ReadonlyAuditTests(unittest.TestCase):
                 self.assertEqual(report['fix1_reference']['compared_periods'], 0)
                 self.assertEqual(report['fix1_reference']['missing_or_invalid_history_days'], [day.isoformat()])
 
+    def test_legacy_hours_only_are_complete_for_standard_fix1_days(self):
+        days = (
+            (date(2026, 3, 29), 23),
+            (date(2026, 10, 25), 25),
+            (date(2026, 11, 2), 24),
+        )
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s)',
+                [(day, hour, 100) for day, count in days for hour in range(1, count + 1)],
+            )
+        report = audit_connection(self.conn)
+        for actual, (day, count) in zip(report['actual_days'], days, strict=True):
+            with self.subTest(day=day):
+                self.assertEqual(actual['rows'], count)
+                self.assertEqual(actual['distinct_legacy_hours'], count)
+                self.assertEqual(actual['period_basis'], 'LEGACY_HOUR')
+                self.assertIsNone(actual['utc_period_audit'])
+                self.assertEqual(actual['structurally_complete'], count == 24)
+                self.assertEqual(actual['complete_finite_prices'], count == 24)
+        self.assertEqual(
+            [entry['fix1_status'] for entry in report['delivery_coverage']],
+            ['INCOMPLETE', 'INCOMPLETE', 'COMPLETE_UNVERIFIED'],
+        )
+
     def test_audit_accepts_explicit_utc_periods_without_legacy_hour_column(self):
         self.conn.execute(
             'ALTER TABLE actual.tge_fix1 DROP COLUMN hour, ADD COLUMN period_start_utc timestamptz'

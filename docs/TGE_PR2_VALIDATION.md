@@ -1055,3 +1055,9 @@ ceny Fix1 względem D-1 09:50 danej doby przed selekcją jej snapshotów.
 Test bezpośredniego wywołania OLS potwierdza, że dla znacznika równego
 granicy lub wcześniejszego nie odczytuje ani snapshotów, ani cen.
 Komunikat wskazuje datę odrzuconej doby.
+
+Audyt SQL Fix1 uznaje komplet etykiet godzin bez znaczników UTC
+tylko dla standardowej doby 24h. Test na izolowanym PostgreSQL
+sprawdza, że zestawy 23 i 25 ponumerowanych wierszy zachowują
+licznik pokrycia, ale są raportowane jako niekompletne. Zestaw
+24h nadal przechodzi kontrolę struktury.

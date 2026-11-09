@@ -274,7 +274,8 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                         ))
                     )
                 else:
-                    structurally_complete = n == expected and observed == required
+                    # Local labels alone cannot identify the UTC periods on DST days.
+                    structurally_complete = n == expected == 24 and observed == required
                 complete_prices = structurally_complete and missing_prices == nonfinite_prices == 0
                 next_cutoff = cutoff_for_day(day + timedelta(days=1))
                 if not complete_prices or missing_timing or invalid_timing:
