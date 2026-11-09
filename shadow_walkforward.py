@@ -98,6 +98,12 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 for mode in ('shape','level'):
                     stage='similar_'+mode
                     predictions[stage]=predict_similar(**common,window_days=90,k=5,mode=mode)
+                forecast_prices = {}
+                for name in MEDIAN_MEMBERS:
+                    stage = name
+                    prices = _prices(predictions[name]['prices'])
+                    forecast_prices[name] = prices
+                    predictions[name] = {**predictions[name], 'prices': tuple(prices.items())}
                 stage='median4'; predictions[stage]=median_consensus(target_day=day,
                     models={m:predictions[m] for m in MEDIAN_MEMBERS})
                 stage='scoring'
@@ -136,14 +142,15 @@ def run_walkforward(*,history,target_days,evaluated_at):
                     max(input_times[name][2] for name in MEDIAN_MEMBERS),
                 )
                 scores = {}
-                forecast_prices = {}
                 for name, (latest_publication, latest_retrieval, latest_training_actual) in input_times.items():
                     scoring_model = name
                     if latest_training_actual > selected.cutoff_utc:
                         raise ValueError('Training Fix1 prices unavailable at D-1 09:50')
-                    forecast = _prices(predictions[name]['prices'])
-                    forecast_prices[name] = forecast
-                    predictions[name] = {**predictions[name], 'prices': tuple(forecast.items())}
+                    if name not in forecast_prices:
+                        prices = _prices(predictions[name]['prices'])
+                        forecast_prices[name] = prices
+                        predictions[name] = {**predictions[name], 'prices': tuple(prices.items())}
+                    forecast = forecast_prices[name]
                     scores[name]=score_day(day=day,forecast=forecast.items(),actual=actual.items(),
                         forecast_id=f'simulated:{day}:{name}',model_version=predictions[name]['model_version'],
                         actual_version=target['actual_version'],forecast_status='SHADOW',actual_verified=True,

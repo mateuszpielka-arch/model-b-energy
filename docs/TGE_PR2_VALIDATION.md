@@ -1043,3 +1043,9 @@ Walk-forward używa tych samych znormalizowanych cen prognozy w metrykach
 doby i rankingu łącznym. Test podaje ceny modelu dni podobnych według
 poziomu jako jednorazowy iterator. Wyniki dobowe i ranking dla 48
 wspólnych okresów są identyczne jak dla zwykłej kolekcji.
+
+Walk-forward utrwala ceny czterech modeli składowych przed liczeniem
+mediany, aby scoring użył tych samych wartości. Rozszerzony test
+podaje prognozy wszystkich sześciu modeli jako jednorazowe iteratory.
+Mediana, wyniki dobowe i wspólny ranking dla 48 okresów pozostają
+identyczne jak przy stałych kolekcjach.

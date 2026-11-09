@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 import test_shadow_ols as fixtures
 from shadow_walkforward import run_walkforward,MODELS
-from shadow_similar_consensus import predict_similar
+from shadow_similar_consensus import median_consensus, predict_similar
 from shadow_asof import cutoff_for_day
 from shadow_scoring import score_day
 from shadow_ols import predict_ols
@@ -216,18 +216,26 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(len(result['ranking']), len(MODELS))
         self.assertTrue(all(row['periods'] == 24 for row in result['ranking']))
 
-    def test_pooled_ranking_reuses_the_prices_validated_by_daily_scoring(self):
+    def test_median_scoring_and_ranking_reuse_single_pass_forecast_prices(self):
         args = self.args()
         expected = run_walkforward(**args)
         self.assertEqual(expected['common_days'], 2)
 
-        def lazy_level_forecast(**kwargs):
-            prediction = predict_similar(**kwargs)
-            if kwargs['mode'] == 'level':
-                prediction['prices'] = iter(prediction['prices'])
-            return prediction
+        def lazy_ols(**kwargs):
+            prediction = predict_ols(**kwargs)
+            return {**prediction, 'prices': iter(prediction['prices'])}
 
-        with patch('shadow_walkforward.predict_similar', side_effect=lazy_level_forecast):
+        def lazy_similar(**kwargs):
+            prediction = predict_similar(**kwargs)
+            return {**prediction, 'prices': iter(prediction['prices'])}
+
+        def lazy_median(**kwargs):
+            prediction = median_consensus(**kwargs)
+            return {**prediction, 'prices': iter(prediction['prices'])}
+
+        with patch('shadow_walkforward.predict_ols', side_effect=lazy_ols), patch(
+            'shadow_walkforward.predict_similar', side_effect=lazy_similar,
+        ), patch('shadow_walkforward.median_consensus', side_effect=lazy_median):
             result = run_walkforward(**args)
 
         self.assertEqual(result['common_periods'], 48)
