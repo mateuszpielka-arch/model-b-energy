@@ -920,3 +920,10 @@ kwarantannę zatwierdzoną przez archiwum. Test integracyjny obejmuje
 domyślne `REPEATABLE READ` sesji i aktywną transakcję `SERIALIZABLE`
 przy domyślnym `READ COMMITTED`. Po odrzuceniu obu przypadków
 potwierdza poprawny zapis i ponowienie w `READ COMMITTED`.
+
+Archiwizacja i scoring SHADOW używają tej samej blokady doby i sprawdzają
+`READ COMMITTED` w aktywnej transakcji. Test na dwóch połączeniach
+izolowanego PostgreSQL otwiera migawkę `REPEATABLE READ` przed zapisem
+pełnej doby na drugim połączeniu. Próba archiwizacji z tej migawki jest
+odrzucana. Ponowienie w `READ COMMITTED` zwraca `REPLAY` i pozostawia
+jedną partię, 24 ceny oraz pustą kwarantannę.

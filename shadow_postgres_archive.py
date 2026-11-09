@@ -50,6 +50,14 @@ def _guard(conn):
         raise ValueError('Dedicated autocommit connection required for transaction ownership')
 
 
+def _lock_delivery_day(conn, day):
+    # Reads after the lock must see writes committed while waiting for it.
+    isolation = conn.execute('SHOW transaction_isolation').fetchone()[0]
+    if isolation != 'read committed':
+        raise ValueError('Fix1 day lock requires READ COMMITTED transaction isolation')
+    conn.execute('SELECT pg_advisory_xact_lock(716101, %s)', (day.toordinal(),))
+
+
 def initialize(conn):
     _guard(conn)
     with conn.transaction():
@@ -59,15 +67,15 @@ def initialize(conn):
 def archive_batch(conn, batch, raw):
     """Atomically insert a full day, replay, or quarantine; never UPDATE prices.
 
-    All adapter writers lock the delivery date before reading existing prices.
+    All adapter writers lock the delivery date in READ COMMITTED before
+    reading existing prices.
     Unexpected external unique-key conflicts raise and roll back the whole batch.
     Quarantine retains raw HTML/reference hash for offline investigation.
     """
     _guard(conn)
     batch = revalidate_batch(batch, raw)
     with conn.transaction():
-        # Stable numeric date key, no Python hash randomization across workers.
-        conn.execute('SELECT pg_advisory_xact_lock(716101, %s)', (batch.delivery_date.toordinal(),))
+        _lock_delivery_day(conn, batch.delivery_date)
         existing = conn.execute('''
             SELECT price.period_start_utc, price.price, price.batch_id, source.delivery_date
             FROM fix1_shadow_test.prices AS price

@@ -97,6 +97,22 @@ class PostgresArchiveTests(unittest.TestCase):
         finally:
             self.conn.execute('ALTER TABLE fix1_shadow_test.prices DROP CONSTRAINT force_test_failure')
 
+    def test_stale_archive_transaction_is_rejected_then_retry_replays(self):
+        with self.conn.transaction():
+            self.conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ')
+            self.assertEqual(self.count('prices'), 0)
+
+            with connect_test_database(DSN) as writer:
+                self.assertEqual(archive_batch(writer, self.batch, self.raw), 'INSERT')
+
+            with self.assertRaisesRegex(ValueError, 'requires READ COMMITTED'):
+                archive_batch(self.conn, self.batch, self.raw)
+
+        self.assertEqual(archive_batch(self.conn, self.batch, self.raw), 'REPLAY')
+        self.assertEqual(self.count('prices'), 24)
+        self.assertEqual(self.count('batches'), 1)
+        self.assertEqual(self.count('quarantine'), 0)
+
     def test_concurrent_replays(self):
         def write(_):
             with connect_test_database(DSN) as conn: return archive_batch(conn,self.batch,self.raw)

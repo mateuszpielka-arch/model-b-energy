@@ -6,7 +6,7 @@ import json
 import re
 from shadow_archive_batch import PARSER_VERSION, prepare_batch, read_reference_csv, validate_source_url
 from shadow_asof import cutoff_for_day
-from shadow_postgres_archive import _guard
+from shadow_postgres_archive import _guard, _lock_delivery_day
 from shadow_scoring import SCORING_VERSION, _utc, expected_periods, score_day
 from tge_parser_safe import parse_complete_standard_day
 
@@ -56,11 +56,7 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
     evaluation_time = _utc(evaluated_at) if evaluated_at is not None else None
     forecast = list(forecast)
     with conn.transaction():
-        # Reads after the day lock must see quarantine committed while waiting.
-        isolation = conn.execute('SHOW transaction_isolation').fetchone()[0]
-        if isolation != 'read committed':
-            raise ValueError('Fix1 scoring requires READ COMMITTED transaction isolation')
-        conn.execute('SELECT pg_advisory_xact_lock(716101,%s)',(day.toordinal(),))
+        _lock_delivery_day(conn, day)
         actual = conn.execute('''SELECT period_start_utc,price,batch_id
             FROM fix1_shadow_test.prices WHERE delivery_date=%s ORDER BY period_start_utc''',
             (day,)).fetchall()
