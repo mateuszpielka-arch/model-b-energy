@@ -253,6 +253,46 @@ class ReadonlyAuditTests(unittest.TestCase):
                 self.assertEqual(report['archive_hourly_candidate_selection'], {})
                 self.assertEqual(report['actual_days'][0]['day'], '2026-10-25')
 
+    def test_nonfinite_pk5_timestamps_do_not_abort_readonly_audit(self):
+        from psycopg.types.json import Jsonb
+
+        self.seed_dst()
+        self.conn.execute(
+            'ALTER TABLE raw.snapshots ADD COLUMN created_at timestamptz, ADD COLUMN source_version text'
+        )
+        valid_retrieval = '2026-10-24T07:00:00Z'
+        valid_archive = '2026-10-24T07:45:00Z'
+        rows = [
+            dict(period_start_utc=period.isoformat(), fcst_gen_unit_stor_prov=1000,
+                 publication_ts='2026-10-24T06:50:00Z')
+            for period in expected_periods(date(2026, 10, 25))
+        ]
+        self.conn.execute(
+            "UPDATE raw.snapshots SET payload=%s, created_at=%s, source_version='energy-collector-v3'",
+            (Jsonb({'pk5l-wp': rows}), valid_archive),
+        )
+        self.assertTrue(audit_connection(self.conn)['snapshots'][0]['archive_hourly_candidate'])
+        for retrieved, archived in (('infinity', valid_archive), (valid_retrieval, '-infinity')):
+            with self.subTest(retrieved=retrieved, archived=archived):
+                self.conn.execute(
+                    "UPDATE raw.snapshots SET retrieved_at_utc=%s, created_at=%s, "
+                    "source_version='energy-collector-v3'",
+                    (retrieved, archived),
+                )
+                report = audit_connection(self.conn)
+                snapshot, = report['snapshots']
+                self.assertTrue(report['transaction_read_only'])
+                self.assertEqual(report['actual_days'][0]['day'], '2026-10-25')
+                self.assertEqual(snapshot['rows'], 25)
+                self.assertFalse(snapshot['archive_timing_candidate'])
+                self.assertEqual(report['archive_hourly_candidate_selection'], {})
+                if retrieved == 'infinity':
+                    self.assertIsNone(snapshot['retrieved_at_utc'])
+                    self.assertEqual(snapshot['availability_status'], 'UNPROVEN_NO_VALID_RETRIEVAL_START')
+                else:
+                    self.assertIsNone(snapshot['archived_at_utc'])
+                    self.assertEqual(snapshot['retrieved_at_utc'], '2026-10-24T07:00:00+00:00')
+
     def test_missing_tables_reported_without_creation(self):
         self.conn.execute('DROP SCHEMA raw CASCADE');self.conn.execute('DROP SCHEMA actual CASCADE')
         out=audit_connection(self.conn)

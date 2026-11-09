@@ -105,6 +105,13 @@ def table_columns(conn, table):
     ))
 
 
+def _finite_timestamptz(columns, column):
+    """Build an expression for a fixed timestamp column used by this audit."""
+    if columns.get(column):
+        return f'CASE WHEN isfinite({column}) THEN {column} END'
+    return 'NULL::timestamptz'
+
+
 def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None):
     if start_day is not None and end_day is not None and start_day > end_day:
         raise ValueError('Start day must not be after end day')
@@ -130,8 +137,8 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
         if present['raw.snapshots']:
             columns = table_columns(conn, 'raw.snapshots')
             # These expressions are fixed identifiers or NULL for older schemas.
-            retrieval_column = 'retrieved_at_utc' if 'retrieved_at_utc' in columns else 'NULL::timestamptz'
-            archived_column = 'created_at' if 'created_at' in columns else 'NULL'
+            retrieval_column = _finite_timestamptz(columns, 'retrieved_at_utc')
+            archived_column = _finite_timestamptz(columns, 'created_at')
             source_column = 'source_version' if 'source_version' in columns else 'NULL'
             rows = conn.execute(
                 f'SELECT id,business_date,{retrieval_column} AS retrieval_time,'
@@ -214,14 +221,8 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
         if present['actual.tge_fix1']:
             columns = table_columns(conn, 'actual.tge_fix1')
             # Only finite, timezone-aware values can establish a UTC cutoff.
-            first_seen = (
-                'CASE WHEN isfinite(first_seen_at_utc) THEN first_seen_at_utc END'
-                if columns.get('first_seen_at_utc') else 'NULL::timestamptz'
-            )
-            retrieved = (
-                'CASE WHEN isfinite(retrieved_at_utc) THEN retrieved_at_utc END'
-                if columns.get('retrieved_at_utc') else 'NULL::timestamptz'
-            )
+            first_seen = _finite_timestamptz(columns, 'first_seen_at_utc')
+            retrieved = _finite_timestamptz(columns, 'retrieved_at_utc')
             source_url = 'source_url' if 'source_url' in columns else 'NULL::text'
             raw_hash = 'raw_hash' if 'raw_hash' in columns else 'NULL::text'
             hour_column = 'hour' if 'hour' in columns else 'NULL::int'

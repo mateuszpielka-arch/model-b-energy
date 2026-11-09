@@ -941,3 +941,10 @@ Test dopuszcza pobranie zakończone dokładnie o granicy. Publikacja,
 początek lub koniec pobrania sekundę po granicy treningowej wykluczają
 dobę ze wspólnego rankingu, nawet jeśli mieszczą się przed granicą
 doby docelowej. Raport wskazuje model i dobę treningową.
+
+Audyt PostgreSQL tylko do odczytu odrzuca nieskończone znaczniki
+`retrieved_at_utc` i `created_at` snapshotów PK5 przed odczytem
+wyników zapytania. Tak jak w audycie Fix1, uznaje wyłącznie skończone
+wartości `timestamptz`. Test izolowanej bazy potwierdza, że taki
+snapshot nie jest kandydatem czasowym, a raport nadal zwraca 25 wierszy
+PK5 i dane Fix1 dla tej samej doby.
