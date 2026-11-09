@@ -771,6 +771,7 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(report['fix1_reference']['compared_periods'], 72)
 
     def test_reconcile_dst_days_requires_explicit_distinct_utc_periods(self):
+        self.conn.execute("SET TIME ZONE 'Europe/Warsaw'")
         self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz')
         reference = []
         for day, count in ((date(2026, 3, 29), 23), (date(2026, 10, 25), 25)):
@@ -802,8 +803,24 @@ class ReadonlyAuditTests(unittest.TestCase):
             'UPDATE actual.tge_fix1 SET period_start_utc=%s WHERE delivery_date=%s AND period_start_utc=%s',
             (periods[2], autumn, periods[3]),
         )
+        outside_period = periods[-1] + timedelta(hours=1)
+        self.conn.execute(
+            'UPDATE actual.tge_fix1 SET period_start_utc=%s WHERE delivery_date=%s AND period_start_utc=%s',
+            (outside_period, autumn, periods[-1]),
+        )
         report = audit_connection(self.conn, reference_rows=reference)
         self.assertTrue(all(not day['structurally_complete'] for day in report['actual_days']))
+        spring_day, autumn_day = report['actual_days']
+        self.assertEqual(spring_day['utc_period_audit'], {
+            'missing_periods_utc': [expected_periods(date(2026, 3, 29))[0].isoformat()],
+            'unexpected_periods_utc': [],
+            'duplicate_periods_utc': [],
+        })
+        self.assertEqual(autumn_day['utc_period_audit'], {
+            'missing_periods_utc': [periods[3].isoformat(), periods[-1].isoformat()],
+            'unexpected_periods_utc': [outside_period.isoformat()],
+            'duplicate_periods_utc': [periods[2].isoformat()],
+        })
         unmatched = report['fix1_reference']
         self.assertEqual(unmatched['matched_days'], 0)
         self.assertEqual(unmatched['missing_or_invalid_history_days'], ['2026-03-29', '2026-10-25'])

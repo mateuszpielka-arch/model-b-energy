@@ -18,6 +18,14 @@ def connect_readonly(dsn):
         options='-c default_transaction_read_only=on -c statement_timeout=30000')
 
 
+def _utc_period_gaps(expected, observed):
+    return {
+        'missing_periods_utc': [period.isoformat() for period in sorted(expected - observed.keys())],
+        'unexpected_periods_utc': [period.isoformat() for period in sorted(observed.keys() - expected)],
+        'duplicate_periods_utc': sorted(period.isoformat() for period, count in observed.items() if count > 1),
+    }
+
+
 def audit_pk5_utc_hours(day, rows):
     """Check explicit canonical period starts; legacy labels cannot disambiguate DST."""
     expected = set(expected_periods(day))
@@ -38,16 +46,12 @@ def audit_pk5_utc_hours(day, rows):
             invalid_utc += 1
             continue
         periods[period] += 1
-    missing = expected - periods.keys()
-    unexpected = periods.keys() - expected
-    duplicates = {period for period, count in periods.items() if count > 1}
+    gaps = _utc_period_gaps(expected, periods)
     return {
-        'complete_utc_hours': not (missing or unexpected or duplicates or missing_utc or invalid_utc),
+        'complete_utc_hours': not (any(gaps.values()) or missing_utc or invalid_utc),
         'rows_without_utc_period': missing_utc,
         'rows_with_invalid_utc_period': invalid_utc,
-        'missing_periods_utc': [period.isoformat() for period in sorted(missing)],
-        'unexpected_periods_utc': [period.isoformat() for period in sorted(unexpected)],
-        'duplicate_periods_utc': [period.isoformat() for period in sorted(duplicates)],
+        **gaps,
         'valid_jwcd_rows': valid_jwcd,
     }
 
@@ -256,10 +260,14 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 expected = len(periods)
                 observed = set(hours or [])
                 required = set(range(1, expected + 1))
+                utc_period_audit = None
                 if explicit_periods or invalid_periods:
+                    observed_utc = Counter(
+                        period.astimezone(timezone.utc) for period in explicit_periods or ()
+                    )
+                    utc_period_audit = _utc_period_gaps(set(periods), observed_utc)
                     structurally_complete = (
-                        not invalid_periods and n == expected == len(explicit_periods)
-                        and set(explicit_periods) == set(periods)
+                        not invalid_periods and n == expected and not any(utc_period_audit.values())
                         and (expected != 24 or all(
                             hour is None or hour == index
                             for index, hour in enumerate(explicit_hours, 1)
@@ -281,6 +289,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     expected_periods=expected,structurally_complete=structurally_complete,
                     period_basis='EXPLICIT_UTC' if explicit_periods or invalid_periods else 'LEGACY_HOUR',
                     rows_with_invalid_utc_period=invalid_periods,
+                    utc_period_audit=utc_period_audit,
                     missing_price_rows=missing_prices,
                     nonfinite_price_rows=nonfinite_prices,
                     complete_finite_prices=complete_prices,

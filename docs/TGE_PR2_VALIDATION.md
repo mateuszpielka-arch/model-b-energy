@@ -1002,3 +1002,10 @@ gdy baza zwraca nieskończone znaczniki lub kolumnę bez strefy.
 Pełne etykiety legacy nie zastępują błędnych okresów. Test na izolowanym
 PostgreSQL porównuje 24 ceny z oficjalną referencją, a po zmianie
 okresów wyklucza dobę z porównania.
+
+Audyt SQL Fix1 wskazuje konkretne brakujące, nadmiarowe i powtórzone
+okresy UTC według tej samej reguły co audyt PK5. Dla danych opartych
+wyłącznie na etykietach godzin pole diagnostyki UTC ma wartość null.
+Test na izolowanym PostgreSQL sprawdza brak godziny w dobie 23h oraz
+duplikat i okres spoza doby 25h przy zachowanej liczbie wierszy.
+Sesja bazy pracuje w Europe/Warsaw, a raport podaje okresy w UTC.
