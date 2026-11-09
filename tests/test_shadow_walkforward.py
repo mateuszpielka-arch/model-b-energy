@@ -613,6 +613,31 @@ class WalkforwardTests(unittest.TestCase):
 
         self.assertEqual(run_walkforward(**args), expected)
 
+    def test_lazy_snapshot_rows_are_read_once_across_models_and_days(self):
+        class ReloadableRows:
+            def __init__(self, rows):
+                self.rows = rows
+                self.reads = 0
+
+            def __iter__(self):
+                self.reads += 1
+                if self.reads == 1:
+                    return iter(self.rows)
+                return iter({**row, 'jwcd_mw': row['jwcd_mw'] + 50} for row in self.rows)
+
+        args = self.args()
+        expected = run_walkforward(**args)
+        self.assertEqual(expected['common_days'], 2)
+        sources = []
+        for packet in args['history'][-3:]:
+            snapshot, = packet['snapshots']
+            source = ReloadableRows(snapshot['rows'])
+            snapshot['rows'] = source
+            sources.append(source)
+
+        self.assertEqual(run_walkforward(**args), expected)
+        self.assertEqual([source.reads for source in sources], [1, 1, 1])
+
     def test_unreadable_and_late_snapshot_rows_are_ignored_across_models(self):
         args = self.args()
         expected = run_walkforward(**args)

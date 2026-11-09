@@ -1020,3 +1020,9 @@ Selekcja JWCD odrzuca całą listę snapshotów, jeśli jej odczyt
 przerwie się w połowie. Test zwraca najpierw kompletny snapshot
 sprzed D-1 09:50, a potem zgłasza błąd odczytu. Selekcja nie używa
 pierwszego snapshotu, ponieważ dalsze rewizje pozostają nieznane.
+
+Walk-forward odczytuje wiersze leniwie ładowanego snapshotu JWCD tylko
+raz po weryfikacji czasu dostępności. Test podstawia źródło, które przy
+kolejnym odczycie zmieniłoby wartości pod tym samym identyfikatorem.
+Modele zachowują identyczne wyniki i ranking jak przy stałej liście
+wierszy, również gdy ta sama doba służy później do treningu.

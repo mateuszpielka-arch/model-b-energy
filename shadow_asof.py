@@ -4,7 +4,7 @@ Legacy PSE payloads need a separately verified adapter for local/DST period labe
 retrieval_completed_at must be evidenced, never inferred from a request start time.
 """
 from collections import Counter
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
@@ -54,12 +54,14 @@ class _ReplayableRows:
 
 
 def preserve_snapshot_rows(snapshots):
-    """Wrap one-shot rows without reading any snapshot before its cutoff check."""
+    """Cache lazy rows only after the snapshot passes its cutoff check."""
     if not isinstance(snapshots, (list, tuple)):
         return snapshots
     return tuple(
         {**snapshot, 'rows': _ReplayableRows(snapshot['rows'])}
-        if isinstance(snapshot, Mapping) and isinstance(snapshot.get('rows'), Iterator)
+        if isinstance(snapshot, Mapping)
+        and isinstance(snapshot.get('rows'), Iterable)
+        and not isinstance(snapshot['rows'], (list, tuple, str, bytes, Mapping, _ReplayableRows))
         else snapshot
         for snapshot in snapshots
     )
