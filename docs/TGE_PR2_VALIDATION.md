@@ -971,3 +971,9 @@ Eksport walidacyjny tworzy pliki dowodowe wyłącznie pod wolnymi nazwami.
 Jeśli CSV już istnieje lub jego zapis się nie powiedzie, wycofuje nowy
 HTML tej próby. Test na zapisanym oficjalnym HTML dla 02.11.2026 sprawdza
 kolizję zarówno z istniejącym HTML, jak i CSV oraz zachowanie ich treści.
+
+Pobrano oficjalną sesję TGE z 25.10.2026 dla dostawy 26.10.2026,
+pierwszej standardowej doby po jesiennej zmianie czasu. Zapisano HTML,
+CSV i manifest z rzeczywistym czasem pobrania 09.11.2026. Test porównuje
+24 ceny parsera z osobną ekstrakcją lxml z tego samego HTML, sprawdza
+okresy UTC od 25.10 23:00 i potwierdza przyjęcie w imporcie bez zapisu.
