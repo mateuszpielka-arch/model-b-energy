@@ -107,9 +107,17 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertTrue(audit_rows(rows)['days'][0]['model_ready'])
         rows[0]['actual_available_at'] = '2026-11-02T09:50:00+01:00'
         del rows[1]['actual_available_at']
-        day, = audit_rows(rows)['days']
-        self.assertEqual(day['actual_after_issuance_rows'], 22)
+        rows[2]['actual_available_at'] = '2026-11-02T09:51:00'
+        rows[3]['actual_available_at'] = '2026-11-02T08:49:59Z'
+        rows[4]['actual_available_at'] = '2026-11-02T08:50:01Z'
+        report = audit_rows(rows)
+        day, = report['days']
+        self.assertEqual(day['actual_after_issuance_rows'], 20)
         self.assertEqual(day['missing_timestamp_rows_by_field']['actual_available_at'], 1)
+        self.assertEqual(day['actual_availability_invalid_timestamp_rows'], 1)
+        self.assertEqual(day['actual_availability_at_or_before_cutoff_rows'], 2)
+        self.assertEqual(report['actual_availability_invalid_timestamp_rows'], 1)
+        self.assertEqual(report['actual_availability_at_or_before_cutoff_rows'], 2)
         self.assertIn('ACTUAL_AVAILABILITY_NOT_PROVEN', day['issues'])
         self.assertFalse(day['model_ready'])
 

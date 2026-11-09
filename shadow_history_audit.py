@@ -38,6 +38,7 @@ def audit_rows(rows):
         periods=expected_periods(d); expected=set(periods); seen=[]; issues=set()
         good_prices=good_jwcd=available=verified=0
         actual_times = []
+        invalid_actual_timestamps = premature_actual_timestamps = 0
         actual_versions = set()
         retrieval_windows = set()
         snapshot_ids = set()
@@ -78,14 +79,19 @@ def audit_rows(rows):
             if r.get('actual_verified') in (True,'true','True'): verified+=1
             actual_versions.add(str(r.get('actual_version') or '').strip())
             snapshot_ids.add(str(r.get("jwcd_snapshot_id") or "").strip())
-            if r.get('actual_available_at') in (None, ''):
+            raw_actual_time = r.get('actual_available_at')
+            if raw_actual_time in (None, ''):
                 missing_timestamps['actual_available_at'] += 1
-            try:
-                actual_time = _stamp(r.get('actual_available_at'))
-                if actual_time > cutoff:
-                    actual_times.append(actual_time)
-            except (ValueError, TypeError):
-                pass
+            else:
+                try:
+                    actual_time = _stamp(raw_actual_time)
+                except (ValueError, TypeError):
+                    invalid_actual_timestamps += 1
+                else:
+                    if actual_time <= cutoff:
+                        premature_actual_timestamps += 1
+                    else:
+                        actual_times.append(actual_time)
             canonical_start = r.get('retrieved_at')
             legacy_start = r.get('retrieved_at_utc')
             stamps = (r.get('publication_ts'), canonical_start or legacy_start,
@@ -144,6 +150,8 @@ def audit_rows(rows):
                             and good_prices == good_jwcd == len(periods)),
             valid_fix1_rows=good_prices,valid_jwcd_rows=good_jwcd,
             actual_after_issuance_rows=len(actual_times),
+            actual_availability_invalid_timestamp_rows=invalid_actual_timestamps,
+            actual_availability_at_or_before_cutoff_rows=premature_actual_timestamps,
             availability_proven_rows=available,verified_actual_rows=verified,
             availability_missing_timestamp_rows=missing_timing,
             missing_timestamp_rows_by_field=dict(missing_timestamps),
@@ -159,6 +167,10 @@ def audit_rows(rows):
     }
     return dict(days=days, invalid_date_rows=invalid_dates,
                 missing_timestamp_rows_by_field=dict(missing_timestamp_totals),
+                actual_availability_invalid_timestamp_rows=sum(
+                    d['actual_availability_invalid_timestamp_rows'] for d in days),
+                actual_availability_at_or_before_cutoff_rows=sum(
+                    d['actual_availability_at_or_before_cutoff_rows'] for d in days),
                 complete_pair_days=sum(d['complete_pairs'] for d in days),
                 model_ready_days=sum(d['model_ready'] for d in days),
                 longest_model_ready_run=longest_run,

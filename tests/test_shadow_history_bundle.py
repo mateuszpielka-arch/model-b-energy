@@ -67,6 +67,8 @@ class HistoryBundleTests(unittest.TestCase):
             "retrieval_completed_at": 48, "actual_available_at": 48,
         })
         self.assertEqual(report["comparison_candidates"]["90D"], [])
+        self.assertEqual(report["actual_availability_invalid_timestamp_rows"], 0)
+        self.assertEqual(report["actual_availability_at_or_before_cutoff_rows"], 0)
 
     def test_reports_contiguous_gap_with_23_and_24_hour_days(self):
         with TemporaryDirectory() as tmp:

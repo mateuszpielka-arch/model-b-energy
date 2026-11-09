@@ -948,3 +948,9 @@ wyników zapytania. Tak jak w audycie Fix1, uznaje wyłącznie skończone
 wartości `timestamptz`. Test izolowanej bazy potwierdza, że taki
 snapshot nie jest kandydatem czasowym, a raport nadal zwraca 25 wierszy
 PK5 i dane Fix1 dla tej samej doby.
+
+Audyt CSV i ZIP rozróżnia brak czasu dostępności ceny Fix1, niepoprawny
+znacznik oraz czas równy D-1 09:50 Europe/Warsaw lub wcześniejszy.
+Test CSV sprawdza osobno brak wartości, datę bez strefy oraz czasy
+sekundę przed granicą, dokładnie na granicy i sekundę po niej.
+Liczniki są dostępne dla każdej doby w audycie CSV i w podsumowaniach.

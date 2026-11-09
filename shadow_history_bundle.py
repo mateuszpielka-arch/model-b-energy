@@ -55,6 +55,8 @@ def audit_bundle(path, *, reference_paths=()):
         "complete_pair_days": audit["complete_pair_days"],
         "model_ready_days": audit["model_ready_days"],
         "missing_timestamp_rows_by_field": audit["missing_timestamp_rows_by_field"],
+        "actual_availability_invalid_timestamp_rows": audit["actual_availability_invalid_timestamp_rows"],
+        "actual_availability_at_or_before_cutoff_rows": audit["actual_availability_at_or_before_cutoff_rows"],
         "delivery_days_by_hours": dict(sorted(Counter(
             entry["expected_periods"] for entry in audit["days"]
         ).items())),
