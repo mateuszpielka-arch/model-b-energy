@@ -934,3 +934,10 @@ wierszy w bazie. Test na izolowanym PostgreSQL z oficjalnymi CSV TGE
 rozpoznaje 09.11.2026 jako lukę między wpisami 08 i 10.11.2026, a
 07.11.2026 jako datę poza zakresem. Oba rozpoznania korzystają z tej samej
 migawki audytu.
+
+Scoring walk-forward weryfikuje chronologię JWCD zwróconą przez model
+względem D-1 09:50 Europe/Warsaw osobno dla każdej doby treningowej.
+Test dopuszcza pobranie zakończone dokładnie o granicy. Publikacja,
+początek lub koniec pobrania sekundę po granicy treningowej wykluczają
+dobę ze wspólnego rankingu, nawet jeśli mieszczą się przed granicą
+doby docelowej. Raport wskazuje model i dobę treningową.

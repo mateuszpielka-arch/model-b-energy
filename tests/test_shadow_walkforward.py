@@ -320,28 +320,40 @@ class WalkforwardTests(unittest.TestCase):
                 'latest_training_actual_available_at_utc': training['actual_available_at'].isoformat(),
             })
 
-    def test_scoring_rejection_identifies_model_with_late_input(self):
+    def test_scoring_checks_training_jwcd_against_its_own_cutoff(self):
         args = self.args()
-        target = args['target_days'][-1]
-        args['target_days'] = [target]
+        training, target = args['history'][-2:]
+        args['target_days'] = [target['day']]
+        training_cutoff = cutoff_for_day(training['day'])
 
-        def late_training(**kwargs):
-            prediction = predict_ols(**kwargs)
-            if kwargs['window_days'] == 60:
-                evidence = prediction['training_timing'][-1]
-                evidence['retrieval_completed_at_utc'] = (
-                    cutoff_for_day(target) + timedelta(seconds=1)
-                ).isoformat()
-            return prediction
+        for field, offset, rejected in (
+            ('retrieval_completed_at_utc', 0, False),
+            ('retrieval_completed_at_utc', 1, True),
+            ('latest_publication_ts_utc', 1, True),
+            ('retrieved_at_utc', 1, True),
+        ):
+            with self.subTest(field=field, offset=offset):
+                def change_training_timing(**kwargs):
+                    prediction = predict_ols(**kwargs)
+                    if kwargs['window_days'] == 60:
+                        evidence = prediction['training_timing'][-1]
+                        evidence['retrieval_completed_at_utc'] = training_cutoff.isoformat()
+                        evidence[field] = (training_cutoff + timedelta(seconds=offset)).isoformat()
+                    return prediction
 
-        with patch('shadow_walkforward.predict_ols', side_effect=late_training):
-            result = run_walkforward(**args)
-        self.assertEqual(result['ranking'], [])
-        self.assertEqual(result['common_periods'], 0)
-        self.assertEqual(result['skipped'], [{
-            'day': target.isoformat(), 'stage': 'scoring', 'model': 'ols60',
-            'reason': 'Invalid chronology or data unavailable before D-1 09:50',
-        }])
+                with patch('shadow_walkforward.predict_ols', side_effect=change_training_timing):
+                    result = run_walkforward(**args)
+
+                if rejected:
+                    self.assertEqual(result['ranking'], [])
+                    self.assertEqual(result['common_periods'], 0)
+                    self.assertEqual(result['skipped'], [{
+                        'day': target['day'].isoformat(), 'stage': 'scoring', 'model': 'ols60',
+                        'reason': f"Training JWCD chronology invalid at D-1 09:50: {training['day']}",
+                    }])
+                else:
+                    self.assertEqual(result['common_periods'], 24)
+                    self.assertEqual(len(result['ranking']), len(MODELS))
 
     def test_scoring_excludes_common_day_if_model_reports_late_training_fix1(self):
         args = self.args()
@@ -415,6 +427,8 @@ class WalkforwardTests(unittest.TestCase):
             training = args['history'][-2]
             snapshot, = training['snapshots']
             timing = ({
+                'day': training['day'].isoformat(),
+                'retrieved_at_utc': snapshot['retrieved_at'].isoformat(),
                 'actual_available_at_utc': training['actual_available_at'].isoformat(),
                 'latest_publication_ts_utc': max(
                     row['publication_ts'] for row in snapshot['rows']

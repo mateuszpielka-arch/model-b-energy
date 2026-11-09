@@ -6,7 +6,7 @@ No I/O. Verified canonical history is a prerequisite, not produced by this modul
 from bisect import bisect_left
 from collections import Counter
 from collections.abc import Iterator
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal, localcontext
 from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
@@ -113,10 +113,14 @@ def run_walkforward(*,history,target_days,evaluated_at):
                         for evidence in training_timing
                     )
                     for evidence in training_timing:
-                        latest_publication = max(latest_publication,
-                            datetime.fromisoformat(evidence['latest_publication_ts_utc']))
-                        latest_retrieval = max(latest_retrieval,
-                            datetime.fromisoformat(evidence['retrieval_completed_at_utc']))
+                        training_day = date.fromisoformat(evidence['day'])
+                        published = _utc(datetime.fromisoformat(evidence['latest_publication_ts_utc']))
+                        started = _utc(datetime.fromisoformat(evidence['retrieved_at_utc']))
+                        completed = _utc(datetime.fromisoformat(evidence['retrieval_completed_at_utc']))
+                        if max(published, started) > completed or completed > cutoff_for_day(training_day):
+                            raise ValueError(f'Training JWCD chronology invalid at D-1 09:50: {training_day}')
+                        latest_publication = max(latest_publication, published)
+                        latest_retrieval = max(latest_retrieval, completed)
                     input_times[name] = (latest_publication, latest_retrieval, latest_training_actual)
                 scoring_model = 'median4'
                 input_times['median4'] = (
