@@ -990,3 +990,9 @@ MAPE, WAPE i bias syntetycznej prognozy z obliczeniem na ułamkach
 z CSV. Następnie zmienia tylko okres UTC H01 i uaktualnia hash
 referencji w izolowanej bazie. Scoring odrzuca niespójny okres mimo
 zgodnego hasha i pozostawia poprzedni wynik.
+
+Walk-forward przed scoringiem potwierdza, że każdy z sześciu modeli
+wskazuje ten sam docelowy snapshot JWCD wybrany na D-1 09:50
+Europe/Warsaw. Test wstrzykuje inny identyfikator w prognozie dni
+podobnych według poziomu. Taka doba odpada dla wszystkich modeli
+przed liczeniem metryk, a druga doba zachowuje wspólne 24 okresy.

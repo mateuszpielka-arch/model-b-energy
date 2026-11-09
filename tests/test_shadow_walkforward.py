@@ -216,6 +216,30 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(len(result['ranking']), len(MODELS))
         self.assertTrue(all(row['periods'] == 24 for row in result['ranking']))
 
+    def test_wrong_target_snapshot_excludes_day_from_all_models_before_scoring(self):
+        args = self.args()
+        affected = args['target_days'][-1]
+        other = args['target_days'][0]
+
+        def wrong_snapshot(**kwargs):
+            prediction = predict_similar(**kwargs)
+            if kwargs['mode'] == 'level' and kwargs['target_day'] == affected:
+                prediction['target_snapshot_id'] = 'another-revision'
+            return prediction
+
+        with patch('shadow_walkforward.predict_similar', side_effect=wrong_snapshot), patch(
+            'shadow_walkforward.score_day', wraps=score_day,
+        ) as scoring:
+            result = run_walkforward(**args)
+
+        self.assertEqual([call.kwargs['day'] for call in scoring.call_args_list], [other] * len(MODELS))
+        self.assertEqual(result['common_periods'], 24)
+        self.assertEqual([row['periods'] for row in result['ranking']], [24] * len(MODELS))
+        self.assertEqual(result['skipped'], [{
+            'day': affected.isoformat(), 'stage': 'scoring', 'model': 'similar_level',
+            'reason': 'Prediction does not use the selected target JWCD snapshot',
+        }])
+
     def test_backdated_target_actual_is_rejected(self):
         kw = self.args()
         kw['target_days'] = kw['target_days'][-1:]
@@ -435,9 +459,11 @@ class WalkforwardTests(unittest.TestCase):
                 ).isoformat(),
                 'retrieval_completed_at_utc': snapshot['retrieval_completed_at'].isoformat(),
             },)
-            return dict(model_version='test', training_timing=timing, prices=[
-                (period, price + error) for period, price in target['actual']
-            ])
+            return dict(
+                model_version='test', training_timing=timing,
+                target_snapshot_id=target['snapshots'][0]['id'],
+                prices=[(period, price + error) for period, price in target['actual']],
+            )
 
         with patch('shadow_walkforward.predict_ols', side_effect=[
             forecast(1), forecast(-1), forecast(2),

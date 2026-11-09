@@ -101,6 +101,9 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 stage='median4'; predictions[stage]=median_consensus(target_day=day,
                     models={m:predictions[m] for m in MEDIAN_MEMBERS})
                 stage='scoring'
+                for scoring_model in MODELS:
+                    if predictions[scoring_model].get('target_snapshot_id') != selected.snapshot_id:
+                        raise ValueError('Prediction does not use the selected target JWCD snapshot')
                 publication = selected.latest_publication_ts_utc
                 retrieved = selected.retrieval_completed_at_utc
                 input_times = {}
