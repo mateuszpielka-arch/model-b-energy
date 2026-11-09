@@ -82,15 +82,20 @@ class WalkforwardCSVTests(unittest.TestCase):
 
     def test_target_missing_ranges_distinguish_absent_from_rejected_days(self):
         fixtures = Path(__file__).parent / "fixtures"
-        rows = read_csv(fixtures / "tge_fix1_2026-11-03_reference.csv")
-        rows += read_csv(fixtures / "tge_fix1_2026-11-02_reference.csv")
+        rows = read_csv(fixtures / "tge_delivery_2026-11-10/tge_delivery_2026-11-10.csv")
+        rows += read_csv(fixtures / "tge_delivery_2026-11-09/tge_delivery_2026-11-09.csv")
         result = evaluate_csv_rows(
-            rows, evaluated_at=datetime(2026, 11, 7, tzinfo=timezone.utc),
-            target_from=date(2026, 11, 3), target_to=date(2026, 11, 6),
+            rows, evaluated_at=datetime(2026, 11, 13, tzinfo=timezone.utc),
+            target_from=date(2026, 11, 10), target_to=date(2026, 11, 12),
         )
-        self.assertIn("2026-11-03", result["csv_admission"]["excluded_days"])
+        excluded = result["csv_admission"]["excluded_days"]
+        self.assertEqual(sorted(excluded), ["2026-11-09", "2026-11-10"])
+        self.assertIn("MISSING_OR_INVALID_JWCD", excluded["2026-11-10"])
+        self.assertEqual(result["walkforward"]["targets_excluded_by_csv_audit"], {
+            "2026-11-10": excluded["2026-11-10"],
+        })
         self.assertEqual(result["walkforward"]["target_missing_ranges"], [
-            {"start_day": "2026-11-04", "end_day": "2026-11-06", "days": 3},
+            {"start_day": "2026-11-11", "end_day": "2026-11-12", "days": 2},
         ])
         self.assertEqual(result["walkforward"]["ranking"], [])
 

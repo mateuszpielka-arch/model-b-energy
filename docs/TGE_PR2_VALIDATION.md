@@ -1032,3 +1032,9 @@ snapshotów JWCD i cen Fix1 dla danej doby. Test symuluje źródła, które
 przy kolejnym odczycie zwróciłyby pustą listę. Każde źródło jest czytane
 raz, a wynik scoringu, treningu i wspólnego rankingu zgadza się ze stałą
 kopią danych. Dotychczasowa kontrola dostępności poprzedza odczyt.
+
+Raport walk-forward z CSV pokazuje oddzielnie doby docelowe odrzucone
+przez audyt danych oraz daty całkowicie nieobecne w źródle. Test używa
+oficjalnych cen TGE dla 09 i 10.11.2026. Zakres od 10.11 pokazuje brak
+JWCD dla tej doby i lukę 11–12.11. Doba 09.11 pozostaje w audycie źródła
+i jest poza zakresem raportu docelowego.

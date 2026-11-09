@@ -56,11 +56,16 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None):
                 retrieval_completed_at=_stamp(first["retrieval_completed_at"]), rows=jwcd,
             )],
         ))
-    targets = [
-        day for day in sorted(grouped)
-        if (target_from is None or day >= target_from) and (target_to is None or day <= target_to)
-    ]
+    def within_target_range(day):
+        return (target_from is None or day >= target_from) and (target_to is None or day <= target_to)
+
+    targets = [day for day in sorted(grouped) if within_target_range(day)]
     comparison = run_walkforward(history=history, target_days=targets, evaluated_at=evaluated_at)
+    comparison["targets_excluded_by_csv_audit"] = {
+        entry["day"]: entry["issues"]
+        for entry in readiness["days"]
+        if not entry["model_ready"] and within_target_range(date.fromisoformat(entry["day"]))
+    }
     comparison["target_from"] = target_from.isoformat() if target_from is not None else None
     comparison["target_to"] = target_to.isoformat() if target_to is not None else None
     comparison["target_missing_ranges"] = missing_delivery_ranges(
