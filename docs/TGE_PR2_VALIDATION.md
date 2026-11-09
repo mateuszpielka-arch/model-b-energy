@@ -984,3 +984,9 @@ pobrania. Test porównuje wszystkie 24 ceny parsera z osobną ekstrakcją
 lxml z tego samego HTML. Test na izolowanym PostgreSQL sprawdza zapis
 24 cen, ponowienie bez dopisania wierszy, zachowanie dowodów i pustą
 kwarantannę.
+
+Test scoringu dla oficjalnej dostawy Fix1 10.11.2026 porównuje MAE,
+MAPE, WAPE i bias syntetycznej prognozy z obliczeniem na ułamkach
+z CSV. Następnie zmienia tylko okres UTC H01 i uaktualnia hash
+referencji w izolowanej bazie. Scoring odrzuca niespójny okres mimo
+zgodnego hasha i pozostawia poprzedni wynik.

@@ -314,6 +314,60 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             )
             self.assertEqual(conn.execute(count).fetchone(), (1,))
 
+    def test_score_tuesday_manifest_rejects_shifted_utc_even_with_matching_hash(self):
+        day = date(2026, 11, 10)
+        manifest = NOV_10_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        _, reference, rows = load_session(entry, NOV_10_FIXTURES)
+        captured = datetime.fromisoformat(entry['retrieved_at_utc'])
+        cutoff = cutoff_for_day(day)
+        inputs = dict(
+            day=day,
+            forecast=[
+                (period, Decimal(600 + 25 * index))
+                for index, period in enumerate(expected_periods(day))
+            ],
+            forecast_id='tuesday-synthetic-ramp-test',
+            model_version='synthetic-test',
+            forecast_status='SHADOW',
+            issued_at=cutoff,
+            publication_ts=cutoff - timedelta(minutes=10),
+            retrieved_at=cutoff,
+            evaluated_at=captured,
+        )
+        # Independent exact-fraction calculation against the official CSV prices.
+        expected = {
+            'mae': '1057.189583333333',
+            'mape_pct': '48.998826332563',
+            'wape_pct': '55.239844629875',
+            'bias': '-1026.317083333333',
+        }
+        original = rows[0]['period_start_utc'].encode()
+        shifted = rows[1]['period_start_utc'].encode()
+        changed_reference = reference.replace(original, shifted, 1)
+        self.assertNotEqual(changed_reference, reference)
+
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            decision, score = score_archived_day(conn, **inputs, reference_csv=reference)
+            self.assertEqual(decision, 'INSERT')
+            for metric, value in expected.items():
+                with self.subTest(metric=metric):
+                    self.assertEqual(getattr(score, metric).quantize(Decimal('1e-12')), Decimal(value))
+            query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+            stored = conn.execute(query).fetchall()
+            self.assertEqual(len(stored), 1)
+
+            # Update only the archived hash in the disposable test DB.
+            conn.execute(
+                'UPDATE fix1_shadow_test.batches SET reference_sha256 = %s',
+                (sha256(changed_reference).hexdigest(),),
+            )
+            with self.assertRaisesRegex(ValueError, 'Fix1 reference UTC period does not match H01'):
+                score_archived_day(conn, **inputs, reference_csv=changed_reference)
+            self.assertEqual(conn.execute(query).fetchall(), stored)
+
     def test_score_fixed_forecast_against_archived_official_prices(self):
         entry = json.loads((FIXTURES / 'manifest.json').read_text())['entries'][0]
         raw, reference, rows = load_session(entry)
