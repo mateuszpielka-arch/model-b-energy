@@ -50,11 +50,16 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
     archived hash and hourly prices. The archived capture must follow
     issuance and D-1 09:50 Warsaw. If evaluated_at is supplied, it must be no later
     than that time. Current quarantine checks still apply. Standard 24h days only.
+    Scoring requires a READ COMMITTED transaction.
     """
     _guard(conn)
     evaluation_time = _utc(evaluated_at) if evaluated_at is not None else None
     forecast = list(forecast)
     with conn.transaction():
+        # Reads after the day lock must see quarantine committed while waiting.
+        isolation = conn.execute('SHOW transaction_isolation').fetchone()[0]
+        if isolation != 'read committed':
+            raise ValueError('Fix1 scoring requires READ COMMITTED transaction isolation')
         conn.execute('SELECT pg_advisory_xact_lock(716101,%s)',(day.toordinal(),))
         actual = conn.execute('''SELECT period_start_utc,price,batch_id
             FROM fix1_shadow_test.prices WHERE delivery_date=%s ORDER BY period_start_utc''',

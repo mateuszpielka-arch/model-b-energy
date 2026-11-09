@@ -145,6 +145,23 @@ class ScorePersistenceTests(unittest.TestCase):
         with self.assertRaises(ValueError): score_archived_day(self.conn,**self.kw)
         self.assertEqual(self.count(),0)
 
+    def test_scoring_rejects_transaction_isolation_with_a_stale_snapshot(self):
+        self.conn.execute("SET default_transaction_isolation TO 'repeatable read'")
+        with self.assertRaisesRegex(ValueError, 'requires READ COMMITTED'):
+            score_archived_day(self.conn, **self.kw)
+        self.assertEqual(self.count(), 0)
+
+        self.conn.execute("SET default_transaction_isolation TO 'read committed'")
+        self.assertEqual(score_archived_day(self.conn, **self.kw)[0], 'INSERT')
+
+        # The active transaction can differ from the session default.
+        with self.conn.transaction():
+            self.conn.execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE')
+            with self.assertRaisesRegex(ValueError, 'requires READ COMMITTED'):
+                score_archived_day(self.conn, **self.kw)
+        self.assertEqual(score_archived_day(self.conn, **self.kw)[0], 'REPLAY')
+        self.assertEqual(self.count(), 1)
+
     def test_quarantine_of_another_batch_for_day_blocks_replay(self):
         score_archived_day(self.conn, **self.kw)
         previous_score = self.conn.execute(

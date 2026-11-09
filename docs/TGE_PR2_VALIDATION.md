@@ -913,3 +913,10 @@ Fixing I oraz testową zmianę ceny H01. PostgreSQL potwierdza, że ponowna
 ocena czeka na blokadzie doby, gdy zapis konfliktu jest w toku. Po
 zatwierdzeniu kwarantanny scoring odrzuca ponowienie i zachowuje
 wcześniejszy wynik bez zmian.
+
+Scoring SHADOW sprawdza poziom izolacji aktywnej transakcji przed
+blokadą doby. Wymaga `READ COMMITTED`, aby po oczekiwaniu odczytać
+kwarantannę zatwierdzoną przez archiwum. Test integracyjny obejmuje
+domyślne `REPEATABLE READ` sesji i aktywną transakcję `SERIALIZABLE`
+przy domyślnym `READ COMMITTED`. Po odrzuceniu obu przypadków
+potwierdza poprawny zapis i ponowienie w `READ COMMITTED`.
