@@ -45,6 +45,20 @@ class AvailabilityTests(unittest.TestCase):
             ('', 'MISSING_OR_DUPLICATE_SNAPSHOT_ID'),
         ))
 
+    def test_interrupted_snapshot_collection_rejects_even_complete_early_candidate(self):
+        good = self.snapshot()
+
+        for error in (OSError, RuntimeError, ValueError):
+            with self.subTest(error=error):
+                def incomplete_collection():
+                    yield good
+                    raise error('Collection interrupted before remaining revisions')
+
+                result = select_snapshot(good['delivery_date'], incomplete_collection())
+                self.assertIsNone(result.snapshot_id)
+                self.assertEqual(result.rows, ())
+                self.assertEqual(result.rejected, (('', 'UNREADABLE_SNAPSHOT_COLLECTION'),))
+
     def test_unreadable_snapshot_rows_leave_complete_pre_cutoff_candidate(self):
         good = self.snapshot()
         broken = self.snapshot(sid='broken')

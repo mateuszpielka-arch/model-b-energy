@@ -1015,3 +1015,8 @@ docelową lub późniejszą. Dla wcześniejszej doby wymaga dostępności
 Fix1 ściśle po jej własnej granicy D-1 09:50 Europe/Warsaw.
 Test regresji sprawdza obie błędne daty oraz czas równy granicy
 i sekundę po niej. Odrzucona doba nie trafia do metryk żadnego modelu.
+
+Selekcja JWCD odrzuca całą listę snapshotów, jeśli jej odczyt
+przerwie się w połowie. Test zwraca najpierw kompletny snapshot
+sprzed D-1 09:50, a potem zgłasza błąd odczytu. Selekcja nie używa
+pierwszego snapshotu, ponieważ dalsze rewizje pozostają nieznane.
