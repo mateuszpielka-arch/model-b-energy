@@ -960,3 +960,9 @@ Importer SHADOW sprawdza zgodność opcjonalnej kolumny
 oficjalnej sesji dla 09.11.2026 przyjmuje 24 prawidłowe okresy, a przed
 inicjalizacją bazy odrzuca przesuniętą godzinę, znacznik bez strefy
 i pustą wartość. Każdy wariant ma aktualny SHA-256 w manifeście.
+
+Eksport walidacyjny SHADOW dopisuje początek okresu UTC do referencji
+Fix1 dla standardowej doby 24h. Test odtwarza oficjalny HTML sesji dla
+dostawy 09.11.2026, porównuje wszystkie 24 ceny z zapisaną referencją
+i sprawdza import bez zapisu. Ścieżka standardowa odrzuca doby 23h i 25h
+przed pobraniem. Osobny eksport jesienny zachowuje same etykiety TGE.

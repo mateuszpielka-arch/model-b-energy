@@ -1,5 +1,6 @@
 import csv
-from datetime import date
+from datetime import date, datetime
+import gzip
 from hashlib import sha256
 import json
 import subprocess
@@ -39,6 +40,39 @@ class CaptureOutputTest(unittest.TestCase):
             write_manifest(output, {'entries': [entry], 'errors': []})
             with self.assertRaisesRegex(ValueError, 'label-only evidence'):
                 ingest_manifest(output / 'manifest.json', conn=object())
+
+    def test_standard_capture_exports_utc_periods_for_official_session(self):
+        stem = 'tge_delivery_2026-11-09'
+        fixture = Path(__file__).parent / 'fixtures' / stem
+        session, = json.loads((fixture / 'manifest.json').read_text())['entries']
+        raw = gzip.decompress((fixture / session['raw_file']).read_bytes())
+        with tempfile.TemporaryDirectory() as directory, patch(
+            'tools.capture_tge_validation.urlopen'
+        ) as fetch, patch('tools.capture_tge_validation.datetime', wraps=datetime) as clock:
+            output = Path(directory)
+            clock.min = datetime.min
+            clock.now.return_value = datetime.fromisoformat(session['retrieved_at_utc'])
+            response = fetch.return_value.__enter__.return_value
+            response.status = 200
+            response.geturl.return_value = session['url']
+            response.read.return_value = raw
+            for dst_day in (date(2026, 3, 29), date(2026, 10, 25)):
+                with self.assertRaisesRegex(ValueError, 'requires a 24-hour Warsaw day'):
+                    capture(dst_day, output)
+            fetch.assert_not_called()
+
+            entry = capture(date(2026, 11, 9), output)
+            reference = (output / entry['reference_file']).read_bytes()
+            rows = list(csv.DictReader(reference.decode().splitlines()))
+            self.assertEqual(entry['reference_sha256'], sha256(reference).hexdigest())
+            self.assertEqual(
+                [{key: row[key] for key in ('delivery_date', 'hour', 'price_pln_mwh')} for row in rows],
+                list(csv.DictReader((fixture / session['reference_file']).read_text().splitlines())),
+            )
+            self.assertEqual(rows[0]['period_start_utc'], '2026-11-08T23:00:00+00:00')
+            self.assertEqual(rows[-1]['period_start_utc'], '2026-11-09T22:00:00+00:00')
+            write_manifest(output, {'entries': [entry], 'errors': []})
+            self.assertEqual(ingest_manifest(output / 'manifest.json')['periods'], 24)
 
     def test_capture_rejects_redirected_session_before_reading_response(self):
         with tempfile.TemporaryDirectory() as directory, patch('tools.capture_tge_validation.urlopen') as fetch:

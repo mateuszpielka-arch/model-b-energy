@@ -75,12 +75,14 @@ def extract_reference(raw, day, *, autumn_25h=False):
 
 
 def capture(day, directory, *, autumn_25h=False):
-    if autumn_25h:
-        warsaw = ZoneInfo('Europe/Warsaw')
-        start = datetime.combine(day, datetime.min.time(), warsaw)
-        end = start + timedelta(days=1)
-        if end.astimezone(timezone.utc) - start.astimezone(timezone.utc) != timedelta(hours=25):
-            raise ValueError('Autumn label reference requires a 25-hour Warsaw day')
+    warsaw = ZoneInfo('Europe/Warsaw')
+    start = datetime.combine(day, datetime.min.time(), warsaw)
+    start_utc = start.astimezone(timezone.utc)
+    length = (start + timedelta(days=1)).astimezone(timezone.utc) - start_utc
+    if autumn_25h and length != timedelta(hours=25):
+        raise ValueError('Autumn label reference requires a 25-hour Warsaw day')
+    if not autumn_25h and length != timedelta(hours=24):
+        raise ValueError('Standard reference requires a 24-hour Warsaw day')
     session=day-timedelta(days=1)
     url='https://tge.pl/energia-elektryczna-rdn?dateShow='+session.strftime('%d-%m-%Y')
     with urlopen(Request(url,headers={'User-Agent':'model-b-energy-shadow-validation/1.0'}),timeout=35) as r:
@@ -96,9 +98,17 @@ def capture(day, directory, *, autumn_25h=False):
     rows=extract_reference(raw,day.isoformat(),autumn_25h=autumn_25h)
     stem='tge_delivery_'+day.isoformat()
     raw_path=directory/(stem+'.html');ref_path=directory/(stem+'.csv')
-    hour_column = 'tge_hour_label' if autumn_25h else 'hour'
-    out=io.StringIO();w=csv.writer(out,lineterminator='\n');w.writerow(['delivery_date',hour_column,'price_pln_mwh'])
-    for label,price in rows:w.writerow([day.isoformat(),label,format(price,'f')])
+    out = io.StringIO()
+    writer = csv.writer(out, lineterminator='\n')
+    if autumn_25h:
+        writer.writerow(['delivery_date', 'tge_hour_label', 'price_pln_mwh'])
+        for label, price in rows:
+            writer.writerow([day.isoformat(), label, format(price, 'f')])
+    else:
+        writer.writerow(['delivery_date', 'hour', 'price_pln_mwh', 'period_start_utc'])
+        for index, (label, price) in enumerate(rows):
+            period = start_utc + timedelta(hours=index)
+            writer.writerow([day.isoformat(), label, format(price, 'f'), period.isoformat()])
     reference=out.getvalue().encode()
     raw_path.write_bytes(raw);ref_path.write_bytes(reference)
     return dict(delivery_date=day.isoformat(),session_date=session.isoformat(),url=url,
