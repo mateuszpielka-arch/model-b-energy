@@ -135,12 +135,16 @@ def run_walkforward(*,history,target_days,evaluated_at):
                     max(input_times[name][1] for name in MEDIAN_MEMBERS),
                     max(input_times[name][2] for name in MEDIAN_MEMBERS),
                 )
-                scores={}
+                scores = {}
+                forecast_prices = {}
                 for name, (latest_publication, latest_retrieval, latest_training_actual) in input_times.items():
                     scoring_model = name
                     if latest_training_actual > selected.cutoff_utc:
                         raise ValueError('Training Fix1 prices unavailable at D-1 09:50')
-                    scores[name]=score_day(day=day,forecast=predictions[name]['prices'],actual=actual.items(),
+                    forecast = _prices(predictions[name]['prices'])
+                    forecast_prices[name] = forecast
+                    predictions[name] = {**predictions[name], 'prices': tuple(forecast.items())}
+                    scores[name]=score_day(day=day,forecast=forecast.items(),actual=actual.items(),
                         forecast_id=f'simulated:{day}:{name}',model_version=predictions[name]['model_version'],
                         actual_version=target['actual_version'],forecast_status='SHADOW',actual_verified=True,
                         issued_at=selected.cutoff_utc,publication_ts=latest_publication,retrieved_at=latest_retrieval)
@@ -153,7 +157,8 @@ def run_walkforward(*,history,target_days,evaluated_at):
             # Accumulate only after ALL models and scores have passed for the day.
             periods = sorted(actual)
             for name in MODELS:
-                predicted=_prices(predictions[name]['prices']); t=totals[name]
+                predicted = forecast_prices[name]
+                t = totals[name]
                 for p in periods:
                     y = actual[p]
                     error=predicted[p]-y;t['n']+=1;t['ae']+=abs(error);t['err']+=error;t['denom']+=abs(y)

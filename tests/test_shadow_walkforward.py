@@ -216,6 +216,24 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(len(result['ranking']), len(MODELS))
         self.assertTrue(all(row['periods'] == 24 for row in result['ranking']))
 
+    def test_pooled_ranking_reuses_the_prices_validated_by_daily_scoring(self):
+        args = self.args()
+        expected = run_walkforward(**args)
+        self.assertEqual(expected['common_days'], 2)
+
+        def lazy_level_forecast(**kwargs):
+            prediction = predict_similar(**kwargs)
+            if kwargs['mode'] == 'level':
+                prediction['prices'] = iter(prediction['prices'])
+            return prediction
+
+        with patch('shadow_walkforward.predict_similar', side_effect=lazy_level_forecast):
+            result = run_walkforward(**args)
+
+        self.assertEqual(result['common_periods'], 48)
+        self.assertEqual(result['ranking'], expected['ranking'])
+        self.assertEqual(result['accepted'], expected['accepted'])
+
     def test_wrong_target_snapshot_excludes_day_from_all_models_before_scoring(self):
         args = self.args()
         affected = args['target_days'][-1]

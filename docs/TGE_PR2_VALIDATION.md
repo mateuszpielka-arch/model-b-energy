@@ -1038,3 +1038,8 @@ przez audyt danych oraz daty całkowicie nieobecne w źródle. Test używa
 oficjalnych cen TGE dla 09 i 10.11.2026. Zakres od 10.11 pokazuje brak
 JWCD dla tej doby i lukę 11–12.11. Doba 09.11 pozostaje w audycie źródła
 i jest poza zakresem raportu docelowego.
+
+Walk-forward używa tych samych znormalizowanych cen prognozy w metrykach
+doby i rankingu łącznym. Test podaje ceny modelu dni podobnych według
+poziomu jako jednorazowy iterator. Wyniki dobowe i ranking dla 48
+wspólnych okresów są identyczne jak dla zwykłej kolekcji.
