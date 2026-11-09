@@ -966,3 +966,8 @@ Fix1 dla standardowej doby 24h. Test odtwarza oficjalny HTML sesji dla
 dostawy 09.11.2026, porównuje wszystkie 24 ceny z zapisaną referencją
 i sprawdza import bez zapisu. Ścieżka standardowa odrzuca doby 23h i 25h
 przed pobraniem. Osobny eksport jesienny zachowuje same etykiety TGE.
+
+Eksport walidacyjny tworzy pliki dowodowe wyłącznie pod wolnymi nazwami.
+Jeśli CSV już istnieje lub jego zapis się nie powiedzie, wycofuje nowy
+HTML tej próby. Test na zapisanym oficjalnym HTML dla 02.11.2026 sprawdza
+kolizję zarówno z istniejącym HTML, jak i CSV oraz zachowanie ich treści.

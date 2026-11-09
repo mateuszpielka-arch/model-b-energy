@@ -74,6 +74,17 @@ def extract_reference(raw, day, *, autumn_25h=False):
     return rows
 
 
+def _write_new_evidence(path, payload):
+    # Exclusive creation leaves an existing path untouched, including on retry.
+    stream = path.open('xb')
+    try:
+        with stream:
+            stream.write(payload)
+    except OSError:
+        path.unlink(missing_ok=True)
+        raise
+
+
 def capture(day, directory, *, autumn_25h=False):
     warsaw = ZoneInfo('Europe/Warsaw')
     start = datetime.combine(day, datetime.min.time(), warsaw)
@@ -110,7 +121,12 @@ def capture(day, directory, *, autumn_25h=False):
             period = start_utc + timedelta(hours=index)
             writer.writerow([day.isoformat(), label, format(price, 'f'), period.isoformat()])
     reference=out.getvalue().encode()
-    raw_path.write_bytes(raw);ref_path.write_bytes(reference)
+    _write_new_evidence(raw_path, raw)
+    try:
+        _write_new_evidence(ref_path, reference)
+    except OSError:
+        raw_path.unlink(missing_ok=True)
+        raise
     return dict(delivery_date=day.isoformat(),session_date=session.isoformat(),url=url,
         retrieved_at_utc=completed,http_status=status,raw_file=raw_path.name,reference_file=ref_path.name,
         raw_sha256=sha256(raw).hexdigest(),reference_sha256=sha256(reference).hexdigest(),

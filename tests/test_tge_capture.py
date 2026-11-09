@@ -74,6 +74,28 @@ class CaptureOutputTest(unittest.TestCase):
             write_manifest(output, {'entries': [entry], 'errors': []})
             self.assertEqual(ingest_manifest(output / 'manifest.json')['periods'], 24)
 
+    def test_capture_preserves_existing_evidence_and_rolls_back_new_html(self):
+        fixture = Path(__file__).parent / 'fixtures/tge_rdn_captured_2026-11-01.html'
+        raw = fixture.read_bytes()
+        day = date(2026, 11, 2)
+        for extension in ('html', 'csv'):
+            with self.subTest(extension=extension), tempfile.TemporaryDirectory() as directory, patch(
+                'tools.capture_tge_validation.urlopen'
+            ) as fetch:
+                output = Path(directory)
+                existing = output / f'tge_delivery_{day}.{extension}'
+                existing.write_bytes(b'previous evidence')
+                response = fetch.return_value.__enter__.return_value
+                response.status = 200
+                response.geturl.return_value = 'https://tge.pl/energia-elektryczna-rdn?dateShow=01-11-2026'
+                response.read.return_value = raw
+
+                with self.assertRaises(FileExistsError):
+                    capture(day, output)
+
+                self.assertEqual(list(output.iterdir()), [existing])
+                self.assertEqual(existing.read_bytes(), b'previous evidence')
+
     def test_capture_rejects_redirected_session_before_reading_response(self):
         with tempfile.TemporaryDirectory() as directory, patch('tools.capture_tge_validation.urlopen') as fetch:
             output = Path(directory)
