@@ -25,6 +25,7 @@ FIXTURES = Path(__file__).parent / 'fixtures/tge_history_2026-11-04_2026-11-06'
 NOV_7_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-07')
 NOV_8_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-08')
 NOV_9_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-09')
+NOV_10_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-10')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
@@ -76,6 +77,19 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         report = ingest_manifest(manifest)
         self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
 
+    def test_tuesday_fixing_i_prices_and_utc_match_official_tge(self):
+        day = date(2026, 11, 10)
+        self.check_sessions(NOV_10_FIXTURES, [day.isoformat()])
+        manifest = NOV_10_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        _, _, rows = load_session(entry, NOV_10_FIXTURES)
+        self.assertEqual(
+            [row['period_start_utc'] for row in rows],
+            [period.isoformat() for period in expected_periods(day)],
+        )
+        report = ingest_manifest(manifest)
+        self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
+
     def check_sessions(self, directory, days):
         manifest = json.loads((directory / 'manifest.json').read_text())
         self.assertEqual(manifest['errors'], [])
@@ -115,9 +129,15 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
         return conn
 
     def test_monday_manifest_is_archived_and_replayed_without_duplicate_rows(self):
-        manifest_path = NOV_9_FIXTURES / 'manifest.json'
+        self.check_manifest_archive_and_replay(NOV_9_FIXTURES)
+
+    def test_tuesday_manifest_with_utc_is_archived_and_replayed_without_duplicate_rows(self):
+        self.check_manifest_archive_and_replay(NOV_10_FIXTURES)
+
+    def check_manifest_archive_and_replay(self, directory):
+        manifest_path = directory / 'manifest.json'
         entry, = json.loads(manifest_path.read_text())['entries']
-        raw, _, rows = load_session(entry, NOV_9_FIXTURES)
+        raw, _, rows = load_session(entry, directory)
         day = date.fromisoformat(entry['delivery_date'])
         expected = list(zip(expected_periods(day), (Decimal(row['price_pln_mwh']) for row in rows)))
 

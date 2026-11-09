@@ -977,3 +977,10 @@ pierwszej standardowej doby po jesiennej zmianie czasu. Zapisano HTML,
 CSV i manifest z rzeczywistym czasem pobrania 09.11.2026. Test porównuje
 24 ceny parsera z osobną ekstrakcją lxml z tego samego HTML, sprawdza
 okresy UTC od 25.10 23:00 i potwierdza przyjęcie w imporcie bez zapisu.
+
+Pobrano oficjalną sesję TGE z 09.11.2026 dla dostawy 10.11.2026.
+Zapisano HTML, CSV z okresami UTC i manifest z rzeczywistym czasem
+pobrania. Test porównuje wszystkie 24 ceny parsera z osobną ekstrakcją
+lxml z tego samego HTML. Test na izolowanym PostgreSQL sprawdza zapis
+24 cen, ponowienie bez dopisania wierszy, zachowanie dowodów i pustą
+kwarantannę.
