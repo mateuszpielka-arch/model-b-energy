@@ -5,7 +5,7 @@ No I/O. Verified canonical history is a prerequisite, not produced by this modul
 """
 from bisect import bisect_left
 from collections import Counter
-from collections.abc import Iterator
+from collections.abc import Iterable, Mapping
 from datetime import date, datetime, timedelta
 from decimal import Decimal, localcontext
 from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
@@ -46,7 +46,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
             continue
         for field in ('snapshots', 'actual'):
             values = packet.get(field)
-            if not isinstance(values, Iterator):
+            if not isinstance(values, Iterable) or isinstance(values, (list, tuple, str, bytes, Mapping)):
                 continue
             try:
                 packet = {**packet, field: tuple(values)}

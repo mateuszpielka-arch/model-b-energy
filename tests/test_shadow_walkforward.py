@@ -603,6 +603,29 @@ class WalkforwardTests(unittest.TestCase):
         ]
         self.assertEqual(run_walkforward(**args), expected)
 
+    def test_lazy_daily_collections_are_read_once_for_scoring_and_training(self):
+        class ReloadableCollection:
+            def __init__(self, values):
+                self.values = values
+                self.reads = 0
+
+            def __iter__(self):
+                self.reads += 1
+                return iter(self.values if self.reads == 1 else ())
+
+        args = self.args()
+        expected = run_walkforward(**args)
+        self.assertEqual(expected['common_days'], 2)
+        sources = []
+        for packet in args['history'][-3:]:
+            for field in ('snapshots', 'actual'):
+                source = ReloadableCollection(packet[field])
+                packet[field] = source
+                sources.append(source)
+
+        self.assertEqual(run_walkforward(**args), expected)
+        self.assertEqual([source.reads for source in sources], [1] * len(sources))
+
     def test_snapshot_row_iterators_match_lists_across_models_and_days(self):
         args = self.args()
         expected = run_walkforward(**args)

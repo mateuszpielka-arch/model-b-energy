@@ -1026,3 +1026,9 @@ raz po weryfikacji czasu dostępności. Test podstawia źródło, które przy
 kolejnym odczycie zmieniłoby wartości pod tym samym identyfikatorem.
 Modele zachowują identyczne wyniki i ranking jak przy stałej liście
 wierszy, również gdy ta sama doba służy później do treningu.
+
+Walk-forward utrwala po pierwszym odczycie leniwie ładowane listy
+snapshotów JWCD i cen Fix1 dla danej doby. Test symuluje źródła, które
+przy kolejnym odczycie zwróciłyby pustą listę. Każde źródło jest czytane
+raz, a wynik scoringu, treningu i wspólnego rankingu zgadza się ze stałą
+kopią danych. Dotychczasowa kontrola dostępności poprzedza odczyt.
