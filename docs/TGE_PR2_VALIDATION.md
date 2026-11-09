@@ -954,3 +954,9 @@ znacznik oraz czas równy D-1 09:50 Europe/Warsaw lub wcześniejszy.
 Test CSV sprawdza osobno brak wartości, datę bez strefy oraz czasy
 sekundę przed granicą, dokładnie na granicy i sekundę po niej.
 Liczniki są dostępne dla każdej doby w audycie CSV i w podsumowaniach.
+
+Importer SHADOW sprawdza zgodność opcjonalnej kolumny
+`period_start_utc` z etykietą godziny referencji Fix1. Test na kopii
+oficjalnej sesji dla 09.11.2026 przyjmuje 24 prawidłowe okresy, a przed
+inicjalizacją bazy odrzuca przesuniętą godzinę, znacznik bez strefy
+i pustą wartość. Każdy wariant ma aktualny SHA-256 w manifeście.

@@ -1,3 +1,4 @@
+from datetime import date
 from hashlib import sha256
 import json
 import os
@@ -7,6 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from shadow_ingest_manifest import ingest_manifest,load_batches
 from shadow_postgres_archive import connect_test_database,initialize
+from shadow_scoring import expected_periods
 
 FIX=Path(__file__).parent/'fixtures/tge_history_2026-10-27_2026-11-02'
 MANIFEST=FIX/'manifest.json'
@@ -116,6 +118,40 @@ class ManifestTests(unittest.TestCase):
                 manifest.write_text(json.dumps(data))
                 with self.assertRaisesRegex(ValueError, error):
                     ingest_manifest(manifest, conn=object())
+
+    def test_reference_utc_periods_must_match_hour_labels(self):
+        day = '2026-11-09'
+        source = FIX.with_name(f'tge_delivery_{day}')
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'capture'
+            shutil.copytree(source, root)
+            manifest = root / 'manifest.json'
+            data = json.loads(manifest.read_text())
+            entry, = data['entries']
+            reference = root / entry['reference_file']
+            header, *prices = reference.read_text().splitlines()
+            periods = [period.isoformat() for period in expected_periods(date.fromisoformat(day))]
+            for first, error in (
+                (periods[0], None),
+                (periods[1], 'does not match H01'),
+                (periods[0][:-6], 'Invalid Fix1 reference UTC period for H01'),
+                ('', 'Invalid Fix1 reference UTC period for H01'),
+            ):
+                with self.subTest(first=first):
+                    lines = [header + ',period_start_utc']
+                    lines.extend(
+                        f'{price},{period}'
+                        for price, period in zip(prices, [first, *periods[1:]], strict=True)
+                    )
+                    payload = ('\n'.join(lines) + '\n').encode()
+                    reference.write_bytes(payload)
+                    entry['reference_sha256'] = sha256(payload).hexdigest()
+                    manifest.write_text(json.dumps(data))
+                    if error is None:
+                        self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+                    else:
+                        with self.assertRaisesRegex(ValueError, error):
+                            ingest_manifest(manifest, conn=object())
 
     def test_manifest_requires_matching_session_date_before_database_initialization(self):
         source = FIX.with_name('tge_delivery_2026-11-08')

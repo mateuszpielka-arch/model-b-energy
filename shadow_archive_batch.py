@@ -12,7 +12,7 @@ from hashlib import sha256
 from io import StringIO
 import re
 from shadow_asof import cutoff_for_day
-from shadow_history_audit import read_csv_rows
+from shadow_history_audit import _stamp, read_csv_rows
 from shadow_scoring import expected_periods
 from tge_parser_safe import parse_complete_standard_day
 
@@ -47,6 +47,19 @@ def read_reference_csv(reference, day):
         raise ValueError('Missing required Fix1 reference CSV columns')
     if any(row['delivery_date'] != day for row in rows):
         raise ValueError('Reference delivery date mismatch')
+    if rows and 'period_start_utc' in rows[0]:
+        periods = {
+            f'H{hour:02d}': period
+            for hour, period in enumerate(expected_periods(date.fromisoformat(day)), 1)
+        }
+        for row in rows:
+            label = row['hour']
+            try:
+                period = _stamp(row['period_start_utc'])
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f'Invalid Fix1 reference UTC period for {label}') from exc
+            if periods.get(label) != period:
+                raise ValueError(f'Fix1 reference UTC period does not match {label}')
     return [(row['hour'], row['price_pln_mwh']) for row in rows]
 
 
