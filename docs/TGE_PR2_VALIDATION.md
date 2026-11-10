@@ -1157,3 +1157,9 @@ tablicy obiektów dowodowych `entries`. Test na kopii manifestu dostawy
 11.11.2026 potwierdza poprawny import bez zapisu i odrzuca brak pola,
 błędne typy oraz zgłoszone błędy przed odczytem HTML lub otwarciem
 transakcji.
+
+Audyt CSV wymaga jawnego potwierdzenia weryfikacji Fix1 oraz
+tekstowej wersji danych. Test z 24 oficjalnymi cenami dostawy
+11.11.2026 i syntetycznymi metadanymi JWCD potwierdza, że wartości
+liczbowe w tych polach wykluczają dobę z treningu mimo kompletu cen
+i dostępności JWCD do D-1 09:50 Europe/Warsaw.

@@ -76,8 +76,11 @@ def audit_rows(rows):
                     if p is not None:
                         conflicting_price_periods.add(p)
             if _number(r.get('jwcd_mw')): good_jwcd+=1
-            if r.get('actual_verified') in (True,'true','True'): verified+=1
-            actual_versions.add(str(r.get('actual_version') or '').strip())
+            verification = r.get('actual_verified')
+            if verification is True or (isinstance(verification, str) and verification in ('true', 'True')):
+                verified += 1
+            actual_version = r.get('actual_version')
+            actual_versions.add(actual_version.strip() if isinstance(actual_version, str) else '')
             snapshot_ids.add(str(r.get("jwcd_snapshot_id") or "").strip())
             raw_actual_time = r.get('actual_available_at')
             if raw_actual_time in (None, ''):

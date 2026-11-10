@@ -32,6 +32,33 @@ class HistoryAuditTests(unittest.TestCase):
             r.update(publication_ts='2026-11-02T06:00:00Z',retrieved_at_utc='2026-11-02T07:00:00Z',retrieval_completed_at='2026-11-02T07:01:00Z')
         before=deepcopy(rows);self.assertEqual(audit_rows(rows)['model_ready_days'],1);self.assertEqual(rows,before)
 
+    def test_actual_provenance_requires_explicit_verification_and_text_version(self):
+        fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-11/tge_delivery_2026-11-11.csv'
+        official = read_csv(fixture)
+        rows = self.rows('2026-11-11')
+        for row, price in zip(rows, official, strict=True):
+            row.update(fix1=price['price_pln_mwh'], publication_ts='2026-11-10T08:00:00Z',
+                       retrieved_at_utc='2026-11-10T08:30:00Z',
+                       retrieval_completed_at='2026-11-10T08:50:00Z')
+        rows[0]['actual_verified'] = True
+        rows[1]['actual_verified'] = 'True'
+        self.assertTrue(audit_rows(rows)['days'][0]['model_ready'])
+
+        for field, value, issue in (
+            ('actual_verified', 1, 'ACTUAL_NOT_VERIFIED'),
+            ('actual_verified', 1.0, 'ACTUAL_NOT_VERIFIED'),
+            ('actual_verified', '1', 'ACTUAL_NOT_VERIFIED'),
+            ('actual_version', 42, 'MISSING_ACTUAL_VERSION'),
+            ('actual_version', True, 'MISSING_ACTUAL_VERSION'),
+        ):
+            with self.subTest(field=field, value=value):
+                changed = [{**row, field: value} for row in rows]
+                day, = audit_rows(changed)['days']
+                self.assertTrue(day['complete_pairs'])
+                self.assertEqual(day['valid_fix1_rows'], 24)
+                self.assertFalse(day['model_ready'])
+                self.assertEqual(day['issues'], [issue])
+
     def test_duplicate_hour_not_complete(self):
         rows=self.rows(); rows[-1]=deepcopy(rows[0])
         self.assertFalse(audit_rows(rows)['days'][0]['complete_periods'])
