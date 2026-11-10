@@ -8,7 +8,8 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
+from urllib.error import HTTPError, URLError
 
 from shadow_ingest_manifest import MAX_HTML_BYTES, ingest_manifest
 from tools.capture_tge_validation import capture, extract_reference, write_manifest
@@ -112,6 +113,56 @@ class CaptureOutputTest(unittest.TestCase):
                         capture(date(2026, 11, 9), output)
             response.read.assert_not_called()
             self.assertEqual(list(output.iterdir()), [])
+
+    def test_capture_retries_503_and_read_timeout_before_saving_official_response(self):
+        day = date(2026, 11, 11)
+        fixture = Path(__file__).parent / f'fixtures/tge_delivery_{day}'
+        entry, = json.loads((fixture / 'manifest.json').read_text())['entries']
+        raw = gzip.decompress((fixture / entry['raw_file']).read_bytes())
+        with tempfile.TemporaryDirectory() as directory, patch(
+            'tools.capture_tge_validation.urlopen'
+        ) as fetch, patch('tools.capture_tge_validation.sleep') as sleep:
+            output = Path(directory)
+            response = fetch.return_value.__enter__.return_value
+            response.status = 200
+            response.geturl.return_value = entry['url']
+            response.read.side_effect = [TimeoutError('read timed out'), raw]
+            fetch.side_effect = [HTTPError(entry['url'], 503, 'unavailable', {}, None),
+                                 fetch.return_value, fetch.return_value]
+            saved = capture(day, output)
+            self.assertEqual(fetch.call_count, 3)
+            self.assertEqual(sleep.call_args_list, [call(1), call(2)])
+            self.assertEqual((saved['raw_sha256'], saved['reference_sha256']),
+                             (entry['raw_sha256'], entry['reference_sha256']))
+            self.assertEqual(len(list(output.iterdir())), 2)
+
+    def test_capture_bounds_transient_retries_and_preserves_empty_output_on_failure(self):
+        day = date(2026, 11, 11)
+        url = 'https://tge.pl/energia-elektryczna-rdn?dateShow=10-11-2026'
+        cases = [
+            (lambda: HTTPError(url, 429, 'rate limited', {'Retry-After': '5'}, None), [call(5), call(5)]),
+            (lambda: HTTPError(url, 429, 'rate limited', {'Retry-After': '60'}, None), []),
+            (lambda: HTTPError(url, 429, 'rate limited',
+                               {'Retry-After': 'Tue, 10 Nov 2026 12:00:07 GMT'}, None), [call(7), call(7)]),
+            (lambda: HTTPError(url, 404, 'not found', {}, None), []),
+            (lambda: URLError('certificate validation failed'), []),
+            (lambda: URLError(TimeoutError('connect timed out')), [call(1), call(2)]),
+        ]
+        for make_error, waits in cases:
+            with self.subTest(error=str(make_error())), tempfile.TemporaryDirectory() as directory, patch(
+                'tools.capture_tge_validation.urlopen'
+            ) as fetch, patch('tools.capture_tge_validation.sleep') as sleep, patch(
+                'tools.capture_tge_validation.datetime', wraps=datetime
+            ) as clock:
+                output = Path(directory)
+                clock.min = datetime.min
+                clock.now.return_value = datetime.fromisoformat('2026-11-10T12:00:00+00:00')
+                fetch.side_effect = [make_error() for _ in range(len(waits) + 1)]
+                with self.assertRaises(URLError):
+                    capture(day, output)
+                self.assertEqual(fetch.call_count, len(waits) + 1)
+                self.assertEqual(sleep.call_args_list, waits)
+                self.assertEqual(list(output.iterdir()), [])
 
     def test_capture_bounds_html_before_parsing_or_writing(self):
         with tempfile.TemporaryDirectory() as directory, patch('tools.capture_tge_validation.urlopen') as fetch:

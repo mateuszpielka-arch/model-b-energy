@@ -1139,3 +1139,9 @@ rekordów z polami `delivery_date`, `forecast_id`, `forecast_status`,
 `model_version`, `issued_at`, `publication_ts`, `retrieved_at`
 oraz `prices` jako listę par [start UTC, cena]. Test CLI sprawdza
 25 okresów doby zmiany czasu oraz odrzucenie duplikatu daty dostawy.
+
+Narzędzie walidacyjne TGE ponawia odczyt po timeoutach oraz HTTP
+429, 500, 502, 503 i 504, maksymalnie do trzech prób. Uwzględnia
+Retry-After, a przy żądanym oczekiwaniu ponad 10 s kończy pobieranie.
+Testy symulują błędy HTTP i sieci, sprawdzają brak plików po porażce
+oraz zgodne SHA-256 HTML i CSV dostawy 11.11.2026 po udanym ponowieniu.

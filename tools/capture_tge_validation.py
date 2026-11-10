@@ -8,12 +8,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import csv
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from email.utils import parsedate_to_datetime
 from hashlib import sha256
 import io
 import json
 from pathlib import Path
 import re
 from tempfile import NamedTemporaryFile
+from time import sleep
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
@@ -85,6 +88,40 @@ def _write_new_evidence(path, payload):
         raise
 
 
+def _fetch_session(url, day):
+    request = Request(url, headers={'User-Agent': 'model-b-energy-shadow-validation/1.0'})
+    for attempt in range(3):
+        delay = 2 ** attempt
+        try:
+            with urlopen(request, timeout=35) as response:
+                if response.geturl() != url:
+                    raise ValueError(f'TGE response URL differs from requested session for {day}')
+                if response.status != 200:
+                    raise ValueError(f'HTTP {response.status}')
+                return response.status, response.read(MAX_HTML_BYTES + 1)
+        except HTTPError as exc:
+            exc.close()
+            if attempt == 2 or exc.code not in (429, 500, 502, 503, 504):
+                raise
+            retry_after = exc.headers.get('Retry-After') if exc.headers else None
+            if retry_after:
+                try:
+                    wait = int(retry_after)
+                except ValueError:
+                    try:
+                        retry_at = parsedate_to_datetime(retry_after)
+                        wait = (retry_at - datetime.now(timezone.utc)).total_seconds()
+                    except (TypeError, ValueError, OverflowError):
+                        raise exc from None
+                delay = max(delay, wait)
+                if delay > 10:
+                    raise
+        except (TimeoutError, URLError) as exc:
+            if attempt == 2 or (isinstance(exc, URLError) and not isinstance(exc.reason, TimeoutError)):
+                raise
+        sleep(delay)
+
+
 def capture(day, directory, *, autumn_25h=False):
     warsaw = ZoneInfo('Europe/Warsaw')
     start = datetime.combine(day, datetime.min.time(), warsaw)
@@ -96,13 +133,7 @@ def capture(day, directory, *, autumn_25h=False):
         raise ValueError('Standard reference requires a 24-hour Warsaw day')
     session=day-timedelta(days=1)
     url='https://tge.pl/energia-elektryczna-rdn?dateShow='+session.strftime('%d-%m-%Y')
-    with urlopen(Request(url,headers={'User-Agent':'model-b-energy-shadow-validation/1.0'}),timeout=35) as r:
-        if r.geturl() != url:
-            raise ValueError(f'TGE response URL differs from requested session for {day}')
-        status = r.status
-        if status != 200:
-            raise ValueError(f'HTTP {status}')
-        raw = r.read(MAX_HTML_BYTES + 1)
+    status, raw = _fetch_session(url, day)
     completed=datetime.now(timezone.utc).isoformat()
     if len(raw) > MAX_HTML_BYTES:
         raise ValueError(f'TGE response exceeds 8 MiB for {day}')
