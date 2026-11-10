@@ -1,8 +1,15 @@
+import csv
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+import json
+import subprocess
+import sys
+from tempfile import TemporaryDirectory
 import unittest
 
+from shadow_asof import cutoff_for_day
 from shadow_history_audit import read_csv
+from shadow_walkforward import FROZEN_90D_VERSION
 from shadow_walkforward_csv import evaluate_csv_rows
 import test_shadow_ols
 
@@ -48,6 +55,38 @@ class WalkforwardCSVTests(unittest.TestCase):
         self.assertEqual(scoped["walkforward"]["ranking"], comparison["ranking"])
         self.assertEqual(scoped["walkforward"]["target_from"], target.isoformat())
         self.assertEqual(scoped["walkforward"]["target_to"], target.isoformat())
+
+        cutoff = cutoff_for_day(target)
+        record = dict(
+            delivery_date=target.isoformat(), forecast_id="archived-test", forecast_status="FROZEN",
+            model_version=FROZEN_90D_VERSION, issued_at=cutoff.isoformat(),
+            publication_ts=(cutoff - timedelta(minutes=1)).isoformat(), retrieved_at=cutoff.isoformat(),
+            prices=[(row["period_start_utc"].isoformat(), str(2 * row["jwcd_mw"] + 15))
+                    for row in target_snapshot["rows"]],
+        )
+        with TemporaryDirectory() as directory:
+            history_path = Path(directory) / "history.csv"
+            with history_path.open("w", newline="", encoding="utf-8") as stream:
+                writer = csv.DictWriter(stream, fieldnames=rows[0])
+                writer.writeheader()
+                writer.writerows(rows)
+            frozen_path = Path(directory) / "frozen.json"
+            command = [
+                sys.executable, str(Path(__file__).resolve().parents[1] / "shadow_walkforward_csv.py"),
+                "--evaluated-at", evaluated_at.isoformat(), "--target-from", target.isoformat(),
+                "--frozen-90d-json", str(frozen_path), str(history_path),
+            ]
+            frozen_path.write_text(json.dumps([record]), encoding="utf-8")
+            completed = subprocess.run(command, check=True, capture_output=True, text=True)
+            benchmark = json.loads(completed.stdout)["walkforward"]["frozen_90d_benchmark"]
+            frozen, = [entry for entry in benchmark["ranking"] if entry["model"] == "frozen_90d"]
+            self.assertEqual((frozen["periods"], frozen["mae"]), (25, "5"))
+            self.assertEqual(benchmark["excluded_days"], {})
+
+            frozen_path.write_text(json.dumps([record, record]), encoding="utf-8")
+            rejected = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn("Duplicate archived FROZEN delivery date", rejected.stderr)
 
         rows[0]["retrieval_completed_at"] = rows[0]["actual_available_at"]
         result = evaluate_csv_rows(rows, evaluated_at=evaluated_at)

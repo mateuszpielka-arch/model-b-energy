@@ -5,13 +5,14 @@ from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 import json
+from pathlib import Path
 
 from shadow_history_audit import FIX1_COLUMNS, _stamp, audit_rows, missing_delivery_ranges, read_csv
 from shadow_scoring import expected_periods
 from shadow_walkforward import run_walkforward
 
 
-def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None):
+def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, frozen_90d_by_day=None):
     """Report source readiness and compare only days admitted by the CSV audit.
 
     CSV provenance fields are assertions supplied by the source. The audit
@@ -60,7 +61,10 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None):
         return (target_from is None or day >= target_from) and (target_to is None or day <= target_to)
 
     targets = [day for day in sorted(grouped) if within_target_range(day)]
-    comparison = run_walkforward(history=history, target_days=targets, evaluated_at=evaluated_at)
+    comparison = run_walkforward(
+        history=history, target_days=targets, evaluated_at=evaluated_at,
+        frozen_90d_by_day=frozen_90d_by_day,
+    )
     comparison["targets_excluded_by_csv_audit"] = {
         entry["day"]: entry["issues"]
         for entry in readiness["days"]
@@ -82,18 +86,47 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None):
     return dict(history_audit=readiness, csv_admission=admission, walkforward=comparison)
 
 
+def read_frozen_90d(path):
+    """Read explicit offline FROZEN records without inferring provenance."""
+    with path.open(encoding="utf-8") as stream:
+        records = json.load(stream, parse_float=Decimal)
+    if not isinstance(records, list):
+        raise ValueError("Expected a JSON array of archived FROZEN forecasts")
+    by_day = {}
+    for index, record in enumerate(records, 1):
+        try:
+            day = date.fromisoformat(record["delivery_date"])
+            prices = [(_stamp(period), value) for period, value in record["prices"]]
+            times = {field: _stamp(record[field])
+                     for field in ("issued_at", "publication_ts", "retrieved_at")}
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid archived FROZEN forecast at entry {index}") from exc
+        if day in by_day:
+            raise ValueError(f"Duplicate archived FROZEN delivery date: {day}")
+        by_day[day] = {**record, **times, "prices": prices}
+    return by_day
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--evaluated-at", required=True, type=_stamp)
     parser.add_argument("--target-from", type=date.fromisoformat, help="First delivery date to score")
     parser.add_argument("--target-to", type=date.fromisoformat, help="Last delivery date to score")
+    parser.add_argument("--frozen-90d-json", type=Path, help="Local JSON export of archived FROZEN JWCD 90D forecasts")
     parser.add_argument("csv", nargs="+")
     args = parser.parse_args()
     if args.target_from is not None and args.target_to is not None and args.target_from > args.target_to:
         parser.error("--target-from must not be after --target-to")
+    frozen = None
+    if args.frozen_90d_json is not None:
+        try:
+            frozen = read_frozen_90d(args.frozen_90d_json)
+        except (OSError, ValueError) as exc:
+            parser.error(str(exc))
     rows = (row for path in args.csv for row in read_csv(path))
     result = evaluate_csv_rows(
         rows, evaluated_at=args.evaluated_at, target_from=args.target_from, target_to=args.target_to,
+        frozen_90d_by_day=frozen,
     )
     print(json.dumps(result, default=str, indent=2))
 

@@ -1132,3 +1132,10 @@ CSV pochodzi z osobnej ekstrakcji XPath tej samej odpowiedzi HTML.
 Test porównuje wszystkie ceny oraz sprawdza H07, gdzie Fixing I
 to 950,67 PLN/MWh, a notowania ciągłe 953,00 PLN/MWh.
 Drugi test sprawdza zapis i ponowienie na izolowanym PostgreSQL.
+
+Polecenie `python shadow_walkforward_csv.py --evaluated-at CZAS --frozen-90d-json PLIK historia.csv`
+uruchamia benchmark z lokalnego eksportu JSON. Plik zawiera tablicę
+rekordów z polami `delivery_date`, `forecast_id`, `forecast_status`,
+`model_version`, `issued_at`, `publication_ts`, `retrieved_at`
+oraz `prices` jako listę par [start UTC, cena]. Test CLI sprawdza
+25 okresów doby zmiany czasu oraz odrzucenie duplikatu daty dostawy.
