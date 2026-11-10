@@ -35,6 +35,19 @@ class ScorePersistenceTests(unittest.TestCase):
         self.assertEqual(score_archived_day(self.conn,**self.kw)[0],'REPLAY')
         self.assertEqual(self.count(),1)
 
+    def test_single_pass_forecast_rows_store_and_replay_the_same_score(self):
+        rows = self.kw['forecast']
+        forecast = (iter((period, price + 5)) for period, price in rows)
+        inserted, score = score_archived_day(self.conn, **{**self.kw, 'forecast': forecast})
+        self.assertEqual((inserted, score.mae, score.bias), ('INSERT', Decimal(5), Decimal(5)))
+        query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+        previous = self.conn.execute(query).fetchall()
+        offset = timezone(timedelta(hours=1))
+        replay_rows = [(period.astimezone(offset), str(price + 5)) for period, price in reversed(rows)]
+        self.assertEqual(score_archived_day(self.conn, **{**self.kw, 'forecast': replay_rows}),
+                         ('REPLAY', score))
+        self.assertEqual(self.conn.execute(query).fetchall(), previous)
+
     def test_equivalent_decimal_spellings_replay_without_writing(self):
         first, *rest = self.kw['forecast']
         period, _ = first

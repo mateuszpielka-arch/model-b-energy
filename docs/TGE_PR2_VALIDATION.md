@@ -1181,3 +1181,10 @@ w izolowanej bazie. Po błędzie blokady ponawia cały manifest
 po 250 i 500 ms, za każdym razem po wycofaniu transakcji.
 Test potwierdza limit trzech prób, pustą bazę przed ponowieniem,
 zapis 168 okresów po zwolnieniu blokady i brak duplikatów.
+
+Scoring PostgreSQL SHADOW normalizuje wejściowe ceny prognozy
+raz dla metryk i skrótu wejścia. Test na oficjalnej sesji TGE
+dla dostawy 02.11.2026 zapisuje wynik z jednorazowych iteratorów,
+a potem potwierdza idempotencję przy odwróconej kolejności i
+równoważnym przesunięciu strefy czasowej. Test starszego skrótu
+nadal sprawdza odczyt zapisanego wyniku.

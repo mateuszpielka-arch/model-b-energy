@@ -7,7 +7,7 @@ import re
 from shadow_archive_batch import PARSER_VERSION, prepare_batch, read_reference_csv, validate_source_url
 from shadow_asof import cutoff_for_day
 from shadow_postgres_archive import _guard, _has_delivery_quarantine, _lock_delivery_day
-from shadow_scoring import SCORING_VERSION, _utc, expected_periods, score_day
+from shadow_scoring import SCORING_VERSION, _prices, _utc, expected_periods, score_day
 from tge_parser_safe import parse_complete_standard_day
 
 DDL = '''CREATE TABLE IF NOT EXISTS fix1_shadow_test.scores (
@@ -54,7 +54,7 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
     """
     _guard(conn)
     evaluation_time = _utc(evaluated_at) if evaluated_at is not None else None
-    forecast = list(forecast)
+    forecast_prices = _prices(forecast)
     with conn.transaction():
         _lock_delivery_day(conn, day)
         actual = conn.execute('''SELECT period_start_utc,price,batch_id
@@ -101,7 +101,7 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         if actual_rows != parsed_rows:
             raise ValueError('Stored actual prices/periods differ from archived raw')
         version = ':'.join((day.isoformat(),raw_hash,ref_hash,parser))
-        score = score_day(day=day,forecast=forecast,actual=actual_rows,
+        score = score_day(day=day,forecast=forecast_prices.items(),actual=actual_rows,
             forecast_id=forecast_id,model_version=model_version,actual_version=version,
             forecast_status=forecast_status,actual_verified=True,issued_at=issued_at,
             publication_ts=publication_ts,retrieved_at=retrieved_at)
@@ -110,8 +110,8 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         inputs = dict(day=day.isoformat(),forecast_status=forecast_status,
             issued_at=_utc(issued_at).isoformat(),publication_ts=_utc(publication_ts).isoformat(),
             retrieved_at=_utc(retrieved_at).isoformat(),
-            forecast=sorted((_utc(p).isoformat(), canonical_decimal(Decimal(str(v))))
-                            for p,v in forecast))
+            forecast=sorted((p.isoformat(), canonical_decimal(v))
+                            for p, v in forecast_prices.items()))
         fingerprint = input_fingerprint(inputs)
         score_values = asdict(score)
         payload = json.loads(json.dumps(score_values, default=canonical_decimal, sort_keys=True))
@@ -129,7 +129,7 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
             if previous != (fingerprint, payload):
                 # Existing rows may use the original spelling-sensitive hash.
                 legacy_inputs = {**inputs, 'forecast': sorted(
-                    (_utc(p).isoformat(), str(Decimal(str(v)))) for p, v in forecast
+                    (p.isoformat(), str(v)) for p, v in forecast_prices.items()
                 )}
                 legacy_payload = json.loads(json.dumps(score_values, default=str, sort_keys=True))
                 legacy_fingerprint = input_fingerprint(legacy_inputs)
