@@ -329,6 +329,16 @@ class ReadonlyAuditTests(unittest.TestCase):
                 self.assertEqual(result['archive_timing_candidate_days'], [day.isoformat()] if eligible else [])
                 self.assertEqual(result['archive_hourly_candidate_days'], [day.isoformat()] if eligible else [])
                 self.assertFalse(snapshot['model_ready'])
+                selected = result['archive_hourly_candidate_selection']
+                if eligible:
+                    self.assertEqual(selected[day.isoformat()]['provisional_timing'], {
+                        'cutoff_utc': cutoff,
+                        'archived_at_utc': cutoff,
+                        'retrieved_at_utc': retrieved.isoformat(),
+                        'latest_publication_ts_utc': '2026-10-24T07:20:00+00:00',
+                    })
+                else:
+                    self.assertEqual(selected, {})
 
         self.conn.execute('UPDATE raw.snapshots SET payload=%s', (Jsonb({'pk5l-wp': [
             {key: value for key, value in row.items() if key != 'period_start_utc'}
@@ -365,12 +375,20 @@ class ReadonlyAuditTests(unittest.TestCase):
         insert(1, 50, 999)
         insert(2, 49, 1000)
         insert(3, 51, 2000)
-        self.assertEqual(selection()['provisional_snapshot_id'], '2')
+        selected = selection()
+        self.assertEqual(selected['provisional_snapshot_id'], '2')
+        self.assertEqual(selected['provisional_timing'], {
+            'cutoff_utc': '2026-11-01T08:50:00+00:00',
+            'archived_at_utc': '2026-11-01T08:49:00+00:00',
+            'retrieved_at_utc': retrieved.isoformat(),
+            'latest_publication_ts_utc': '2026-11-01T08:00:00+00:00',
+        })
         insert(4, 49, '1000.00', reverse=True)
         self.assertEqual(selection()['provisional_snapshot_id'], '4')
         insert(5, 49, 1001)
         result = selection()
         self.assertIsNone(result['provisional_snapshot_id'])
+        self.assertIsNone(result['provisional_timing'])
         self.assertEqual(result['rejected_snapshots'], (('1', 'SUPERSEDED_JWCD_PUBLICATIONS'),) + tuple(
             (str(identifier), 'CONFLICTING_LATEST_SNAPSHOTS') for identifier in (2, 4, 5)
         ))
@@ -379,6 +397,7 @@ class ReadonlyAuditTests(unittest.TestCase):
         insert(6, 45, 1001)
         result = selection()
         self.assertIsNone(result['provisional_snapshot_id'])
+        self.assertIsNone(result['provisional_timing'])
         self.assertEqual(result['rejected_snapshots'], (('1', 'SUPERSEDED_JWCD_PUBLICATIONS'),) + tuple(
             (str(identifier), 'CONFLICTING_JWCD_PUBLICATION') for identifier in (2, 4, 6)
         ))

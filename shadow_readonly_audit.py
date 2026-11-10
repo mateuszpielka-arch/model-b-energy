@@ -326,8 +326,18 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
         candidate_selection = {}
         for day, candidates in sorted(hourly_candidates.items()):
             selection = select_snapshot(day, candidates)
+            timing = None
+            if selection.snapshot_id is not None:
+                timing = {
+                    'cutoff_utc': selection.cutoff_utc.isoformat(),
+                    'retrieved_at_utc': selection.retrieved_at_utc.isoformat(),
+                    'latest_publication_ts_utc': selection.latest_publication_ts_utc.isoformat(),
+                    # Selection uses archive time only as a provisional upper bound.
+                    'archived_at_utc': selection.retrieval_completed_at_utc.isoformat(),
+                }
             candidate_selection[day.isoformat()] = {
                 'provisional_snapshot_id': selection.snapshot_id,
+                'provisional_timing': timing,
                 'rejected_snapshots': selection.rejected,
             }
         coverage = summarize_delivery_coverage(snapshots, actuals, candidate_selection)

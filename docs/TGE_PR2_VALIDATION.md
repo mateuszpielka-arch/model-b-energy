@@ -1188,3 +1188,10 @@ dla dostawy 02.11.2026 zapisuje wynik z jednorazowych iteratorów,
 a potem potwierdza idempotencję przy odwróconej kolejności i
 równoważnym przesunięciu strefy czasowej. Test starszego skrótu
 nadal sprawdza odczyt zapisanego wyniku.
+
+Audyt SQL read-only pokazuje dla wybranego kandydata PK5/JWCD
+czas pobrania, najpóźniejszej publikacji, zapisu w archiwum i granicę
+D-1 09:50 Europe/Warsaw. Czas zapisu jest granicą pomocniczą,
+a kandydat nadal wymaga weryfikacji przed treningiem.
+Testy obejmują dobę 25h z zapisem na granicy i dobę 24h,
+gdzie spóźniony zapis oraz konflikt wersji nie dostają metadanych wyboru.
