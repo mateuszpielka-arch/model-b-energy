@@ -1107,3 +1107,9 @@ oraz weekendy według lokalnej daty dostawy w Europe/Warsaw.
 Testy obejmują 49 wspólnych okresów w weekend zmiany czasu
 i 24 w poniedziałek. Cena zerowa z poniedziałku pomniejsza
 licznik okresów MAPE wyłącznie w grupie dni od poniedziałku do piątku.
+
+Walk-forward pokazuje ranking według lokalnej godziny początku okresu
+w Europe/Warsaw. Drugie wystąpienie 02:00 jesienią ma osobną grupę
+`02:00[fold=1]`, a brak 02:00 wiosną nie zwiększa pokrycia.
+Test dla dób 23/24/25h potwierdza sumę 72 wspólnych okresów oraz
+osobne rozliczenie ceny zerowej w powtórzonej godzinie.

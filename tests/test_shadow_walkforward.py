@@ -171,6 +171,12 @@ class WalkforwardTests(unittest.TestCase):
             + fixtures.OLSTests().data(92, target=autumn + timedelta(days=1))['history']
         )
         target_days = [autumn, autumn - timedelta(days=1), spring]
+        autumn_packet = next(packet for packet in history if packet['day'] == autumn)
+        repeated_period = datetime(2026, 10, 25, 1, tzinfo=timezone.utc)
+        autumn_packet['actual'] = [
+            (period, 0 if period == repeated_period else price)
+            for period, price in autumn_packet['actual']
+        ]
         result = run_walkforward(
             history=history, target_days=target_days,
             evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
@@ -194,6 +200,21 @@ class WalkforwardTests(unittest.TestCase):
                     self.assertEqual((row['days'], row['periods']), (1, hours))
                     for metric in ('mae', 'bias', 'mape_pct', 'wape_pct', 'mape_periods', 'zero_actual_periods'):
                         self.assertEqual(row[metric], getattr(score, metric))
+
+        by_hour = result['ranking_by_local_hour']
+        self.assertEqual(set(by_hour), {f'{hour:02d}:00' for hour in range(24)} | {'02:00[fold=1]'})
+        self.assertEqual(sum(rows[0]['periods'] for rows in by_hour.values()), 72)
+        self.assertEqual({(row['days'], row['periods'], row['mape_periods'])
+                          for row in by_hour['02:00']}, {(2, 2, 2)})
+        repeated = by_hour['02:00[fold=1]']
+        self.assertEqual({row['model'] for row in repeated}, set(MODELS))
+        for row in repeated:
+            price = dict(result['accepted'][-1]['predictions'][row['model']]['prices'])[repeated_period]
+            self.assertEqual((row['days'], row['periods'], row['mape_periods']), (1, 1, 0))
+            self.assertEqual(row['mae'], price.copy_abs())
+            self.assertEqual(row['bias'], price)
+            self.assertIsNone(row['mape_pct'])
+            self.assertIsNone(row['wape_pct'])
 
     def test_ranking_separates_warsaw_delivery_weekdays_from_weekends(self):
         monday = date(2026, 10, 26)

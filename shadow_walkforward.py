@@ -4,14 +4,14 @@ Simulates issuance at each D-1 09:50; never creates real FROZEN forecasts.
 No I/O. Verified canonical history is a prerequisite, not produced by this module.
 """
 from bisect import bisect_left
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, timedelta
 from decimal import Decimal, localcontext
 from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
 from shadow_similar_consensus import MEDIAN_MEMBERS, median_consensus, predict_similar
-from shadow_scoring import _utc, _prices, expected_periods, score_day
+from shadow_scoring import WARSAW, _utc, _prices, expected_periods, score_day
 
 MODELS=('ols30','ols60','ols90','similar_shape','similar_level','median4')
 
@@ -87,6 +87,8 @@ def run_walkforward(*,history,target_days,evaluated_at):
     totals_by_hours = {hours: _empty_totals() for hours in (23, 24, 25)}
     totals_by_day_type = {kind: _empty_totals() for kind in ('weekday', 'weekend')}
     common_days_by_day_type = Counter()
+    totals_by_local_hour = defaultdict(_empty_totals)
+    common_periods_by_local_hour = Counter()
     with localcontext() as ctx:
         ctx.prec=34
         for day in target_days:
@@ -192,6 +194,14 @@ def run_walkforward(*,history,target_days,evaluated_at):
             periods = sorted(actual)
             day_type = 'weekend' if day.weekday() >= 5 else 'weekday'
             common_days_by_day_type[day_type] += 1
+            hourly_totals = {}
+            for period in periods:
+                local = period.astimezone(WARSAW)
+                hour = local.strftime('%H:%M')
+                if local.fold:
+                    hour += '[fold=1]'
+                hourly_totals[period] = totals_by_local_hour[hour]
+                common_periods_by_local_hour[hour] += 1
             for name in MODELS:
                 predicted = forecast_prices[name]
                 model_totals = (totals[name], totals_by_hours[len(periods)][name],
@@ -199,7 +209,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 for p in periods:
                     y = actual[p]
                     error = predicted[p] - y
-                    for t in model_totals:
+                    for t in (*model_totals, hourly_totals[p][name]):
                         t['n'] += 1
                         t['ae'] += abs(error)
                         t['err'] += error
@@ -233,6 +243,11 @@ def run_walkforward(*,history,target_days,evaluated_at):
             kind: _rank(group, common_days_by_day_type[kind])
             for kind, group in totals_by_day_type.items()
         }
+        # Each local hour and fold occurs at most once per accepted delivery day.
+        ranking_by_local_hour = {
+            hour: _rank(totals_by_local_hour[hour], common_periods_by_local_hour[hour])
+            for hour in sorted(totals_by_local_hour)
+        }
     skipped_days_by_stage = {}
     for entry in skipped:
         skipped_days_by_stage.setdefault(entry['stage'], []).append(entry['day'])
@@ -242,4 +257,4 @@ def run_walkforward(*,history,target_days,evaluated_at):
         common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,
         unreadable_packets={day.isoformat(): unreadable_packets[day] for day in sorted(unreadable_packets)},
         ranking_metric="mae", ranking=ranking, ranking_by_hours=ranking_by_hours,
-        ranking_by_day_type=ranking_by_day_type)
+        ranking_by_day_type=ranking_by_day_type, ranking_by_local_hour=ranking_by_local_hour)
