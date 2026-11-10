@@ -86,17 +86,31 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
     return dict(history_audit=readiness, csv_admission=admission, walkforward=comparison)
 
 
+def _unique_frozen_object(pairs):
+    record = {}
+    for key, value in pairs:
+        if key in record:
+            raise ValueError(f"Duplicate archived FROZEN field: {key}")
+        record[key] = value
+    return record
+
+
 def read_frozen_90d(path):
     """Read explicit offline FROZEN records without inferring provenance."""
     with path.open(encoding="utf-8") as stream:
-        records = json.load(stream, parse_float=Decimal)
+        records = json.load(stream, parse_float=Decimal, object_pairs_hook=_unique_frozen_object)
     if not isinstance(records, list):
         raise ValueError("Expected a JSON array of archived FROZEN forecasts")
     by_day = {}
     for index, record in enumerate(records, 1):
         try:
             day = date.fromisoformat(record["delivery_date"])
-            prices = [(_stamp(period), value) for period, value in record["prices"]]
+            price_pairs = record["prices"]
+            if not isinstance(price_pairs, list) or any(
+                not isinstance(pair, list) or len(pair) != 2 for pair in price_pairs
+            ):
+                raise ValueError("Expected price pairs as JSON arrays")
+            prices = [(_stamp(period), value) for period, value in price_pairs]
             times = {field: _stamp(record[field])
                      for field in ("issued_at", "publication_ts", "retrieved_at")}
         except (KeyError, TypeError, ValueError) as exc:

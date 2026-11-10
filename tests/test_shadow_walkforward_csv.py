@@ -88,6 +88,25 @@ class WalkforwardCSVTests(unittest.TestCase):
             self.assertEqual(rejected.returncode, 2)
             self.assertIn("Duplicate archived FROZEN delivery date", rejected.stderr)
 
+            for field in ("issued_at", "publication_ts", "retrieved_at"):
+                with self.subTest(duplicate_field=field):
+                    duplicate = json.dumps([record]).replace(
+                        f'"{field}":',
+                        f'"{field}": "{(cutoff + timedelta(seconds=1)).isoformat()}", "{field}":',
+                        1,
+                    )
+                    frozen_path.write_text(duplicate, encoding="utf-8")
+                    rejected = subprocess.run(command, capture_output=True, text=True)
+                    self.assertEqual(rejected.returncode, 2)
+                    self.assertIn(f"Duplicate archived FROZEN field: {field}", rejected.stderr)
+
+            period, price = record["prices"][0]
+            bad_prices = [{period: None, price: None}, *record["prices"][1:]]
+            frozen_path.write_text(json.dumps([{**record, "prices": bad_prices}]), encoding="utf-8")
+            rejected = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn("Invalid archived FROZEN forecast at entry 1", rejected.stderr)
+
         rows[0]["retrieval_completed_at"] = rows[0]["actual_available_at"]
         result = evaluate_csv_rows(rows, evaluated_at=evaluated_at)
         self.assertEqual(result["history_audit"]["model_ready_days"], 90)

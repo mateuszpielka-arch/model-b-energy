@@ -1163,3 +1163,9 @@ tekstowej wersji danych. Test z 24 oficjalnymi cenami dostawy
 11.11.2026 i syntetycznymi metadanymi JWCD potwierdza, że wartości
 liczbowe w tych polach wykluczają dobę z treningu mimo kompletu cen
 i dostępności JWCD do D-1 09:50 Europe/Warsaw.
+
+Importer JSON benchmarku FROZEN odrzuca powtórzone klucze
+i wymaga, by każda para [okres UTC, cena] była tablicą.
+Test CLI podaje sprzeczne znaczniki wystawienia, publikacji
+i pobrania względem D-1 09:50 Europe/Warsaw. Każdy duplikat
+blokuje benchmark przed oceną, a poprawny eksport nadal obejmuje 25 okresów.
