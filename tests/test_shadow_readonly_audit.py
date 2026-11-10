@@ -618,6 +618,17 @@ class ReadonlyAuditTests(unittest.TestCase):
 
         self.assertEqual(timing(), 'TIMING_CANDIDATE')
         self.conn.execute(
+            'UPDATE actual.tge_fix1 SET retrieved_at_utc=%s, first_seen_at_utc=%s WHERE hour=1',
+            ('2026-10-24T07:50:00Z', '2026-10-24T07:50:00Z'),
+        )
+        self.assertEqual(timing(), 'MIXED_OWN_ISSUE_CUTOFF')
+        actual, = audit_connection(self.conn)['actual_days']
+        self.assertEqual(actual['earliest_retrieved_at_utc'], '2026-10-24T07:50:00+00:00')
+        self.conn.execute(
+            'UPDATE actual.tge_fix1 SET retrieved_at_utc=%s, first_seen_at_utc=%s WHERE hour=1',
+            ('2026-10-25T08:50:00Z', '2026-10-24T08:00:00Z'),
+        )
+        self.conn.execute(
             'UPDATE actual.tge_fix1 SET retrieved_at_utc=%s WHERE hour=25',
             ('2026-10-25T08:50:01Z',),
         )
@@ -672,6 +683,20 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(report['fix1_reference']['different_periods'], 0)
         self.assertEqual(report['actual_days'][0]['quality_status'],
                          'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')
+
+        self.conn.execute(
+            'UPDATE actual.tge_fix1 SET first_seen_at_utc=%s, retrieved_at_utc=%s WHERE hour=1',
+            ('2026-11-02T08:50:00Z', '2026-11-02T08:50:00Z'),
+        )
+        mixed = audit_connection(self.conn, reference_rows=reference)
+        self.assertEqual(mixed['fix1_reference']['matched_days'], 1)
+        self.assertEqual(mixed['actual_days'][0]['next_delivery_training_timing'], 'MIXED_OWN_ISSUE_CUTOFF')
+        self.assertEqual(mixed['provisional_comparison_coverage']['paired_days'], 0)
+        self.assertEqual(mixed['reference_matched_comparison_coverage']['paired_days'], 0)
+        self.conn.execute(
+            'UPDATE actual.tge_fix1 SET first_seen_at_utc=%s, retrieved_at_utc=%s WHERE hour=1',
+            ('2026-11-02T10:00:00Z', '2026-11-02T10:00:00Z'),
+        )
 
         self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz')
         self.conn.execute('UPDATE actual.tge_fix1 SET period_start_utc=%s WHERE hour=1',

@@ -238,7 +238,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 count(*) FILTER (WHERE price_pln_mwh IN (60,2026)),
                 count(*) FILTER (WHERE price_pln_mwh IS NULL),
                 count(*) FILTER (WHERE price_pln_mwh::text IN ('NaN','Infinity','-Infinity')),
-                max({first_seen}), max({retrieved}),
+                max({first_seen}), min({retrieved}), max({retrieved}),
                 count(*) FILTER (WHERE {first_seen} IS NULL OR {retrieved} IS NULL),
                 count(*) FILTER (WHERE {retrieved} < {first_seen}),
                 count(*) FILTER (WHERE {retrieved} > {first_seen}),
@@ -254,7 +254,8 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date)
                 GROUP BY delivery_date ORDER BY delivery_date''', bounds).fetchall()
             for (day,n,hours,suspect,missing_prices,nonfinite_prices,latest_first_seen,
-                 latest_retrieved,missing_timing,invalid_timing,refetched,missing_source,source_count,
+                 earliest_retrieved,latest_retrieved,missing_timing,invalid_timing,refetched,
+                 missing_source,source_count,
                  invalid_periods,explicit_periods,explicit_hours) in rows:
                 periods = expected_periods(day)
                 expected = len(periods)
@@ -283,11 +284,14 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     # Local labels alone cannot identify the UTC periods on DST days.
                     structurally_complete = n == expected == 24 and observed == required
                 complete_prices = structurally_complete and missing_prices == nonfinite_prices == 0
+                own_cutoff = cutoff_for_day(day)
                 next_cutoff = cutoff_for_day(day + timedelta(days=1))
                 if not complete_prices or missing_timing or invalid_timing:
                     training_timing = 'UNPROVEN'
-                elif latest_retrieved <= cutoff_for_day(day):
+                elif latest_retrieved <= own_cutoff:
                     training_timing = 'AT_OR_BEFORE_OWN_ISSUE_CUTOFF'
+                elif earliest_retrieved <= own_cutoff:
+                    training_timing = 'MIXED_OWN_ISSUE_CUTOFF'
                 elif latest_retrieved > next_cutoff:
                     training_timing = 'AFTER_NEXT_ISSUE_CUTOFF'
                 else:
@@ -305,6 +309,8 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     next_delivery_training_timing=training_timing,
                     latest_first_seen_at_utc=latest_first_seen.astimezone(timezone.utc).isoformat()
                     if latest_first_seen is not None else None,
+                    earliest_retrieved_at_utc=earliest_retrieved.astimezone(timezone.utc).isoformat()
+                    if earliest_retrieved is not None else None,
                     latest_retrieved_at_utc=latest_retrieved.astimezone(timezone.utc).isoformat()
                     if latest_retrieved is not None else None,
                     rows_missing_price_timing=missing_timing,

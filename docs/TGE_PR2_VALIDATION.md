@@ -1090,3 +1090,9 @@ partia źródłowa dla tej doby. Test na oficjalnej sesji 10.11.2026
 usuwa 24 wiersze wyłącznie w izolowanym PostgreSQL i ponawia import.
 Pierwsza próba zapisuje kwarantannę, druga zachowuje ten sam wpis.
 Obie pozostawiają ceny puste i zachowują metadane partii źródłowej.
+
+Audyt read-only Fix1 raportuje najwcześniejszy czas pobrania cen
+i wyklucza z pokrycia porównania doby, w których część cen pobrano
+do D-1 09:50 Europe/Warsaw włącznie, a część po tej granicy.
+Testy na izolowanym PostgreSQL sprawdzają granicę dla doby 25h
+oraz wykluczenie doby 24h mimo pełnej zgodności cen z referencją TGE.
