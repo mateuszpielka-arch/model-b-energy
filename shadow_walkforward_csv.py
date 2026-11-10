@@ -3,12 +3,13 @@
 import argparse
 from collections import defaultdict
 from datetime import date
+from dataclasses import asdict
 from decimal import Decimal
 import json
 from pathlib import Path
 
 from shadow_history_audit import FIX1_COLUMNS, _stamp, audit_rows, missing_delivery_ranges, read_csv
-from shadow_scoring import expected_periods
+from shadow_scoring import Score, expected_periods
 from shadow_walkforward import run_walkforward
 
 
@@ -121,6 +122,12 @@ def read_frozen_90d(path):
     return by_day
 
 
+def _json_value(value):
+    if isinstance(value, Score):
+        return asdict(value)
+    return str(value)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--evaluated-at", required=True, type=_stamp)
@@ -142,7 +149,7 @@ def main():
         rows, evaluated_at=args.evaluated_at, target_from=args.target_from, target_to=args.target_to,
         frozen_90d_by_day=frozen,
     )
-    print(json.dumps(result, default=str, indent=2))
+    print(json.dumps(result, default=_json_value, indent=2))
 
 
 if __name__ == "__main__":

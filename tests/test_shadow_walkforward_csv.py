@@ -78,7 +78,22 @@ class WalkforwardCSVTests(unittest.TestCase):
             ]
             frozen_path.write_text(json.dumps([record]), encoding="utf-8")
             completed = subprocess.run(command, check=True, capture_output=True, text=True)
-            benchmark = json.loads(completed.stdout)["walkforward"]["frozen_90d_benchmark"]
+            exported = json.loads(completed.stdout)["walkforward"]
+            benchmark = exported["frozen_90d_benchmark"]
+            paired, = benchmark["paired_days"]
+            self.assertEqual(paired["day"], target.isoformat())
+            self.assertEqual(paired["frozen_90d"]["forecast_status"], "FROZEN")
+            self.assertEqual(paired["frozen_90d"]["forecast_id"], "archived-test")
+            self.assertEqual(paired["frozen_90d"]["model_version"], FROZEN_90D_VERSION)
+            self.assertEqual(paired["frozen_90d"]["mae"], "5")
+            self.assertEqual(paired["frozen_90d"]["periods"], 25)
+            self.assertEqual(paired["frozen_90d"]["actual_version"], paired["ols90"]["actual_version"])
+            accepted, = exported["accepted"]
+            self.assertEqual(paired["ols90"], accepted["scores"]["ols90"])
+            for score in accepted["scores"].values():
+                self.assertEqual(score["forecast_status"], "SHADOW")
+                self.assertEqual(score["periods"], 25)
+                self.assertEqual(set(("mae", "mape_pct", "wape_pct", "bias")) - score.keys(), set())
             frozen, = [entry for entry in benchmark["ranking"] if entry["model"] == "frozen_90d"]
             self.assertEqual((frozen["periods"], frozen["mae"]), (25, "5"))
             self.assertEqual(benchmark["excluded_days"], {})

@@ -1195,3 +1195,9 @@ D-1 09:50 Europe/Warsaw. Czas zapisu jest granicą pomocniczą,
 a kandydat nadal wymaga weryfikacji przed treningiem.
 Testy obejmują dobę 25h z zapisem na granicy i dobę 24h,
 gdzie spóźniony zapis oraz konflikt wersji nie dostają metadanych wyboru.
+
+Eksport JSON walk-forward zapisuje wyniki dobowe jako obiekty
+z metrykami i identyfikatorami prognozy, modelu i actual.
+Test CLI dla doby 25h odczytuje te pola bez parsowania tekstowej
+reprezentacji Pythona i potwierdza identyczny wynik OLS90 w dobie
+oraz w parze benchmarku FROZEN. Decimal zachowuje zapis tekstowy.
