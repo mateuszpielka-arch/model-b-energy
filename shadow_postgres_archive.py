@@ -101,9 +101,16 @@ def archive_batch(conn, batch, raw):
         else:
             decision = classify_existing(batch, [(period, price) for period, price, _, _ in existing])
             reason = 'Existing prices differ or day is partial'
-        if decision == 'INSERT' and _has_delivery_quarantine(conn, batch.delivery_date):
-            decision = 'QUARANTINE'
-            reason = 'Delivery day is already quarantined'
+        if decision == 'INSERT':
+            if _has_delivery_quarantine(conn, batch.delivery_date):
+                decision = 'QUARANTINE'
+                reason = 'Delivery day is already quarantined'
+            elif conn.execute(
+                'SELECT EXISTS (SELECT 1 FROM fix1_shadow_test.batches WHERE delivery_date = %s)',
+                (batch.delivery_date,),
+            ).fetchone()[0]:
+                decision = 'QUARANTINE'
+                reason = 'Archived batch exists but delivery day has no prices'
         conn.execute('''INSERT INTO fix1_shadow_test.batches
             (delivery_date,raw_sha256,reference_sha256,parser_version,source_url,retrieved_at,raw_html)
             VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING''',

@@ -161,6 +161,27 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                     'SELECT count(*) FROM fix1_shadow_test.quarantine'
                 ).fetchone(), (0,))
 
+    def test_total_price_loss_quarantines_an_existing_delivery_day(self):
+        manifest = NOV_10_FIXTURES / 'manifest.json'
+        with self.isolated_connection() as conn:
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            batch_query = 'SELECT id, raw_sha256, reference_sha256, retrieved_at FROM fix1_shadow_test.batches'
+            accepted, = conn.execute(batch_query).fetchall()
+            conn.execute('DELETE FROM fix1_shadow_test.prices')
+
+            quarantine_query = 'SELECT batch_id, reason, created_at FROM fix1_shadow_test.quarantine'
+            self.assertEqual(conn.execute(quarantine_query).fetchall(), [])
+            report = ingest_manifest(manifest, conn=conn)
+            self.assertEqual(report['days_by_status'], {'QUARANTINE': 1})
+            self.assertEqual(report['inserted_periods'], 0)
+            quarantine, = conn.execute(quarantine_query).fetchall()
+            self.assertEqual(quarantine[:2], (accepted[0], 'Archived batch exists but delivery day has no prices'))
+
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['days_by_status'], {'QUARANTINE': 1})
+            self.assertEqual(conn.execute(quarantine_query).fetchall(), [quarantine])
+            self.assertEqual(conn.execute(batch_query).fetchall(), [accepted])
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone(), (0,))
+
     def test_quarantined_day_cannot_be_repopulated_with_another_capture_hash(self):
         manifest = NOV_10_FIXTURES / 'manifest.json'
         entry, = json.loads(manifest.read_text())['entries']

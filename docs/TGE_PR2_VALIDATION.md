@@ -1084,3 +1084,9 @@ nową partią z innym SHA-256. Test na sesji 10.11.2026 zmienia tylko
 zakończenia linii referencji CSV. Izolowany PostgreSQL zapisuje
 nową partię dowodową w kwarantannie raz, zachowuje pierwotny wpis
 i pozostawia tabelę cen pustą.
+
+Archiwum SHADOW wykrywa całkowity ubytek cen, jeśli zachowała się
+partia źródłowa dla tej doby. Test na oficjalnej sesji 10.11.2026
+usuwa 24 wiersze wyłącznie w izolowanym PostgreSQL i ponawia import.
+Pierwsza próba zapisuje kwarantannę, druga zachowuje ten sam wpis.
+Obie pozostawiają ceny puste i zachowują metadane partii źródłowej.
