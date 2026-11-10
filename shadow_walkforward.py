@@ -17,11 +17,24 @@ MODELS=('ols30','ols60','ols90','similar_shape','similar_level','median4')
 FROZEN_90D_VERSION = 'jwcd-linear-hourly-90d-v1-20261006'
 
 
-def _empty_totals():
+def _empty_totals(models=MODELS):
     return {
         model: dict(n=0, nz=0, ae=Decimal(0), err=Decimal(0), denom=Decimal(0), ape=Decimal(0))
-        for model in MODELS
+        for model in models
     }
+
+
+def _accumulate(totals, error, actual):
+    absolute_error = abs(error)
+    absolute_actual = abs(actual)
+    for total in totals:
+        total['n'] += 1
+        total['ae'] += absolute_error
+        total['err'] += error
+        total['denom'] += absolute_actual
+        if absolute_actual:
+            total['nz'] += 1
+            total['ape'] += absolute_error / absolute_actual
 
 
 def _rank(totals, days):
@@ -87,6 +100,7 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
     accepted = []
     skipped = []
     benchmark = dict(paired_days=[], excluded_days={})
+    benchmark_totals = _empty_totals(('frozen_90d', 'ols90'))
     totals = _empty_totals()
     totals_by_hours = {hours: _empty_totals() for hours in (23, 24, 25)}
     totals_by_day_type = {kind: _empty_totals() for kind in ('weekday', 'weekend')}
@@ -194,6 +208,7 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                     rejection['model'] = scoring_model
                 skipped.append(rejection)
                 continue
+            periods = sorted(actual)
             if frozen_90d_by_day is not None:
                 label = day.isoformat()
                 record = frozen_90d_by_day.get(day)
@@ -205,8 +220,9 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                     if (record.get('forecast_status') != 'FROZEN'
                             or record.get('model_version') != FROZEN_90D_VERSION):
                         raise ValueError('Expected archived FROZEN JWCD 90D model version')
+                    frozen_prices = _prices(record.get('prices'))
                     frozen_score = score_day(
-                        day=day, forecast=record.get('prices'), actual=actual.items(),
+                        day=day, forecast=frozen_prices.items(), actual=actual.items(),
                         forecast_id=record.get('forecast_id'), model_version=record['model_version'],
                         actual_version=target['actual_version'], forecast_status='FROZEN',
                         actual_verified=True, issued_at=record.get('issued_at'),
@@ -216,8 +232,11 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                     benchmark['excluded_days'][label] = str(exc)
                 else:
                     benchmark['paired_days'].append(dict(day=label, frozen_90d=frozen_score, ols90=scores['ols90']))
+                    for name, prices in (('frozen_90d', frozen_prices), ('ols90', forecast_prices['ols90'])):
+                        for period in periods:
+                            value = actual[period]
+                            _accumulate((benchmark_totals[name],), prices[period] - value, value)
             # Accumulate only after ALL models and scores have passed for the day.
-            periods = sorted(actual)
             day_type = 'weekend' if day.weekday() >= 5 else 'weekday'
             common_days_by_day_type[day_type] += 1
             hourly_totals = {}
@@ -235,14 +254,7 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                 for p in periods:
                     y = actual[p]
                     error = predicted[p] - y
-                    for t in (*model_totals, hourly_totals[p][name]):
-                        t['n'] += 1
-                        t['ae'] += abs(error)
-                        t['err'] += error
-                        t['denom'] += abs(y)
-                        if y != 0:
-                            t['nz'] += 1
-                            t['ape'] += abs(error) / abs(y)
+                    _accumulate((*model_totals, hourly_totals[p][name]), error, y)
             accepted.append(dict(day=day.isoformat(),periods=len(actual),
                 period_starts_utc=[period.isoformat() for period in periods],
                 target_snapshot_id=selected.snapshot_id,
@@ -261,6 +273,8 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                 simulated_issue_at=selected.cutoff_utc.isoformat(),predictions=predictions,scores=scores))
         common_days_by_hours = Counter(day['periods'] for day in accepted)
         ranking = _rank(totals, len(accepted))
+        if frozen_90d_by_day is not None:
+            benchmark['ranking'] = _rank(benchmark_totals, len(benchmark['paired_days']))
         ranking_by_hours = {
             str(hours): _rank(group, common_days_by_hours[hours])
             for hours, group in totals_by_hours.items()

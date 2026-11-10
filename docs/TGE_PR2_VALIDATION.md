@@ -1120,3 +1120,8 @@ UTC. Benchmark jest oddzielny od rankingu sześciu modeli SHADOW.
 Test z danymi syntetycznymi potwierdza zgodność okresów i odrzuca
 prognozę FROZEN wystawioną sekundę po D-1 09:50 Europe/Warsaw.
 Znaczniki publikacji, pobrania i wystawienia muszą pochodzić z archiwum.
+
+Benchmark FROZEN JWCD 90D / OLS90 raportuje łączne MAE, MAPE,
+WAPE i bias wyłącznie dla wspólnych okresów dopuszczonych do obu ocen.
+Test syntetyczny liczy metryki z 49 okresów dób 24h i 25h,
+odrzuca spóźnioną trzecią prognozę i sprawdza ranking SHADOW osobno.

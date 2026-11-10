@@ -28,31 +28,50 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(out['accepted'][-1]['rejected_snapshots'], (('', 'INVALID_SNAPSHOT_OBJECT'),))
 
     def test_archived_frozen_90d_is_a_separate_paired_benchmark(self):
-        args = self.args()
-        first, second = args['target_days']
+        monday = date(2026, 10, 26)
+        history = fixtures.OLSTests().data(93, target=monday + timedelta(days=1))['history']
+        targets = history[-3:]
+        args = dict(history=history, target_days=[packet['day'] for packet in targets],
+                    evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc))
         records = {}
-        for packet in args['history'][-2:]:
+        actual_values = []
+        for packet, offset in zip(targets, (10, -30, 1000), strict=True):
             day = packet['day']
             cutoff = cutoff_for_day(day)
+            prices = [(period, price + offset) for period, price in packet['actual']]
             records[day] = dict(
                 forecast_id=f'frozen:{day}', model_version=FROZEN_90D_VERSION,
                 forecast_status='FROZEN', issued_at=cutoff, publication_ts=cutoff - timedelta(minutes=1),
-                retrieved_at=cutoff, prices=[(period, price + 10) for period, price in packet['actual']],
+                retrieved_at=cutoff, prices=iter(prices),
             )
-        records[second]['issued_at'] += timedelta(seconds=1)
+            if day != monday:
+                actual_values.extend((abs(price), offset) for _, price in packet['actual'])
+        records[monday]['issued_at'] += timedelta(seconds=1)
         baseline = run_walkforward(**args)
         result = run_walkforward(**args, frozen_90d_by_day=records)
         benchmark = result.pop('frozen_90d_benchmark')
         self.assertEqual(result, baseline)
-        paired, = benchmark['paired_days']
-        self.assertEqual(paired['day'], first.isoformat())
-        self.assertEqual(paired['ols90'], result['accepted'][0]['scores']['ols90'])
-        frozen = paired['frozen_90d']
-        self.assertEqual(frozen.actual_version, paired['ols90'].actual_version)
-        self.assertEqual((frozen.forecast_status, frozen.periods, frozen.mae, frozen.bias),
-                         ('FROZEN', 24, Decimal(10), Decimal(10)))
-        self.assertEqual(set(benchmark['excluded_days']), {second.isoformat()})
-        self.assertIn('chronology', benchmark['excluded_days'][second.isoformat()])
+        self.assertEqual([pair['day'] for pair in benchmark['paired_days']],
+                         [packet['day'].isoformat() for packet in targets[:2]])
+        for pair, accepted in zip(benchmark['paired_days'], result['accepted'][:2], strict=True):
+            self.assertEqual(pair['ols90'], accepted['scores']['ols90'])
+            self.assertEqual(pair['frozen_90d'].actual_version, pair['ols90'].actual_version)
+        self.assertEqual(set(benchmark['excluded_days']), {monday.isoformat()})
+        self.assertIn('chronology', benchmark['excluded_days'][monday.isoformat()])
+
+        ols, frozen = benchmark['ranking']
+        self.assertEqual([ols['model'], frozen['model']], ['ols90', 'frozen_90d'])
+        for row in (ols, frozen):
+            self.assertEqual((row['days'], row['periods'], row['mape_periods']), (2, 49, 49))
+        absolute_error = 24 * 10 + 25 * 30
+        ratios = sum(Fraction(abs(error), actual) for actual, error in actual_values)
+        for metric, expected in (
+            ('mae', Decimal(absolute_error) / 49),
+            ('bias', Decimal(24 * 10 - 25 * 30) / 49),
+            ('wape_pct', Decimal(100 * absolute_error) / sum(actual for actual, _ in actual_values)),
+            ('mape_pct', Decimal(100 * ratios.numerator) / (49 * ratios.denominator)),
+        ):
+            self.assertLess(abs(frozen[metric] - expected), Decimal('1e-24'), metric)
 
     def test_training_report_contains_selected_publication_and_price_availability(self):
         args = self.args()
