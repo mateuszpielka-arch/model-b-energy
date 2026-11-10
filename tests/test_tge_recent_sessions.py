@@ -26,6 +26,7 @@ NOV_7_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-07')
 NOV_8_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-08')
 NOV_9_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-09')
 NOV_10_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-10')
+NOV_11_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-11')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
@@ -90,6 +91,21 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         report = ingest_manifest(manifest)
         self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
 
+    def test_november_11_fixing_i_matches_tge_alongside_continuous_trading(self):
+        day = date(2026, 11, 11)
+        self.check_sessions(NOV_11_FIXTURES, [day.isoformat()])
+        manifest = NOV_11_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        raw, _, rows = load_session(entry, NOV_11_FIXTURES)
+        self.assertEqual([row['period_start_utc'] for row in rows],
+                         [period.isoformat() for period in expected_periods(day)])
+        # The H07 continuous trading price (953.00) is different.
+        prices = parse_complete_standard_day(raw.decode('utf-8'), day.isoformat())
+        self.assertEqual(Decimal(str(prices[7])), Decimal('950.67'))
+        report = ingest_manifest(manifest)
+        self.assertEqual(report['days_by_status'], {'VALIDATED_DRY_RUN': 1})
+        self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
+
     def check_sessions(self, directory, days):
         manifest = json.loads((directory / 'manifest.json').read_text())
         self.assertEqual(manifest['errors'], [])
@@ -133,6 +149,9 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
     def test_tuesday_manifest_with_utc_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_10_FIXTURES)
+
+    def test_november_11_manifest_is_archived_and_replayed_without_duplicate_rows(self):
+        self.check_manifest_archive_and_replay(NOV_11_FIXTURES)
 
     def check_manifest_archive_and_replay(self, directory):
         manifest_path = directory / 'manifest.json'

@@ -1125,3 +1125,10 @@ Benchmark FROZEN JWCD 90D / OLS90 raportuje łączne MAE, MAPE,
 WAPE i bias wyłącznie dla wspólnych okresów dopuszczonych do obu ocen.
 Test syntetyczny liczy metryki z 49 okresów dób 24h i 25h,
 odrzuca spóźnioną trzecią prognozę i sprawdza ranking SHADOW osobno.
+
+Dla dostawy 11.11.2026 zapisano odpowiedź HTTP 200 TGE z sesji
+10.11.2026, manifest SHA-256 i 24 ceny z okresami UTC.
+CSV pochodzi z osobnej ekstrakcji XPath tej samej odpowiedzi HTML.
+Test porównuje wszystkie ceny oraz sprawdza H07, gdzie Fixing I
+to 950,67 PLN/MWh, a notowania ciągłe 953,00 PLN/MWh.
+Drugi test sprawdza zapis i ponowienie na izolowanym PostgreSQL.
