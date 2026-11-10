@@ -59,11 +59,14 @@ def _read_raw_evidence(path, entry):
 def load_batches(manifest_path):
     path = Path(manifest_path)
     manifest = json.loads(path.read_text(), object_pairs_hook=_unique_manifest_object)
+    if not isinstance(manifest, dict) or manifest.get('errors') != []:
+        raise ValueError('Incomplete capture manifest: expected an explicit empty errors array')
+    entries = manifest.get('entries')
+    if not isinstance(entries, list) or not entries or not all(isinstance(entry, dict) for entry in entries):
+        raise ValueError('Incomplete capture manifest: expected a nonempty array of evidence objects')
     root = path.parent
-    if manifest.get('errors') or not manifest.get('entries'):
-        raise ValueError('Incomplete capture manifest')
     batches=[];dates=set()
-    for e in manifest['entries']:
+    for e in entries:
         day=e['delivery_date']
         if e.get('period_basis') == 'TGE_LABEL_ONLY':
             raise ValueError(f'TGE label-only evidence has no verified UTC mapping for {day}')

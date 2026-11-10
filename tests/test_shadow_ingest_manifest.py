@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 from shadow_archive_batch import MAX_REFERENCE_BYTES, read_reference_csv
 from shadow_ingest_manifest import ingest_manifest,load_batches
 from shadow_postgres_archive import connect_test_database,initialize
@@ -236,6 +237,33 @@ class ManifestTests(unittest.TestCase):
 
                     with self.assertRaisesRegex(ValueError, error):
                         ingest_manifest(manifest, conn=object())
+
+    def test_manifest_requires_explicit_success_and_evidence_objects_before_io(self):
+        source = FIX.with_name('tge_delivery_2026-11-11')
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'capture'
+            shutil.copytree(source, root)
+            manifest = root / 'manifest.json'
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+            data = json.loads(manifest.read_text())
+            entries = data['entries']
+            cases = (
+                ([], 'explicit empty errors array'),
+                ({'entries': entries}, 'explicit empty errors array'),
+                ({**data, 'errors': False}, 'explicit empty errors array'),
+                ({**data, 'errors': {}}, 'explicit empty errors array'),
+                ({**data, 'errors': ['request failed']}, 'explicit empty errors array'),
+                ({**data, 'entries': entries[0]}, 'nonempty array of evidence objects'),
+                ({**data, 'entries': []}, 'nonempty array of evidence objects'),
+                ({**data, 'entries': [*entries, None]}, 'nonempty array of evidence objects'),
+            )
+            with patch('shadow_ingest_manifest._read_raw_evidence') as read_evidence:
+                for malformed, message in cases:
+                    with self.subTest(malformed=malformed):
+                        manifest.write_text(json.dumps(malformed))
+                        with self.assertRaisesRegex(ValueError, message):
+                            ingest_manifest(manifest, conn=object())
+                read_evidence.assert_not_called()
 
     def test_manifest_rejects_duplicate_retrieval_time_before_database_initialization(self):
         source = FIX.with_name('tge_delivery_2026-11-09')

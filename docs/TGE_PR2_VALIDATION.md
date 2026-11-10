@@ -1151,3 +1151,9 @@ także gdy sam parser widzi wszystkie 24 ceny Fixing I. Test na HTML
 dostawy 11.11.2026 usuwa końcówkę po tabeli, zachowuje deklarowaną
 długość i sprawdza brak zapisu po trzech niepełnych próbach.
 Gdy trzecia próba jest pełna, zapisany HTML i CSV mają zgodne SHA-256.
+
+Importer SHADOW wymaga jawnej pustej tablicy `errors` i niepustej
+tablicy obiektów dowodowych `entries`. Test na kopii manifestu dostawy
+11.11.2026 potwierdza poprawny import bez zapisu i odrzuca brak pola,
+błędne typy oraz zgłoszone błędy przed odczytem HTML lub otwarciem
+transakcji.
