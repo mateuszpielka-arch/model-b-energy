@@ -1101,3 +1101,9 @@ Walk-forward raportuje osobne rankingi MAE dla dób 23, 24 i 25h.
 Każda grupa pokazuje też MAPE, WAPE, bias oraz liczbę wspólnych
 okresów. Testy porównują metryki z wynikami dobowymi i potwierdzają,
 że odrzucona doba 23h nie trafia do rankingu żadnego modelu.
+
+Walk-forward rozdziela ranking na dni od poniedziałku do piątku
+oraz weekendy według lokalnej daty dostawy w Europe/Warsaw.
+Testy obejmują 49 wspólnych okresów w weekend zmiany czasu
+i 24 w poniedziałek. Cena zerowa z poniedziałku pomniejsza
+licznik okresów MAPE wyłącznie w grupie dni od poniedziałku do piątku.

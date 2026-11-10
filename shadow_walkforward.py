@@ -85,6 +85,8 @@ def run_walkforward(*,history,target_days,evaluated_at):
     skipped = []
     totals = _empty_totals()
     totals_by_hours = {hours: _empty_totals() for hours in (23, 24, 25)}
+    totals_by_day_type = {kind: _empty_totals() for kind in ('weekday', 'weekend')}
+    common_days_by_day_type = Counter()
     with localcontext() as ctx:
         ctx.prec=34
         for day in target_days:
@@ -188,12 +190,16 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 continue
             # Accumulate only after ALL models and scores have passed for the day.
             periods = sorted(actual)
+            day_type = 'weekend' if day.weekday() >= 5 else 'weekday'
+            common_days_by_day_type[day_type] += 1
             for name in MODELS:
                 predicted = forecast_prices[name]
+                model_totals = (totals[name], totals_by_hours[len(periods)][name],
+                                totals_by_day_type[day_type][name])
                 for p in periods:
                     y = actual[p]
                     error = predicted[p] - y
-                    for t in (totals[name], totals_by_hours[len(periods)][name]):
+                    for t in model_totals:
                         t['n'] += 1
                         t['ae'] += abs(error)
                         t['err'] += error
@@ -223,6 +229,10 @@ def run_walkforward(*,history,target_days,evaluated_at):
             str(hours): _rank(group, common_days_by_hours[hours])
             for hours, group in totals_by_hours.items()
         }
+        ranking_by_day_type = {
+            kind: _rank(group, common_days_by_day_type[kind])
+            for kind, group in totals_by_day_type.items()
+        }
     skipped_days_by_stage = {}
     for entry in skipped:
         skipped_days_by_stage.setdefault(entry['stage'], []).append(entry['day'])
@@ -231,4 +241,5 @@ def run_walkforward(*,history,target_days,evaluated_at):
         common_days_by_hours={str(hours): common_days_by_hours[hours] for hours in (23, 24, 25)},
         common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,
         unreadable_packets={day.isoformat(): unreadable_packets[day] for day in sorted(unreadable_packets)},
-        ranking_metric="mae", ranking=ranking, ranking_by_hours=ranking_by_hours)
+        ranking_metric="mae", ranking=ranking, ranking_by_hours=ranking_by_hours,
+        ranking_by_day_type=ranking_by_day_type)

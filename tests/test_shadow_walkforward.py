@@ -132,6 +132,7 @@ class WalkforwardTests(unittest.TestCase):
         )
         self.assertEqual(out['common_days'], 2)
         self.assertEqual(out['common_periods'], 49)
+        self.assertEqual(out['ranking_by_day_type'], {'weekday': [], 'weekend': out['ranking']})
         self.assertEqual(out['ranking_metric'], 'mae')
         self.assertEqual([day['periods'] for day in out['accepted']], [24, 25])
         self.assertEqual(len(out['ranking']), len(MODELS))
@@ -193,6 +194,28 @@ class WalkforwardTests(unittest.TestCase):
                     self.assertEqual((row['days'], row['periods']), (1, hours))
                     for metric in ('mae', 'bias', 'mape_pct', 'wape_pct', 'mape_periods', 'zero_actual_periods'):
                         self.assertEqual(row[metric], getattr(score, metric))
+
+    def test_ranking_separates_warsaw_delivery_weekdays_from_weekends(self):
+        monday = date(2026, 10, 26)
+        history = fixtures.OLSTests().data(93, target=monday + timedelta(days=1))['history']
+        target = history[-1]
+        period, _ = target['actual'][0]
+        target['actual'][0] = (period, 0)
+        result = run_walkforward(
+            history=history, target_days=[packet['day'] for packet in history[-3:]],
+            evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
+        )
+        self.assertEqual(result['common_periods'], 73)
+        weekday, weekend = (result['ranking_by_day_type'][kind] for kind in ('weekday', 'weekend'))
+        for ranking, days, periods, zeros in ((weekday, 1, 24, 1), (weekend, 2, 49, 0)):
+            self.assertEqual({row['model'] for row in ranking}, set(MODELS))
+            for row in ranking:
+                with self.subTest(model=row['model'], days=days):
+                    self.assertEqual((row['days'], row['periods'], row['zero_actual_periods']),
+                                     (days, periods, zeros))
+        monday_result = result['accepted'][-1]
+        for row in weekday:
+            self.assertEqual(row['mae'], monday_result['scores'][row['model']].mae)
 
     def test_wrong_utc_period_excludes_spring_dst_day_from_every_model(self):
         history = fixtures.OLSTests().data(92, target=date(2026, 3, 30))['history']
