@@ -16,6 +16,29 @@ from shadow_scoring import _utc, _prices, expected_periods, score_day
 MODELS=('ols30','ols60','ols90','similar_shape','similar_level','median4')
 
 
+def _empty_totals():
+    return {
+        model: dict(n=0, nz=0, ae=Decimal(0), err=Decimal(0), denom=Decimal(0), ape=Decimal(0))
+        for model in MODELS
+    }
+
+
+def _rank(totals, days):
+    if not days:
+        return []
+    ranking = [
+        dict(model=name, days=days, periods=t['n'], mape_periods=t['nz'],
+             zero_actual_periods=t['n'] - t['nz'], mae=t['ae'] / t['n'], bias=t['err'] / t['n'],
+             mape_pct=100 * t['ape'] / t['nz'] if t['nz'] else None,
+             wape_pct=100 * t['ae'] / t['denom'] if t['denom'] else None)
+        for name, t in totals.items()
+    ]
+    ranking.sort(key=lambda row: (row['mae'], row['model']))
+    for row in ranking:
+        row['rank'] = 1 + sum(other['mae'] < row['mae'] for other in ranking)
+    return ranking
+
+
 def run_walkforward(*,history,target_days,evaluated_at):
     """Require all six models on each scored day; rank on common UTC periods.
 
@@ -58,8 +81,10 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 packet = {**packet, 'snapshots': preserve_snapshot_rows(packet['snapshots'])}
             packets[day] = packet
     history = list(packets.values())
-    accepted=[]; skipped=[]; totals={m:dict(n=0,nz=0,ae=Decimal(0),err=Decimal(0),
-                                           denom=Decimal(0),ape=Decimal(0)) for m in MODELS}
+    accepted = []
+    skipped = []
+    totals = _empty_totals()
+    totals_by_hours = {hours: _empty_totals() for hours in (23, 24, 25)}
     with localcontext() as ctx:
         ctx.prec=34
         for day in target_days:
@@ -165,11 +190,17 @@ def run_walkforward(*,history,target_days,evaluated_at):
             periods = sorted(actual)
             for name in MODELS:
                 predicted = forecast_prices[name]
-                t = totals[name]
                 for p in periods:
                     y = actual[p]
-                    error=predicted[p]-y;t['n']+=1;t['ae']+=abs(error);t['err']+=error;t['denom']+=abs(y)
-                    if y!=0:t['nz']+=1;t['ape']+=abs(error)/abs(y)
+                    error = predicted[p] - y
+                    for t in (totals[name], totals_by_hours[len(periods)][name]):
+                        t['n'] += 1
+                        t['ae'] += abs(error)
+                        t['err'] += error
+                        t['denom'] += abs(y)
+                        if y != 0:
+                            t['nz'] += 1
+                            t['ape'] += abs(error) / abs(y)
             accepted.append(dict(day=day.isoformat(),periods=len(actual),
                 period_starts_utc=[period.isoformat() for period in periods],
                 target_snapshot_id=selected.snapshot_id,
@@ -186,22 +217,18 @@ def run_walkforward(*,history,target_days,evaluated_at):
                 },
                 rejected_snapshots=selected.rejected,
                 simulated_issue_at=selected.cutoff_utc.isoformat(),predictions=predictions,scores=scores))
-        ranking=[]
-        if accepted:
-            for name,t in totals.items():
-                ranking.append(dict(model=name,days=len(accepted),periods=t['n'],mape_periods=t['nz'],
-                    zero_actual_periods=t['n']-t['nz'],mae=t['ae']/t['n'],bias=t['err']/t['n'],
-                    mape_pct=100*t['ape']/t['nz'] if t['nz'] else None,
-                    wape_pct=100*t['ae']/t['denom'] if t['denom'] else None))
-            ranking.sort(key=lambda r:(r['mae'],r['model']))
-            for row in ranking:row['rank']=1+sum(other['mae']<row['mae'] for other in ranking)
+        common_days_by_hours = Counter(day['periods'] for day in accepted)
+        ranking = _rank(totals, len(accepted))
+        ranking_by_hours = {
+            str(hours): _rank(group, common_days_by_hours[hours])
+            for hours, group in totals_by_hours.items()
+        }
     skipped_days_by_stage = {}
     for entry in skipped:
         skipped_days_by_stage.setdefault(entry['stage'], []).append(entry['day'])
-    common_days_by_hours = Counter(day["periods"] for day in accepted)
     return dict(skipped_days_by_stage=skipped_days_by_stage,simulation=True,evaluated_at=evaluated.isoformat(),requested_days=len(target_days),
         common_days=len(accepted),
         common_days_by_hours={str(hours): common_days_by_hours[hours] for hours in (23, 24, 25)},
         common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,
         unreadable_packets={day.isoformat(): unreadable_packets[day] for day in sorted(unreadable_packets)},
-        ranking_metric="mae", ranking=ranking)
+        ranking_metric="mae", ranking=ranking, ranking_by_hours=ranking_by_hours)

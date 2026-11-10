@@ -1096,3 +1096,8 @@ i wyklucza z pokrycia porównania doby, w których część cen pobrano
 do D-1 09:50 Europe/Warsaw włącznie, a część po tej granicy.
 Testy na izolowanym PostgreSQL sprawdzają granicę dla doby 25h
 oraz wykluczenie doby 24h mimo pełnej zgodności cen z referencją TGE.
+
+Walk-forward raportuje osobne rankingi MAE dla dób 23, 24 i 25h.
+Każda grupa pokazuje też MAPE, WAPE, bias oraz liczbę wspólnych
+okresów. Testy porównują metryki z wynikami dobowymi i potwierdzają,
+że odrzucona doba 23h nie trafia do rankingu żadnego modelu.

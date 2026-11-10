@@ -182,6 +182,18 @@ class WalkforwardTests(unittest.TestCase):
         for row in result['ranking']:
             self.assertEqual((row['days'], row['periods']), (3, 72))
 
+        for day in result['accepted']:
+            hours = day['periods']
+            ranking = result['ranking_by_hours'][str(hours)]
+            self.assertEqual({row['model'] for row in ranking}, set(MODELS))
+            self.assertEqual([row['mae'] for row in ranking], sorted(row['mae'] for row in ranking))
+            for row in ranking:
+                with self.subTest(hours=hours, model=row['model']):
+                    score = day['scores'][row['model']]
+                    self.assertEqual((row['days'], row['periods']), (1, hours))
+                    for metric in ('mae', 'bias', 'mape_pct', 'wape_pct', 'mape_periods', 'zero_actual_periods'):
+                        self.assertEqual(row[metric], getattr(score, metric))
+
     def test_wrong_utc_period_excludes_spring_dst_day_from_every_model(self):
         history = fixtures.OLSTests().data(92, target=date(2026, 3, 30))['history']
         target_days = [packet['day'] for packet in history[-2:]]
@@ -210,6 +222,7 @@ class WalkforwardTests(unittest.TestCase):
             result = run()
         self.assertEqual(result['common_periods'], 24)
         self.assertEqual(result['common_days_by_hours'], {'23': 0, '24': 1, '25': 0})
+        self.assertEqual(result['ranking_by_hours'], {'23': [], '24': result['ranking'], '25': []})
         self.assertEqual(result['skipped_days_by_stage'], {'scoring': [spring.isoformat()]})
         self.assertEqual(result['skipped'][0]['model'], 'similar_level')
         self.assertEqual(result['skipped'][0]['reason'], 'Incomplete or mismatched delivery periods')
