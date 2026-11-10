@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from email.utils import parsedate_to_datetime
 from hashlib import sha256
+from http.client import IncompleteRead
 import io
 import json
 from pathlib import Path
@@ -98,7 +99,14 @@ def _fetch_session(url, day):
                     raise ValueError(f'TGE response URL differs from requested session for {day}')
                 if response.status != 200:
                     raise ValueError(f'HTTP {response.status}')
-                return response.status, response.read(MAX_HTML_BYTES + 1)
+                # HTTPResponse.length is the remaining Content-Length before read().
+                length = response.length
+                if isinstance(length, int) and length > MAX_HTML_BYTES:
+                    raise ValueError(f'TGE response exceeds 8 MiB for {day}')
+                raw = response.read(MAX_HTML_BYTES + 1)
+                if isinstance(length, int) and len(raw) < length:
+                    raise IncompleteRead(raw, length - len(raw))
+                return response.status, raw
         except HTTPError as exc:
             exc.close()
             if attempt == 2 or exc.code not in (429, 500, 502, 503, 504):
@@ -116,7 +124,7 @@ def _fetch_session(url, day):
                 delay = max(delay, wait)
                 if delay > 10:
                     raise
-        except (TimeoutError, URLError) as exc:
+        except (IncompleteRead, TimeoutError, URLError) as exc:
             if attempt == 2 or (isinstance(exc, URLError) and not isinstance(exc.reason, TimeoutError)):
                 raise
         sleep(delay)

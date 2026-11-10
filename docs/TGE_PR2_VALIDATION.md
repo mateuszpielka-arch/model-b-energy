@@ -1145,3 +1145,9 @@ Narzędzie walidacyjne TGE ponawia odczyt po timeoutach oraz HTTP
 Retry-After, a przy żądanym oczekiwaniu ponad 10 s kończy pobieranie.
 Testy symulują błędy HTTP i sieci, sprawdzają brak plików po porażce
 oraz zgodne SHA-256 HTML i CSV dostawy 11.11.2026 po udanym ponowieniu.
+
+Walidacyjny odczyt TGE ponawia pobranie uciętej odpowiedzi HTTP,
+także gdy sam parser widzi wszystkie 24 ceny Fixing I. Test na HTML
+dostawy 11.11.2026 usuwa końcówkę po tabeli, zachowuje deklarowaną
+długość i sprawdza brak zapisu po trzech niepełnych próbach.
+Gdy trzecia próba jest pełna, zapisany HTML i CSV mają zgodne SHA-256.

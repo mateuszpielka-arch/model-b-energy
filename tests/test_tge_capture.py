@@ -2,6 +2,7 @@ import csv
 from datetime import date, datetime
 import gzip
 from hashlib import sha256
+from http.client import IncompleteRead
 import json
 import subprocess
 import sys
@@ -163,6 +164,36 @@ class CaptureOutputTest(unittest.TestCase):
                 self.assertEqual(fetch.call_count, len(waits) + 1)
                 self.assertEqual(sleep.call_args_list, waits)
                 self.assertEqual(list(output.iterdir()), [])
+
+    def test_short_http_body_is_never_saved_even_with_a_complete_fixing_table(self):
+        day = date(2026, 11, 11)
+        fixture = Path(__file__).parent / f'fixtures/tge_delivery_{day}'
+        entry, = json.loads((fixture / 'manifest.json').read_text())['entries']
+        raw = gzip.decompress((fixture / entry['raw_file']).read_bytes())
+        shortened = raw[:raw.lower().rindex(b'</html>')]
+        self.assertEqual(len(extract_reference(shortened, day.isoformat())), 24)
+
+        for recovered in (False, True):
+            with self.subTest(recovered=recovered), tempfile.TemporaryDirectory() as directory, patch(
+                'tools.capture_tge_validation.urlopen'
+            ) as fetch, patch('tools.capture_tge_validation.sleep') as sleep:
+                output = Path(directory)
+                response = fetch.return_value.__enter__.return_value
+                response.status = 200
+                response.geturl.return_value = entry['url']
+                response.length = len(raw)
+                response.read.side_effect = [shortened, shortened, raw if recovered else shortened]
+                if recovered:
+                    saved = capture(day, output)
+                    self.assertEqual((saved['raw_sha256'], saved['reference_sha256']),
+                                     (entry['raw_sha256'], entry['reference_sha256']))
+                    self.assertEqual((output / saved['raw_file']).read_bytes(), raw)
+                else:
+                    with self.assertRaises(IncompleteRead):
+                        capture(day, output)
+                    self.assertEqual(list(output.iterdir()), [])
+                self.assertEqual(fetch.call_count, 3)
+                self.assertEqual(sleep.call_args_list, [call(1), call(2)])
 
     def test_capture_bounds_html_before_parsing_or_writing(self):
         with tempfile.TemporaryDirectory() as directory, patch('tools.capture_tge_validation.urlopen') as fetch:
