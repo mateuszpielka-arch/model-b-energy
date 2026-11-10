@@ -748,6 +748,36 @@ class ReadonlyAuditTests(unittest.TestCase):
                 self.assertEqual(report['fix1_reference']['compared_periods'], 0)
                 self.assertEqual(report['fix1_reference']['missing_or_invalid_history_days'], [day.isoformat()])
 
+    def test_fix1_audit_identifies_swapped_hours_even_with_complete_utc_periods(self):
+        from decimal import Decimal
+        from pathlib import Path
+        from shadow_history_audit import read_csv
+
+        day = '2026-11-10'
+        stem = f'tge_delivery_{day}'
+        reference = read_csv(Path(__file__).parent / 'fixtures' / stem / f'{stem}.csv')
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz')
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s,%s)',
+                [(day, int(row['hour'][1:]), Decimal(row['price_pln_mwh']), row['period_start_utc'])
+                 for row in reference],
+            )
+
+        initial = audit_connection(self.conn, reference_rows=reference)
+        self.assertEqual(initial['fix1_reference']['compared_periods'], 24)
+        self.conn.execute('UPDATE actual.tge_fix1 SET hour=3-hour WHERE hour IN (1, 2)')
+        report = audit_connection(self.conn, reference_rows=reference)
+        actual, = report['actual_days']
+        self.assertFalse(actual['structurally_complete'])
+        self.assertFalse(any(actual['utc_period_audit'].values()))
+        self.assertEqual(actual['hour_utc_mismatches'], [
+            {'period_start_utc': reference[0]['period_start_utc'], 'expected_hour': 1, 'observed_hour': 2},
+            {'period_start_utc': reference[1]['period_start_utc'], 'expected_hour': 2, 'observed_hour': 1},
+        ])
+        self.assertEqual(report['fix1_reference']['compared_periods'], 0)
+        self.assertEqual(report['fix1_reference']['missing_or_invalid_history_days'], [day])
+
     def test_legacy_hours_only_are_complete_for_standard_fix1_days(self):
         days = (
             (date(2026, 3, 29), 23),

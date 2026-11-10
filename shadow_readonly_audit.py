@@ -246,9 +246,9 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 count(DISTINCT (btrim({source_url}), lower({raw_hash})))
                     FILTER (WHERE {source_present}),
                 count({stored_period}) - count({period_column}),
-                array_agg({period_column} ORDER BY {period_column})
+                array_agg({period_column} ORDER BY {period_column}, {hour_column})
                     FILTER (WHERE {period_column} IS NOT NULL),
-                array_agg({hour_column} ORDER BY {period_column})
+                array_agg({hour_column} ORDER BY {period_column}, {hour_column})
                     FILTER (WHERE {period_column} IS NOT NULL)
                 FROM actual.tge_fix1 WHERE delivery_date BETWEEN
                 COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date)
@@ -261,17 +261,23 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 observed = set(hours or [])
                 required = set(range(1, expected + 1))
                 utc_period_audit = None
+                hour_utc_mismatches = []
                 if explicit_periods or invalid_periods:
-                    observed_utc = Counter(
-                        period.astimezone(timezone.utc) for period in explicit_periods or ()
-                    )
-                    utc_period_audit = _utc_period_gaps(set(periods), observed_utc)
+                    explicit_utc = [period.astimezone(timezone.utc) for period in explicit_periods or ()]
+                    utc_period_audit = _utc_period_gaps(set(periods), Counter(explicit_utc))
+                    if expected == 24:
+                        expected_hours = {period: hour for hour, period in enumerate(periods, 1)}
+                        for period, hour in zip(explicit_utc, explicit_hours or (), strict=True):
+                            expected_hour = expected_hours.get(period)
+                            if hour is not None and expected_hour is not None and hour != expected_hour:
+                                hour_utc_mismatches.append(dict(
+                                    period_start_utc=period.isoformat(),
+                                    expected_hour=expected_hour,
+                                    observed_hour=hour,
+                                ))
                     structurally_complete = (
                         not invalid_periods and n == expected and not any(utc_period_audit.values())
-                        and (expected != 24 or all(
-                            hour is None or hour == index
-                            for index, hour in enumerate(explicit_hours, 1)
-                        ))
+                        and not hour_utc_mismatches
                     )
                 else:
                     # Local labels alone cannot identify the UTC periods on DST days.
@@ -291,6 +297,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     period_basis='EXPLICIT_UTC' if explicit_periods or invalid_periods else 'LEGACY_HOUR',
                     rows_with_invalid_utc_period=invalid_periods,
                     utc_period_audit=utc_period_audit,
+                    hour_utc_mismatches=hour_utc_mismatches,
                     missing_price_rows=missing_prices,
                     nonfinite_price_rows=nonfinite_prices,
                     complete_finite_prices=complete_prices,

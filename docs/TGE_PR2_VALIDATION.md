@@ -1061,3 +1061,9 @@ tylko dla standardowej doby 24h. Test na izolowanym PostgreSQL
 sprawdza, że zestawy 23 i 25 ponumerowanych wierszy zachowują
 licznik pokrycia, ale są raportowane jako niekompletne. Zestaw
 24h nadal przechodzi kontrolę struktury.
+
+Audyt SQL Fix1 wskazuje oczekiwaną i zapisaną etykietę godziny
+dla każdego niezgodnego okresu UTC w standardowej dobie 24h.
+Test na izolowanym PostgreSQL zamienia H01 i H02 w kopii oficjalnej
+referencji dla 10.11.2026. Audyt wskazuje oba okresy i wyklucza dobę
+z porównania mimo kompletnej listy UTC i zgodnych cen.
