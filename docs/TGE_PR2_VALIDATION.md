@@ -1067,3 +1067,8 @@ dla każdego niezgodnego okresu UTC w standardowej dobie 24h.
 Test na izolowanym PostgreSQL zamienia H01 i H02 w kopii oficjalnej
 referencji dla 10.11.2026. Audyt wskazuje oba okresy i wyklucza dobę
 z porównania mimo kompletnej listy UTC i zgodnych cen.
+
+Importer SHADOW ogranicza odczyt referencji CSV Fix1 do 64 KiB,
+a wspólny parser CSV stosuje ten sam limit przy scoringu. Test na
+kopii oficjalnego manifestu dla 10.11.2026 przyjmuje oryginalny plik
+i odrzuca większy przed inicjalizacją bazy, mimo zgodnego SHA-256.

@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from shadow_archive_batch import MAX_REFERENCE_BYTES, read_reference_csv
 from shadow_ingest_manifest import ingest_manifest,load_batches
 from shadow_postgres_archive import connect_test_database,initialize
 from shadow_scoring import expected_periods
@@ -82,6 +83,26 @@ class ManifestTests(unittest.TestCase):
             manifest.write_text(json.dumps(data))
             with self.assertRaisesRegex(ValueError, 'exceeds 8 MiB'):
                 ingest_manifest(manifest, conn=object())
+
+    def test_oversized_reference_is_rejected_before_database_initialization(self):
+        day = '2026-11-10'
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'capture'
+            shutil.copytree(FIX.with_name(f'tge_delivery_{day}'), root)
+            manifest = root / 'manifest.json'
+            data = json.loads(manifest.read_text())
+            entry, = data['entries']
+            reference = root / entry['reference_file']
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+
+            oversized = reference.read_bytes().ljust(MAX_REFERENCE_BYTES + 1, b' ')
+            reference.write_bytes(oversized)
+            entry['reference_sha256'] = sha256(oversized).hexdigest()
+            manifest.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError, 'reference CSV exceeds 64 KiB'):
+                ingest_manifest(manifest, conn=object())
+            with self.assertRaisesRegex(ValueError, 'reference CSV exceeds 64 KiB'):
+                read_reference_csv(oversized, day)
 
     def test_ambiguous_reference_csv_is_rejected_even_with_matching_hash(self):
         source = FIX.with_name('tge_delivery_2026-11-07')

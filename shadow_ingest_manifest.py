@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from urllib.parse import urlsplit
 from zlib import error as ZlibError
-from shadow_archive_batch import prepare_batch, read_reference_csv
+from shadow_archive_batch import MAX_REFERENCE_BYTES, prepare_batch, read_reference_csv
 from shadow_asof import cutoff_for_day
 from shadow_scoring import _utc
 
@@ -84,7 +84,10 @@ def load_batches(manifest_path):
         if retrieved_at <= cutoff_for_day(delivery):
             raise ValueError(f'Fix1 retrieval must be after D-1 09:50 Europe/Warsaw for {day}')
         raw=_read_raw_evidence(_inside(root,e['raw_file']), e)
-        reference=_inside(root,e['reference_file']).read_bytes()
+        with _inside(root, e['reference_file']).open('rb') as stream:
+            reference = stream.read(MAX_REFERENCE_BYTES + 1)
+        if len(reference) > MAX_REFERENCE_BYTES:
+            raise ValueError('Fix1 reference CSV exceeds 64 KiB')
         if sha256(raw).hexdigest()!=e['raw_sha256'] or sha256(reference).hexdigest()!=e['reference_sha256']:
             raise ValueError('Evidence hash mismatch')
         batch=prepare_batch(raw=raw,day=day,source_url=source_url,

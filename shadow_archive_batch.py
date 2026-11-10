@@ -18,6 +18,7 @@ from tge_parser_safe import parse_complete_standard_day
 
 SOURCE_URL = 'https://tge.pl/energia-elektryczna-rdn'
 PARSER_VERSION = 'rdn-layout-shadow-v2'
+MAX_REFERENCE_BYTES = 64 * 1024
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,8 @@ class ArchiveBatch:
 
 def read_reference_csv(reference, day):
     """Read reference pairs from the original bytes, preserving duplicate hours."""
+    if len(reference) > MAX_REFERENCE_BYTES:
+        raise ValueError('Fix1 reference CSV exceeds 64 KiB')
     with StringIO(reference.decode('utf-8-sig'), newline='') as stream:
         try:
             rows = read_csv_rows(stream, source='Fix1 reference CSV')
