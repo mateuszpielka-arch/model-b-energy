@@ -5,7 +5,7 @@ from fractions import Fraction
 import unittest
 from unittest.mock import patch
 import test_shadow_ols as fixtures
-from shadow_walkforward import run_walkforward,MODELS
+from shadow_walkforward import FROZEN_90D_VERSION, MODELS, run_walkforward
 from shadow_similar_consensus import median_consensus, predict_similar
 from shadow_asof import cutoff_for_day
 from shadow_scoring import score_day
@@ -26,6 +26,33 @@ class WalkforwardTests(unittest.TestCase):
         self.assertTrue(all(r['mae']<Decimal('1e-24') for r in out['ranking'] if r['model'].startswith('ols')))
         self.assertTrue(out['simulation'])
         self.assertEqual(out['accepted'][-1]['rejected_snapshots'], (('', 'INVALID_SNAPSHOT_OBJECT'),))
+
+    def test_archived_frozen_90d_is_a_separate_paired_benchmark(self):
+        args = self.args()
+        first, second = args['target_days']
+        records = {}
+        for packet in args['history'][-2:]:
+            day = packet['day']
+            cutoff = cutoff_for_day(day)
+            records[day] = dict(
+                forecast_id=f'frozen:{day}', model_version=FROZEN_90D_VERSION,
+                forecast_status='FROZEN', issued_at=cutoff, publication_ts=cutoff - timedelta(minutes=1),
+                retrieved_at=cutoff, prices=[(period, price + 10) for period, price in packet['actual']],
+            )
+        records[second]['issued_at'] += timedelta(seconds=1)
+        baseline = run_walkforward(**args)
+        result = run_walkforward(**args, frozen_90d_by_day=records)
+        benchmark = result.pop('frozen_90d_benchmark')
+        self.assertEqual(result, baseline)
+        paired, = benchmark['paired_days']
+        self.assertEqual(paired['day'], first.isoformat())
+        self.assertEqual(paired['ols90'], result['accepted'][0]['scores']['ols90'])
+        frozen = paired['frozen_90d']
+        self.assertEqual(frozen.actual_version, paired['ols90'].actual_version)
+        self.assertEqual((frozen.forecast_status, frozen.periods, frozen.mae, frozen.bias),
+                         ('FROZEN', 24, Decimal(10), Decimal(10)))
+        self.assertEqual(set(benchmark['excluded_days']), {second.isoformat()})
+        self.assertIn('chronology', benchmark['excluded_days'][second.isoformat()])
 
     def test_training_report_contains_selected_publication_and_price_availability(self):
         args = self.args()

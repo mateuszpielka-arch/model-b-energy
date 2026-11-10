@@ -1113,3 +1113,10 @@ w Europe/Warsaw. Drugie wystąpienie 02:00 jesienią ma osobną grupę
 `02:00[fold=1]`, a brak 02:00 wiosną nie zwiększa pokrycia.
 Test dla dób 23/24/25h potwierdza sumę 72 wspólnych okresów oraz
 osobne rozliczenie ceny zerowej w powtórzonej godzinie.
+
+Walk-forward przyjmuje opcjonalne archiwalne prognozy FROZEN JWCD 90D
+i zestawia ich wyniki dobowe z OLS90 na tych samych cenach i okresach
+UTC. Benchmark jest oddzielny od rankingu sześciu modeli SHADOW.
+Test z danymi syntetycznymi potwierdza zgodność okresów i odrzuca
+prognozę FROZEN wystawioną sekundę po D-1 09:50 Europe/Warsaw.
+Znaczniki publikacji, pobrania i wystawienia muszą pochodzić z archiwum.

@@ -14,6 +14,7 @@ from shadow_similar_consensus import MEDIAN_MEMBERS, median_consensus, predict_s
 from shadow_scoring import WARSAW, _utc, _prices, expected_periods, score_day
 
 MODELS=('ols30','ols60','ols90','similar_shape','similar_level','median4')
+FROZEN_90D_VERSION = 'jwcd-linear-hourly-90d-v1-20261006'
 
 
 def _empty_totals():
@@ -39,13 +40,15 @@ def _rank(totals, days):
     return ranking
 
 
-def run_walkforward(*,history,target_days,evaluated_at):
+def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
     """Require all six models on each scored day; rank on common UTC periods.
 
     Fixed preset: similar days 90D/k5 (shape and level), median of OLS30/60/90
     plus shape. No parameter search on evaluation data. Simulated cutoff is
     explicitly reported and must never be mistaken for a real issuance timestamp.
     Only requested delivery dates and their preceding 90-day windows are read.
+    Optional archived FROZEN records are keyed by delivery date and scored
+    separately against the same actuals as OLS90, with caller-supplied provenance.
     """
     evaluated = _utc(evaluated_at)
     target_days = sorted(set(target_days))
@@ -83,6 +86,7 @@ def run_walkforward(*,history,target_days,evaluated_at):
     history = list(packets.values())
     accepted = []
     skipped = []
+    benchmark = dict(paired_days=[], excluded_days={})
     totals = _empty_totals()
     totals_by_hours = {hours: _empty_totals() for hours in (23, 24, 25)}
     totals_by_day_type = {kind: _empty_totals() for kind in ('weekday', 'weekend')}
@@ -190,6 +194,28 @@ def run_walkforward(*,history,target_days,evaluated_at):
                     rejection['model'] = scoring_model
                 skipped.append(rejection)
                 continue
+            if frozen_90d_by_day is not None:
+                label = day.isoformat()
+                record = frozen_90d_by_day.get(day)
+                try:
+                    if record is None:
+                        raise ValueError('No archived FROZEN forecast for delivery day')
+                    if not isinstance(record, Mapping):
+                        raise ValueError('Invalid archived FROZEN forecast record')
+                    if (record.get('forecast_status') != 'FROZEN'
+                            or record.get('model_version') != FROZEN_90D_VERSION):
+                        raise ValueError('Expected archived FROZEN JWCD 90D model version')
+                    frozen_score = score_day(
+                        day=day, forecast=record.get('prices'), actual=actual.items(),
+                        forecast_id=record.get('forecast_id'), model_version=record['model_version'],
+                        actual_version=target['actual_version'], forecast_status='FROZEN',
+                        actual_verified=True, issued_at=record.get('issued_at'),
+                        publication_ts=record.get('publication_ts'), retrieved_at=record.get('retrieved_at'),
+                    )
+                except ValueError as exc:
+                    benchmark['excluded_days'][label] = str(exc)
+                else:
+                    benchmark['paired_days'].append(dict(day=label, frozen_90d=frozen_score, ols90=scores['ols90']))
             # Accumulate only after ALL models and scores have passed for the day.
             periods = sorted(actual)
             day_type = 'weekend' if day.weekday() >= 5 else 'weekday'
@@ -251,10 +277,13 @@ def run_walkforward(*,history,target_days,evaluated_at):
     skipped_days_by_stage = {}
     for entry in skipped:
         skipped_days_by_stage.setdefault(entry['stage'], []).append(entry['day'])
-    return dict(skipped_days_by_stage=skipped_days_by_stage,simulation=True,evaluated_at=evaluated.isoformat(),requested_days=len(target_days),
+    report = dict(skipped_days_by_stage=skipped_days_by_stage,simulation=True,evaluated_at=evaluated.isoformat(),requested_days=len(target_days),
         common_days=len(accepted),
         common_days_by_hours={str(hours): common_days_by_hours[hours] for hours in (23, 24, 25)},
         common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,
         unreadable_packets={day.isoformat(): unreadable_packets[day] for day in sorted(unreadable_packets)},
         ranking_metric="mae", ranking=ranking, ranking_by_hours=ranking_by_hours,
         ranking_by_day_type=ranking_by_day_type, ranking_by_local_hour=ranking_by_local_hour)
+    if frozen_90d_by_day is not None:
+        report['frozen_90d_benchmark'] = benchmark
+    return report
