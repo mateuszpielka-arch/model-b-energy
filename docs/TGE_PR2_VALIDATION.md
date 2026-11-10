@@ -1078,3 +1078,9 @@ kwarantannie, nawet gdy brakuje wszystkich wierszy tej doby. Test
 na oficjalnej sesji 10.11.2026 symuluje ubytek wierszy wyłącznie
 w bazie testowej. Dwa ponowienia nie dopisują cen i zachowują
 pierwotny wpis kwarantanny.
+
+Kwarantanna doby blokuje uzupełnienie pustej tabeli cen również
+nową partią z innym SHA-256. Test na sesji 10.11.2026 zmienia tylko
+zakończenia linii referencji CSV. Izolowany PostgreSQL zapisuje
+nową partię dowodową w kwarantannie raz, zachowuje pierwotny wpis
+i pozostawia tabelę cen pustą.

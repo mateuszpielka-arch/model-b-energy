@@ -11,7 +11,7 @@ from threading import Barrier
 from time import monotonic, sleep
 import unittest
 
-from shadow_archive_batch import prepare_batch
+from shadow_archive_batch import prepare_batch, read_reference_csv
 from shadow_asof import cutoff_for_day
 from shadow_ingest_manifest import ingest_manifest
 from shadow_postgres_archive import archive_batch, connect_test_database, initialize
@@ -161,8 +161,17 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                     'SELECT count(*) FROM fix1_shadow_test.quarantine'
                 ).fetchone(), (0,))
 
-    def test_quarantined_capture_cannot_repopulate_a_missing_day(self):
+    def test_quarantined_day_cannot_be_repopulated_with_another_capture_hash(self):
         manifest = NOV_10_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        raw, reference, _ = load_session(entry, NOV_10_FIXTURES)
+        alternate_reference = reference.replace(b'\n', b'\r\n')
+        alternate_hash = sha256(alternate_reference).hexdigest()
+        self.assertNotEqual(alternate_hash, entry['reference_sha256'])
+        alternate = prepare_session(
+            {**entry, 'reference_sha256': alternate_hash}, raw,
+            read_reference_csv(alternate_reference, entry['delivery_date']),
+        )
         with self.isolated_connection() as conn:
             self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
             conn.execute('''
@@ -184,6 +193,18 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone(), (0,))
             self.assertEqual(conn.execute(quarantine_query).fetchall(), quarantine)
             self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (1,))
+
+            for _ in range(2):
+                self.assertEqual(archive_batch(conn, alternate, raw), 'QUARANTINE')
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone(), (0,))
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (2,))
+            self.assertEqual(conn.execute(quarantine_query + ' ORDER BY batch_id').fetchall()[0], quarantine[0])
+            self.assertEqual(conn.execute(
+                """SELECT q.reason FROM fix1_shadow_test.quarantine AS q
+                   JOIN fix1_shadow_test.batches AS b ON b.id = q.batch_id
+                   WHERE b.reference_sha256 = %s""",
+                (alternate_hash,),
+            ).fetchall(), [('Delivery day is already quarantined',)])
 
     def test_archive_and_replay_three_sessions_with_original_evidence(self):
         manifest = json.loads((FIXTURES / 'manifest.json').read_text())

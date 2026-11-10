@@ -58,6 +58,18 @@ def _lock_delivery_day(conn, day):
     conn.execute('SELECT pg_advisory_xact_lock(716101, %s)', (day.toordinal(),))
 
 
+def _has_delivery_quarantine(conn, day):
+    return conn.execute(
+        """SELECT EXISTS (
+               SELECT 1
+               FROM fix1_shadow_test.quarantine AS quarantine
+               JOIN fix1_shadow_test.batches AS batch ON batch.id = quarantine.batch_id
+               WHERE batch.delivery_date = %s
+           )""",
+        (day,),
+    ).fetchone()[0]
+
+
 def initialize(conn):
     _guard(conn)
     with conn.transaction():
@@ -89,6 +101,9 @@ def archive_batch(conn, batch, raw):
         else:
             decision = classify_existing(batch, [(period, price) for period, price, _, _ in existing])
             reason = 'Existing prices differ or day is partial'
+        if decision == 'INSERT' and _has_delivery_quarantine(conn, batch.delivery_date):
+            decision = 'QUARANTINE'
+            reason = 'Delivery day is already quarantined'
         conn.execute('''INSERT INTO fix1_shadow_test.batches
             (delivery_date,raw_sha256,reference_sha256,parser_version,source_url,retrieved_at,raw_html)
             VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING''',

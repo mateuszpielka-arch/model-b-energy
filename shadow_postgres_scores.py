@@ -6,7 +6,7 @@ import json
 import re
 from shadow_archive_batch import PARSER_VERSION, prepare_batch, read_reference_csv, validate_source_url
 from shadow_asof import cutoff_for_day
-from shadow_postgres_archive import _guard, _lock_delivery_day
+from shadow_postgres_archive import _guard, _has_delivery_quarantine, _lock_delivery_day
 from shadow_scoring import SCORING_VERSION, _utc, expected_periods, score_day
 from tge_parser_safe import parse_complete_standard_day
 
@@ -64,15 +64,7 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         if len(actual) != 24 or len(bids) != 1:
             raise ValueError('One complete accepted actual batch required')
         bid = next(iter(bids))
-        conflict = conn.execute(
-            """SELECT 1
-               FROM fix1_shadow_test.quarantine AS quarantine
-               JOIN fix1_shadow_test.batches AS batch ON batch.id = quarantine.batch_id
-               WHERE batch.delivery_date = %s
-               LIMIT 1""",
-            (day,),
-        ).fetchone()
-        if conflict:
+        if _has_delivery_quarantine(conn, day):
             raise ValueError('Quarantined delivery day cannot be scored')
         raw_hash,ref_hash,parser,raw,delivery,source_url,captured_at = conn.execute('''SELECT raw_sha256,
             reference_sha256,parser_version,raw_html,delivery_date,source_url,retrieved_at
