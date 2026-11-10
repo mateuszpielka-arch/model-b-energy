@@ -73,6 +73,14 @@ class Score:
         return (self.forecast_id, self.model_version, self.actual_version, self.scoring_version)
 
 
+def validate_forecast_timing(day, issued_at, publication_ts, retrieved_at):
+    """Require every forecast input to precede issuance and its Warsaw cutoff."""
+    issued, published, retrieved = map(_utc, (issued_at, publication_ts, retrieved_at))
+    cutoff = datetime.combine(day - timedelta(days=1), time(9,50), WARSAW).astimezone(UTC)
+    if not published <= retrieved <= issued <= cutoff:
+        raise ValueError('Invalid chronology or data unavailable before D-1 09:50')
+
+
 def score_day(*, day, forecast, actual, forecast_id, model_version, actual_version,
               forecast_status, actual_verified, issued_at, publication_ts, retrieved_at):
     """Score one complete day, with all forecast inputs available by D-1 09:50.
@@ -89,10 +97,7 @@ def score_day(*, day, forecast, actual, forecast_id, model_version, actual_versi
         raise ValueError('Explicit forecast/model/actual identities required')
     if forecast_status not in ('FROZEN', 'SHADOW'):
         raise ValueError('Only FROZEN or SHADOW forecasts can be scored')
-    issued, published, retrieved = map(_utc, (issued_at, publication_ts, retrieved_at))
-    cutoff = datetime.combine(day - timedelta(days=1), time(9,50), WARSAW).astimezone(UTC)
-    if not published <= retrieved <= issued <= cutoff:
-        raise ValueError('Invalid chronology or data unavailable before D-1 09:50')
+    validate_forecast_timing(day, issued_at, publication_ts, retrieved_at)
     fp, ap = _prices(forecast), _prices(actual)
     expected = set(expected_periods(day))
     if set(fp) != expected or set(ap) != expected:

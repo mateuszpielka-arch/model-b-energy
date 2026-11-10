@@ -11,7 +11,7 @@ from decimal import Decimal, localcontext
 from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
 from shadow_similar_consensus import MEDIAN_MEMBERS, median_consensus, predict_similar
-from shadow_scoring import WARSAW, _utc, _prices, expected_periods, score_day
+from shadow_scoring import WARSAW, _utc, _prices, expected_periods, score_day, validate_forecast_timing
 
 MODELS=('ols30','ols60','ols90','similar_shape','similar_level','median4')
 FROZEN_90D_VERSION = 'jwcd-linear-hourly-90d-v1-20261006'
@@ -220,6 +220,8 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                     if (record.get('forecast_status') != 'FROZEN'
                             or record.get('model_version') != FROZEN_90D_VERSION):
                         raise ValueError('Expected archived FROZEN JWCD 90D model version')
+                    validate_forecast_timing(day, record.get('issued_at'),
+                                             record.get('publication_ts'), record.get('retrieved_at'))
                     frozen_prices = _prices(record.get('prices'))
                     frozen_score = score_day(
                         day=day, forecast=frozen_prices.items(), actual=actual.items(),

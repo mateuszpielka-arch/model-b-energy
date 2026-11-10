@@ -1201,3 +1201,10 @@ z metrykami i identyfikatorami prognozy, modelu i actual.
 Test CLI dla doby 25h odczytuje te pola bez parsowania tekstowej
 reprezentacji Pythona i potwierdza identyczny wynik OLS90 w dobie
 oraz w parze benchmarku FROZEN. Decimal zachowuje zapis tekstowy.
+
+Benchmark FROZEN sprawdza chronologię przed odczytaniem cen.
+Wspólna walidacja ze scoringiem wymaga publikacji i pobrania
+najpóźniej w chwili wystawienia, do D-1 09:50 Europe/Warsaw włącznie.
+Test udostępnia spóźnioną prognozę jako iterator zgłaszający błąd
+przy odczycie. Doba zostaje wykluczona, a 49 wcześniejszych
+wspólnych okresów zachowuje wynik benchmarku.

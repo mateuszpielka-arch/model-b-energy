@@ -47,6 +47,13 @@ class WalkforwardTests(unittest.TestCase):
             if day != monday:
                 actual_values.extend((abs(price), offset) for _, price in packet['actual'])
         records[monday]['issued_at'] += timedelta(seconds=1)
+
+        def unreadable_late_prices():
+            self.fail('Late FROZEN forecast prices were consumed before the cutoff check')
+            yield
+
+        records[monday]['prices'] = unreadable_late_prices()
+
         baseline = run_walkforward(**args)
         result = run_walkforward(**args, frozen_90d_by_day=records)
         benchmark = result.pop('frozen_90d_benchmark')
