@@ -1175,3 +1175,9 @@ w transakcji i respektuje krótszy limit połączenia testowego.
 Test blokuje drugą dobę siedmiodniowego manifestu TGE i potwierdza
 wycofanie całego zapisu po timeout. Po zwolnieniu blokady ponowienie
 zapisuje 168 okresów, a kolejny import nie dopisuje rekordów.
+
+Importer SHADOW przyjmuje opcjonalne `--retry-lock` dla zapisu
+w izolowanej bazie. Po błędzie blokady ponawia cały manifest
+po 250 i 500 ms, za każdym razem po wycofaniu transakcji.
+Test potwierdza limit trzech prób, pustą bazę przed ponowieniem,
+zapis 168 okresów po zwolnieniu blokady i brak duplikatów.

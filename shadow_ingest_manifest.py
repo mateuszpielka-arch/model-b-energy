@@ -9,6 +9,7 @@ import gzip
 from hashlib import sha256
 import json
 from pathlib import Path
+from time import sleep
 from urllib.parse import urlsplit
 from zlib import error as ZlibError
 from shadow_archive_batch import MAX_REFERENCE_BYTES, prepare_batch, read_reference_csv
@@ -104,9 +105,28 @@ def load_batches(manifest_path):
     return tuple(sorted(batches,key=lambda b:b[0].delivery_date))
 
 
-def ingest_manifest(manifest_path, *, conn=None):
+def ingest_manifest(manifest_path, *, conn=None, retry_lock=False):
     # ALL file evidence is validated before opening any write transaction/DDL.
-    batches=load_batches(manifest_path)
+    batches = load_batches(manifest_path)
+    if not retry_lock:
+        return _ingest_batches(batches, conn)
+
+    if conn is None:
+        raise ValueError('Lock retries require an explicit isolated database connection')
+    from psycopg.errors import LockNotAvailable
+    from psycopg.pq import TransactionStatus
+    if not conn.autocommit or conn.info.transaction_status != TransactionStatus.IDLE:
+        raise ValueError('Lock retries require an idle autocommit connection')
+    for delay in (0.25, 0.5):
+        try:
+            return _ingest_batches(batches, conn)
+        except LockNotAvailable:
+            # The failed transaction has already rolled back; retry the whole manifest.
+            sleep(delay)
+    return _ingest_batches(batches, conn)
+
+
+def _ingest_batches(batches, conn):
     if conn is not None:
         from shadow_postgres_archive import initialize,archive_batch
         initialize(conn)
@@ -131,11 +151,15 @@ def ingest_manifest(manifest_path, *, conn=None):
 if __name__=='__main__':
     import argparse
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('manifest');p.add_argument('--write',action='store_true');p.add_argument('--dsn')
+    p.add_argument('--retry-lock', action='store_true', help='Retry the complete test write on PostgreSQL lock timeout')
     args=p.parse_args()
+    if args.retry_lock and not args.write:
+        p.error('--retry-lock requires --write')
     if args.write:
         if not args.dsn:p.error('--write requires explicit isolated-test --dsn')
         from shadow_postgres_archive import connect_test_database
-        with connect_test_database(args.dsn) as conn:out=ingest_manifest(args.manifest,conn=conn)
+        with connect_test_database(args.dsn) as conn:
+            out = ingest_manifest(args.manifest, conn=conn, retry_lock=args.retry_lock)
     else:
         if args.dsn:p.error('--dsn without --write is rejected; dry-run needs no DB')
         out=ingest_manifest(args.manifest)

@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 from shadow_archive_batch import MAX_REFERENCE_BYTES, read_reference_csv
 from shadow_ingest_manifest import ingest_manifest,load_batches
 from shadow_postgres_archive import connect_test_database,initialize
@@ -399,6 +399,37 @@ class ManifestPostgresTests(unittest.TestCase):
         replay = ingest_manifest(MANIFEST, conn=self.conn)
         self.assertEqual(replay['days_by_status'], {'REPLAY': 7})
         self.assertEqual(replay['inserted_periods'], 0)
+
+    def test_opt_in_retries_the_entire_manifest_after_lock_timeout(self):
+        from psycopg.errors import LockNotAvailable
+
+        self.conn.execute("SET lock_timeout = '100ms'")
+        key = date(2026, 10, 28).toordinal()
+        with connect_test_database(DSN) as blocker:
+            blocker.execute('SELECT pg_advisory_lock(716101, %s)', (key,))
+            with patch('shadow_ingest_manifest.sleep') as wait:
+                with self.assertRaises(LockNotAvailable):
+                    ingest_manifest(MANIFEST, conn=self.conn, retry_lock=True)
+                self.assertEqual(wait.call_args_list, [call(0.25), call(0.5)])
+
+            def release_after_rollback(_):
+                self.assertEqual(self.conn.execute("""
+                    SELECT (SELECT count(*) FROM fix1_shadow_test.batches),
+                           (SELECT count(*) FROM fix1_shadow_test.prices),
+                           (SELECT count(*) FROM fix1_shadow_test.quarantine)
+                """).fetchone(), (0, 0, 0))
+                blocker.execute('SELECT pg_advisory_unlock(716101, %s)', (key,))
+
+            with patch('shadow_ingest_manifest.sleep', side_effect=release_after_rollback) as wait:
+                saved = ingest_manifest(MANIFEST, conn=self.conn, retry_lock=True)
+                wait.assert_called_once_with(0.25)
+
+        self.assertEqual(saved['days_by_status'], {'INSERT': 7})
+        self.assertEqual(saved['inserted_periods'], 168)
+        self.assertEqual(ingest_manifest(MANIFEST, conn=self.conn, retry_lock=True)['inserted_periods'], 0)
+        with self.conn.transaction():
+            with self.assertRaisesRegex(ValueError, 'idle autocommit'):
+                ingest_manifest(MANIFEST, conn=self.conn, retry_lock=True)
 
     def test_manifest_commits_insert_replay_and_quarantine_together(self):
         from shadow_postgres_archive import archive_batch
