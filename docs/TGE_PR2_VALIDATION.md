@@ -1169,3 +1169,9 @@ i wymaga, by każda para [okres UTC, cena] była tablicą.
 Test CLI podaje sprzeczne znaczniki wystawienia, publikacji
 i pobrania względem D-1 09:50 Europe/Warsaw. Każdy duplikat
 blokuje benchmark przed oceną, a poprawny eksport nadal obejmuje 25 okresów.
+
+Archiwum SHADOW ogranicza oczekiwanie na blokady PostgreSQL do 5 s
+w transakcji i respektuje krótszy limit połączenia testowego.
+Test blokuje drugą dobę siedmiodniowego manifestu TGE i potwierdza
+wycofanie całego zapisu po timeout. Po zwolnieniu blokady ponowienie
+zapisuje 168 okresów, a kolejny import nie dopisuje rekordów.

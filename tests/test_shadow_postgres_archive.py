@@ -113,6 +113,13 @@ class PostgresArchiveTests(unittest.TestCase):
         self.assertEqual(self.count('batches'), 1)
         self.assertEqual(self.count('quarantine'), 0)
 
+    def test_day_lock_caps_transaction_timeout_without_changing_session_default(self):
+        self.conn.execute("SET lock_timeout = '0'")
+        with self.conn.transaction():
+            self.assertEqual(archive_batch(self.conn, self.batch, self.raw), 'INSERT')
+            self.assertEqual(self.conn.execute('SHOW lock_timeout').fetchone(), ('5s',))
+        self.assertEqual(self.conn.execute('SHOW lock_timeout').fetchone(), ('0',))
+
     def test_concurrent_replays(self):
         def write(_):
             with connect_test_database(DSN) as conn: return archive_batch(conn,self.batch,self.raw)

@@ -55,6 +55,12 @@ def _lock_delivery_day(conn, day):
     isolation = conn.execute('SHOW transaction_isolation').fetchone()[0]
     if isolation != 'read committed':
         raise ValueError('Fix1 day lock requires READ COMMITTED transaction isolation')
+    # Bound waits within the test transaction, preserving a stricter caller timeout.
+    conn.execute("""
+        SELECT set_config('lock_timeout', '5000', true)
+        FROM (SELECT setting FROM pg_settings WHERE name = 'lock_timeout' LIMIT 1) AS timeout
+        WHERE setting::int = 0 OR setting::int > 5000
+    """)
     conn.execute('SELECT pg_advisory_xact_lock(716101, %s)', (day.toordinal(),))
 
 

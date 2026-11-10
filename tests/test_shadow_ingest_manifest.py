@@ -379,6 +379,27 @@ class ManifestPostgresTests(unittest.TestCase):
         self.assertEqual([row['status'] for row in retry['results']], ['INSERT'] * 7)
         self.assertEqual(self.conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone(), (168,))
 
+    def test_lock_timeout_on_second_day_rolls_back_manifest_and_allows_retry(self):
+        from psycopg.errors import LockNotAvailable
+
+        self.conn.execute("SET lock_timeout = '100ms'")
+        with connect_test_database(DSN) as blocker, blocker.transaction():
+            day = date(2026, 10, 28)
+            blocker.execute('SELECT pg_advisory_xact_lock(716101, %s)', (day.toordinal(),))
+            with self.assertRaises(LockNotAvailable):
+                ingest_manifest(MANIFEST, conn=self.conn)
+            self.assertEqual(self.conn.execute('SHOW lock_timeout').fetchone(), ('100ms',))
+            self.assertEqual(self.conn.execute("""
+                SELECT (SELECT count(*) FROM fix1_shadow_test.batches),
+                       (SELECT count(*) FROM fix1_shadow_test.prices),
+                       (SELECT count(*) FROM fix1_shadow_test.quarantine)
+            """).fetchone(), (0, 0, 0))
+
+        self.assertEqual(ingest_manifest(MANIFEST, conn=self.conn)['inserted_periods'], 168)
+        replay = ingest_manifest(MANIFEST, conn=self.conn)
+        self.assertEqual(replay['days_by_status'], {'REPLAY': 7})
+        self.assertEqual(replay['inserted_periods'], 0)
+
     def test_manifest_commits_insert_replay_and_quarantine_together(self):
         from shadow_postgres_archive import archive_batch
 
