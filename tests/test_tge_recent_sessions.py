@@ -161,6 +161,30 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                     'SELECT count(*) FROM fix1_shadow_test.quarantine'
                 ).fetchone(), (0,))
 
+    def test_quarantined_capture_cannot_repopulate_a_missing_day(self):
+        manifest = NOV_10_FIXTURES / 'manifest.json'
+        with self.isolated_connection() as conn:
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            conn.execute('''
+                DELETE FROM fix1_shadow_test.prices
+                WHERE period_start_utc = (SELECT min(period_start_utc) FROM fix1_shadow_test.prices)
+            ''')
+            report = ingest_manifest(manifest, conn=conn)
+            self.assertEqual(report['days_by_status'], {'QUARANTINE': 1})
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone(), (23,))
+
+            quarantine_query = 'SELECT batch_id, reason, created_at FROM fix1_shadow_test.quarantine'
+            quarantine = conn.execute(quarantine_query).fetchall()
+            self.assertEqual(len(quarantine), 1)
+            conn.execute('DELETE FROM fix1_shadow_test.prices')
+            for _ in range(2):
+                report = ingest_manifest(manifest, conn=conn)
+                self.assertEqual(report['days_by_status'], {'QUARANTINE': 1})
+                self.assertEqual(report['inserted_periods'], 0)
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone(), (0,))
+            self.assertEqual(conn.execute(quarantine_query).fetchall(), quarantine)
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (1,))
+
     def test_archive_and_replay_three_sessions_with_original_evidence(self):
         manifest = json.loads((FIXTURES / 'manifest.json').read_text())
         with self.isolated_connection() as conn:

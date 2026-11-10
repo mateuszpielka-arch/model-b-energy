@@ -1072,3 +1072,9 @@ Importer SHADOW ogranicza odczyt referencji CSV Fix1 do 64 KiB,
 a wspólny parser CSV stosuje ten sam limit przy scoringu. Test na
 kopii oficjalnego manifestu dla 10.11.2026 przyjmuje oryginalny plik
 i odrzuca większy przed inicjalizacją bazy, mimo zgodnego SHA-256.
+
+Izolowane archiwum nie przywraca do cen partii będącej już w
+kwarantannie, nawet gdy brakuje wszystkich wierszy tej doby. Test
+na oficjalnej sesji 10.11.2026 symuluje ubytek wierszy wyłącznie
+w bazie testowej. Dwa ponowienia nie dopisują cen i zachowują
+pierwotny wpis kwarantanny.
