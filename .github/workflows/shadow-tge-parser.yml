@@ -1,0 +1,18 @@
+name: SHADOW TGE parser tests
+on:
+  push:
+    branches:
+      - test/tge-pr2-validation-20261102
+  workflow_dispatch:
+jobs:
+  parser-unit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Isolated parsers, no DB and no network
+        run: python -m unittest discover -s tests -p 'test_tge*py' -v
