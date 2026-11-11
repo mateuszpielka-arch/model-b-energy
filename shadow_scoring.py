@@ -17,7 +17,10 @@ WARSAW = ZoneInfo('Europe/Warsaw')
 def _utc(value):
     if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
         raise ValueError('Timestamp must include timezone')
-    return value.astimezone(UTC)
+    try:
+        return value.astimezone(UTC)
+    except OverflowError as exc:
+        raise ValueError('Timestamp is outside the supported UTC range') from exc
 
 
 def expected_periods(day: date):

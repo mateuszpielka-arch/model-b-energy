@@ -1310,3 +1310,8 @@ i syntetycznej prognozy 1 000 PLN/MWh. Sprawdza MAE, MAPE, WAPE i bias
 względem obliczeń na ułamkach dokładnych, a następnie odrzuca każdy
 z trzech znaczników przesunięty o sekundę po granicy i zachowuje
 wcześniejszy wynik przy ponowieniu.
+
+Wspólna konwersja timestampów do UTC zgłasza błąd walidacji przy
+wyjściu poza zakres dat. Test doby 25h odrzuca dwa wadliwe snapshoty
+JWCD po błędnej publikacji lub pobraniu i zachowuje poprawne 25 okresów.
+Test scoringu potwierdza odrzucenie wadliwych metadanych przed odczytem cen.

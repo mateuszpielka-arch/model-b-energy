@@ -99,6 +99,19 @@ class ScoringTests(unittest.TestCase):
         kw=self.args(); kw['retrieved_at']=datetime(2026,11,1,7)
         with self.assertRaises(ValueError): score_day(**kw)
 
+    def test_out_of_range_provenance_is_rejected_before_prices_are_read(self):
+        def unreadable():
+            self.fail('Read prices with invalid provenance')
+            yield
+
+        for field in ('issued_at', 'publication_ts', 'retrieved_at'):
+            with self.subTest(field=field):
+                args = self.args()
+                args[field] = datetime.fromisoformat('0001-01-01T00:00:00+01:00')
+                args['forecast'] = unreadable()
+                with self.assertRaisesRegex(ValueError, 'outside the supported UTC range'):
+                    score_day(**args)
+
     def test_wrong_chronology_rejected(self):
         kw=self.args(); kw['publication_ts']=kw['retrieved_at']+timedelta(minutes=1)
         with self.assertRaises(ValueError): score_day(**kw)

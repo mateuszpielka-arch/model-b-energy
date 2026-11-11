@@ -45,6 +45,23 @@ class AvailabilityTests(unittest.TestCase):
             ('', 'MISSING_OR_DUPLICATE_SNAPSHOT_ID'),
         ))
 
+    def test_out_of_range_utc_timestamps_do_not_discard_valid_autumn_snapshot(self):
+        day = date(2026, 10, 25)
+        good = self.snapshot(day)
+        bad_retrieval = self.snapshot(day, sid='bad-retrieval')
+        bad_retrieval['retrieved_at'] = datetime.fromisoformat('0001-01-01T00:00:00+01:00')
+        bad_publication = self.snapshot(day, sid='bad-publication')
+        bad_publication['rows'][2]['publication_ts'] = datetime.fromisoformat('9999-12-31T23:59:59-01:00')
+
+        result = select_snapshot(day, [bad_retrieval, bad_publication, good])
+
+        self.assertEqual(result.snapshot_id, 'early')
+        self.assertEqual(len(result.rows), 25)
+        self.assertEqual(result.rejected, (
+            ('bad-retrieval', 'Timestamp is outside the supported UTC range'),
+            ('bad-publication', 'Timestamp is outside the supported UTC range'),
+        ))
+
     def test_interrupted_snapshot_collection_rejects_even_complete_early_candidate(self):
         good = self.snapshot()
 
