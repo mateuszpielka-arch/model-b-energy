@@ -224,11 +224,9 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     if not isinstance(value, str):
                         continue
                     try:
-                        stamp = datetime.fromisoformat(value)
-                    except ValueError:
+                        publications.append(_stamp(value))
+                    except (ValueError, OverflowError):
                         continue
-                    if stamp.utcoffset() is not None:
-                        publications.append(stamp)
                 late_publications = sum(stamp > cutoff for stamp in publications)
                 try:
                     retrieved_utc = _stamp(retrieved)
@@ -285,7 +283,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     retrieved_at_utc=retrieved_utc.isoformat() if retrieved_utc is not None else None,
                     cutoff_utc=cutoff.isoformat(),
                     archived_at_utc=archived_utc.isoformat() if archived_utc is not None else None,
-                    latest_publication_ts_utc=latest_publication.astimezone(timezone.utc).isoformat()
+                    latest_publication_ts_utc=latest_publication.isoformat()
                     if latest_publication is not None else None,
                     source_version=source_version,
                     archive_timing_candidate=archive_timing_candidate,

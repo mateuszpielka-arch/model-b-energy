@@ -1292,3 +1292,5 @@ Test izolowanego PostgreSQL dla doby 25h odróżnia publikację po zapisie
 archiwalnym, ale przed D-1 09:50 Europe/Warsaw, od spóźnionego zapisu,
 braku pełnych znaczników i nieobsługiwanego źródła. Zapis dokładnie
 o 09:50 nadal przechodzi kontrolę pomocniczą i wymaga weryfikacji pochodzenia.
+Znacznik spoza zakresu po konwersji na UTC jest liczony jako
+niezweryfikowany. Test potwierdza, że odczyt raportu trwa dalej.

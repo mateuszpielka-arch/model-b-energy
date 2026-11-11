@@ -285,12 +285,13 @@ class ReadonlyAuditTests(unittest.TestCase):
                 {'publication_ts': '2026-10-24T07:51:00Z'},
                 {'publication_ts': '2026-10-24T08:00:00'},
                 {'publication_ts': 'invalid'},
+                {'publication_ts': '0001-01-01T00:00:00+01:00'},
             ]}),),
         )
 
         snapshot = audit_connection(self.conn)['snapshots'][0]
         self.assertEqual(snapshot['publication_after_cutoff'], 1)
-        self.assertEqual(snapshot['publication_unverified'], 2)
+        self.assertEqual(snapshot['publication_unverified'], 3)
         self.assertEqual(snapshot['availability_status'], 'PUBLICATION_AFTER_CUTOFF')
         self.assertFalse(snapshot['model_ready'])
 
