@@ -110,6 +110,11 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(benchmark['excluded_days'], {autumn.isoformat(): 'Unreadable archived FROZEN forecast prices'})
         self.assertEqual([pair['day'] for pair in benchmark['paired_days']], [earlier['day'].isoformat()])
         self.assertEqual([row['periods'] for row in benchmark['ranking']], [24, 24])
+        self.assertEqual(benchmark['coverage_by_hours'], {
+            '23': dict(shadow_days=0, paired_days=0, unpaired_days=0, paired_periods=0),
+            '24': dict(shadow_days=1, paired_days=1, unpaired_days=0, paired_periods=24),
+            '25': dict(shadow_days=1, paired_days=0, unpaired_days=1, paired_periods=0),
+        })
 
     def test_training_report_contains_selected_publication_and_price_availability(self):
         args = self.args()

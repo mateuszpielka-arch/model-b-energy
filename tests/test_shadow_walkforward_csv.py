@@ -97,6 +97,9 @@ class WalkforwardCSVTests(unittest.TestCase):
             frozen, = [entry for entry in benchmark["ranking"] if entry["model"] == "frozen_90d"]
             self.assertEqual((frozen["periods"], frozen["mae"]), (25, "5"))
             self.assertEqual(benchmark["excluded_days"], {})
+            self.assertEqual(benchmark["coverage_by_hours"]["25"], {
+                "shadow_days": 1, "paired_days": 1, "unpaired_days": 0, "paired_periods": 25,
+            })
 
             frozen_path.write_text(json.dumps([record, record]), encoding="utf-8")
             rejected = subprocess.run(command, capture_output=True, text=True)

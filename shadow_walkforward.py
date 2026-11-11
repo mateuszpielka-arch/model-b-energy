@@ -293,6 +293,16 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
         ranking = _rank(totals, len(accepted))
         if frozen_90d_by_day is not None:
             benchmark['ranking'] = _rank(benchmark_totals, len(benchmark['paired_days']))
+            paired_days_by_hours = Counter(pair['frozen_90d'].periods for pair in benchmark['paired_days'])
+            benchmark['coverage_by_hours'] = {
+                str(hours): {
+                    'shadow_days': common_days_by_hours[hours],
+                    'paired_days': paired_days_by_hours[hours],
+                    'unpaired_days': common_days_by_hours[hours] - paired_days_by_hours[hours],
+                    'paired_periods': hours * paired_days_by_hours[hours],
+                }
+                for hours in (23, 24, 25)
+            }
         ranking_by_hours = {
             str(hours): _rank(group, common_days_by_hours[hours])
             for hours, group in totals_by_hours.items()

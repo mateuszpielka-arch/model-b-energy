@@ -1346,3 +1346,8 @@ przerwanym odczycie prognozy, jeśli metadane przeszły kontrolę
 D-1 09:50 Europe/Warsaw. Test syntetyczny przerywa odczyt doby
 25h po pierwszym okresie i zachowuje 24 okresy wcześniejszej doby
 w benchmarku. Ranking sześciu modeli SHADOW nadal obejmuje 49 okresów.
+
+Benchmark offline FROZEN 90D pokazuje pokrycie osobno dla dób 23h,
+24h i 25h. Liczy doby ocenione w SHADOW, doby sparowane z FROZEN,
+doby bez pary oraz okresy wspólne. Testy sprawdzają odrzuconą dobę
+25h przy zachowanej dobie 24h oraz eksport JSON z pełną parą 25h.
