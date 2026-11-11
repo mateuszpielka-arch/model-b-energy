@@ -235,7 +235,10 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         raise ValueError('Expected archived FROZEN JWCD 90D model version')
                     validate_forecast_timing(day, record.get('issued_at'),
                                              record.get('publication_ts'), record.get('retrieved_at'))
-                    frozen_prices = _prices(record.get('prices'))
+                    try:
+                        frozen_prices = _prices(record.get('prices'))
+                    except (OSError, RuntimeError) as exc:
+                        raise ValueError('Unreadable archived FROZEN forecast prices') from exc
                     frozen_score = score_day(
                         day=day, forecast=frozen_prices.items(), actual=actual.items(),
                         forecast_id=record.get('forecast_id'), model_version=record['model_version'],

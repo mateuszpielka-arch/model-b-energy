@@ -1340,3 +1340,9 @@ których granica D-1 09:50 Europe/Warsaw już minęła lub przypada
 dokładnie w chwili oceny. Test potwierdza brak odczytu paczki potrzebnej
 wyłącznie przyszłej prognozie i zachowanie wcześniejszych 24 okresów
 w rankingu wszystkich sześciu modeli.
+
+Porównanie offline z archiwalnym FROZEN 90D wyklucza dobę po
+przerwanym odczycie prognozy, jeśli metadane przeszły kontrolę
+D-1 09:50 Europe/Warsaw. Test syntetyczny przerywa odczyt doby
+25h po pierwszym okresie i zachowuje 24 okresy wcześniejszej doby
+w benchmarku. Ranking sześciu modeli SHADOW nadal obejmuje 49 okresów.

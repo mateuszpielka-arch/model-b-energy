@@ -80,6 +80,37 @@ class WalkforwardTests(unittest.TestCase):
         ):
             self.assertLess(abs(frozen[metric] - expected), Decimal('1e-24'), metric)
 
+    def test_interrupted_frozen_prices_preserve_shadow_ranking_and_other_benchmark_day(self):
+        autumn = date(2026, 10, 25)
+        history = fixtures.OLSTests().data(92, target=autumn + timedelta(days=1))['history']
+        earlier, autumn_packet = history[-2:]
+        args = dict(history=history, target_days=[earlier['day'], autumn],
+                    evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc))
+        baseline = run_walkforward(**args)
+        self.assertEqual(baseline['common_periods'], 49)
+
+        records = {}
+        for packet in (earlier, autumn_packet):
+            day = packet['day']
+            cutoff = cutoff_for_day(day)
+            records[day] = dict(
+                forecast_id=f'frozen:{day}', model_version=FROZEN_90D_VERSION,
+                forecast_status='FROZEN', issued_at=cutoff, publication_ts=cutoff - timedelta(minutes=1),
+                retrieved_at=cutoff, prices=packet['actual'],
+            )
+
+        def interrupted_prices():
+            yield autumn_packet['actual'][0]
+            raise OSError('Forecast export ended unexpectedly')
+
+        records[autumn]['prices'] = interrupted_prices()
+        result = run_walkforward(**args, frozen_90d_by_day=records)
+        benchmark = result.pop('frozen_90d_benchmark')
+        self.assertEqual(result, baseline)
+        self.assertEqual(benchmark['excluded_days'], {autumn.isoformat(): 'Unreadable archived FROZEN forecast prices'})
+        self.assertEqual([pair['day'] for pair in benchmark['paired_days']], [earlier['day'].isoformat()])
+        self.assertEqual([row['periods'] for row in benchmark['ranking']], [24, 24])
+
     def test_training_report_contains_selected_publication_and_price_availability(self):
         args = self.args()
         args['target_days'] = args['target_days'][-1:]
