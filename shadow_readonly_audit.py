@@ -125,20 +125,31 @@ def audit_legacy_hourly(conn, start_day, end_day, *, reference_rows=None, refere
         rows = conn.execute("""
             SELECT delivery_date, count(*),
                    count(DISTINCT hour) FILTER (WHERE hour BETWEEN 1 AND 24),
-                   count(*) FILTER (WHERE jwcd_mw::text NOT IN ('NaN', 'Infinity', '-Infinity')),
-                   count(*) FILTER (WHERE fix1_pln_mwh::text NOT IN ('NaN', 'Infinity', '-Infinity'))
-            FROM history.hourly
-            WHERE delivery_date BETWEEN COALESCE(%s::date, '-infinity'::date)
-                                    AND COALESCE(%s::date, 'infinity'::date)
+                   count(*) FILTER (WHERE valid_jwcd),
+                   count(*) FILTER (WHERE valid_fix1),
+                   array_agg(DISTINCT hour) FILTER (
+                       WHERE hour BETWEEN 1 AND 24 AND valid_jwcd AND valid_fix1
+                   )
+            FROM (
+                SELECT delivery_date, hour,
+                       jwcd_mw::text NOT IN ('NaN', 'Infinity', '-Infinity') AS valid_jwcd,
+                       fix1_pln_mwh::text NOT IN ('NaN', 'Infinity', '-Infinity') AS valid_fix1
+                FROM history.hourly
+                WHERE delivery_date BETWEEN COALESCE(%s::date, '-infinity'::date)
+                                        AND COALESCE(%s::date, 'infinity'::date)
+            ) AS hourly
             GROUP BY delivery_date
             ORDER BY delivery_date
         """, (start_day, end_day)).fetchall()
-        for day, count, hours, jwcd, fix1 in rows:
+        for day, count, hours, jwcd, fix1, paired_labels in rows:
             expected = len(expected_periods(day))
+            paired_hours = set(paired_labels or ())
             days.append(dict(
                 day=day.isoformat(), rows=count, expected_periods=expected,
                 distinct_legacy_hours=hours, valid_jwcd_rows=jwcd, valid_fix1_rows=fix1,
-                complete_pairs=expected == count == hours == jwcd == fix1 == 24,
+                paired_legacy_hours=len(paired_hours),
+                missing_pair_legacy_hours=sorted(set(range(1, 25)) - paired_hours) if expected == 24 else None,
+                complete_pairs=expected == count == len(paired_hours) == 24,
                 model_ready=False,
             ))
     report = dict(

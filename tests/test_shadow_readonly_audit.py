@@ -163,6 +163,8 @@ class ReadonlyAuditTests(unittest.TestCase):
             rows = full['legacy_hourly_history']['days']
             self.assertEqual([row['expected_periods'] for row in rows], [23, 25, 24])
             self.assertEqual([row['complete_pairs'] for row in rows], [False, False, True])
+            self.assertEqual([row['paired_legacy_hours'] for row in rows], [23, 0, 24])
+            self.assertEqual([row['missing_pair_legacy_hours'] for row in rows], [None, None, []])
             self.assertTrue(all(not row['model_ready'] for row in rows))
             self.assertEqual(full['provisional_comparison_coverage']['paired_days'], 0)
 
@@ -178,13 +180,17 @@ class ReadonlyAuditTests(unittest.TestCase):
             self.assertEqual(mismatch['reference_matched_comparison_coverage']['paired_days'], 0)
 
             self.conn.execute("""
-                UPDATE history.hourly SET jwcd_mw = 'Infinity', fix1_pln_mwh = 'NaN'
-                WHERE delivery_date = %s AND hour = 1
+                UPDATE history.hourly
+                SET jwcd_mw = CASE WHEN hour = 1 THEN 'Infinity'::numeric ELSE jwcd_mw END,
+                    fix1_pln_mwh = CASE WHEN hour = 2 THEN 'NaN'::numeric ELSE fix1_pln_mwh END
+                WHERE delivery_date = %s AND hour IN (1, 2)
             """, (standard,))
             scoped = audit_connection(self.conn, start_day=date(2026, 11, 10), end_day=standard)
             legacy = scoped['legacy_hourly_history']
             day, = legacy['days']
             self.assertEqual((day['valid_jwcd_rows'], day['valid_fix1_rows']), (23, 23))
+            self.assertEqual(day['paired_legacy_hours'], 22)
+            self.assertEqual(day['missing_pair_legacy_hours'], [1, 2])
             self.assertFalse(day['complete_pairs'])
             self.assertEqual(legacy['missing_delivery_ranges'], [
                 {'start_day': '2026-11-10', 'end_day': '2026-11-10', 'days': 1},

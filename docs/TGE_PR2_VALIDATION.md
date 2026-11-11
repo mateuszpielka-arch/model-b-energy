@@ -1233,3 +1233,11 @@ referencją TGE w ramach tego samego odczytu. Test na izolowanym
 PostgreSQL potwierdza zgodność 24 cen dostawy 11.11.2026 i wskazuje
 dokładny okres UTC po zmianie H07. Zgodność cen nie potwierdza
 dostępności danych do treningu przed D-1 09:50 Europe/Warsaw.
+
+Audyt read-only `history.hourly` liczy etykiety godzin z jednocześnie
+skończonym JWCD i Fix1. Dla doby 24h podaje też etykiety bez pary.
+Dla dób 23h i 25h lista braków ma wartość null, ponieważ etykiety
+legacy nie identyfikują okresów UTC. Test na izolowanym PostgreSQL
+sprawdza obie doby zmiany czasu oraz dobę TGE 11.11.2026 z błędnym
+JWCD w H01 i Fix1 w H02. Po 23 poprawne wartości każdej serii
+dają 22 wspólne godziny.
