@@ -4,10 +4,13 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 from zipfile import ZipFile
 
 from shadow_history_audit import audit_rows, read_csv
-from shadow_history_bundle import CSV_NAME, audit_bundle, compare_fix1_reference
+from shadow_history_bundle import (
+    CSV_NAME, WORKBOOK_COLUMNS, audit_bundle, compare_fix1_reference, compare_workbook_rows,
+)
 from shadow_scoring import expected_periods
 
 
@@ -106,6 +109,37 @@ class HistoryBundleTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "Duplicate history manifest field"):
                     audit_bundle(path)
                 self.assertEqual(path.read_bytes(), before)
+
+    def test_optional_workbook_comparison_reports_mismatches_missing_and_duplicate_keys(self):
+        day = date(2026, 10, 24)
+        serial = (day - date(1899, 12, 30)).days
+        cells = [(float(serial), float(hour), 1200.0, -10.0) for hour in range(1, 25)]
+        cells[0] = serial, 1, 1201.0, -10.0
+        cells[1] = serial, 2, 1200.0, None
+        cells = [*cells[:-1], cells[2], ("Doba", "Godzina", None, None)]
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "history.zip"
+            self.make_bundle(path, days=(day.isoformat(),), manifest_changes={
+                "sheet": "KSEdo10", "columns": WORKBOOK_COLUMNS,
+            })
+            before = path.read_bytes()
+            with patch("shadow_history_bundle._workbook_cells", return_value=iter(cells)) as load:
+                self.assertNotIn("workbook_comparison", audit_bundle(path))
+                load.assert_not_called()
+                report = audit_bundle(path, verify_workbook=True)
+                load.assert_called_once_with(b"opaque workbook bytes")
+            self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(report["workbook_comparison"], {
+            "csv_rows": 24, "matched_rows": 20, "missing_workbook_rows": 1,
+            "duplicate_workbook_keys": 1, "jwcd_differences": 1, "fix1_differences": 1,
+        })
+        self.assertEqual(report["model_ready_days"], 0)
+
+    def test_workbook_comparison_rejects_inconsistent_csv_hour_and_utc_key(self):
+        row = dict(delivery_date="2026-11-11", hour="H01", jwcd_mw="1200",
+                   fix1_pln_mwh="-10", period_start_utc="2026-11-11T00:00:00Z")
+        with self.assertRaisesRegex(ValueError, "unique standard-day CSV"):
+            compare_workbook_rows([], [row])
 
     def test_reference_reports_price_difference_and_absent_history_day(self):
         with TemporaryDirectory() as tmp:

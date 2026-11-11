@@ -1263,3 +1263,16 @@ Zaostrzony audyt przeszedł również na oryginalnym ZIP z 04.11.2026
 (50 928 wierszy, 216/216 cen zgodnych z referencją TGE, identyczny
 SHA-256 ZIP po audycie). Brak znaczników dostępności nadal wyklucza
 te dane z treningu względem D-1 09:50 Europe/Warsaw.
+
+Opcja `python shadow_history_bundle.py historia.zip --verify-workbook`
+porównuje w trybie read-only zapisane wartości komórek arkusza
+`KSEdo10` (B, C, J, V) z parami JWCD/Fix1 eksportu CSV dla dób 24h.
+Wymaga opcjonalnego `pyxlsb` w środowisku audytu. Raport podaje liczbę
+zgodnych par, braków, duplikatów i różnic dla każdej serii. Kontrola
+sprawdza wyłącznie wiersze objęte eksportem i korzysta z wartości
+zapisanych w XLSB, bez przeliczania formuł.
+
+Na oryginalnym ZIP z 04.11.2026 zgodnych było 50 928 z 50 928 par,
+bez braków, duplikatów lub różnic. SHA-256 ZIP przed audytem i po nim
+był identyczny. Zgodność komórek nie dokumentuje publikacji ani pobrania
+JWCD do D-1 09:50 Europe/Warsaw, więc audyt nadal dopuszcza 0 dób do treningu.

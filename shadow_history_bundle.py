@@ -5,16 +5,17 @@ from collections import Counter, defaultdict
 from datetime import date, timedelta
 from decimal import Decimal
 from hashlib import file_digest, sha256
-from io import StringIO
+from io import BytesIO, StringIO
 import json
 from zipfile import ZipFile
 
 from shadow_history_audit import (
-    FIX1_COLUMNS, _stamp, audit_rows, missing_delivery_ranges, read_csv, read_csv_rows,
+    FIX1_COLUMNS, _number, _stamp, audit_rows, missing_delivery_ranges, read_csv, read_csv_rows,
 )
 from shadow_scoring import expected_periods
 
 CSV_NAME = "fix1_jwcd_standard_days.csv"
+WORKBOOK_COLUMNS = {"delivery_date": "B", "hour": "C", "jwcd_mw": "J", "fix1_pln_mwh": "V"}
 
 
 def _unique_manifest_object(pairs):
@@ -26,7 +27,66 @@ def _unique_manifest_object(pairs):
     return fields
 
 
-def audit_bundle(path, *, reference_paths=()):
+def _workbook_cells(workbook):
+    try:
+        from pyxlsb import open_workbook
+    except ImportError as exc:
+        raise ValueError("--verify-workbook requires the optional pyxlsb package") from exc
+
+    with open_workbook(BytesIO(workbook)) as source, source.get_sheet("KSEdo10") as sheet:
+        for row in sheet.rows(sparse=True):
+            yield tuple(row[index].v if index < len(row) else None for index in (1, 2, 9, 21))
+
+
+def compare_workbook_rows(cells, csv_rows):
+    """Compare the CSV subset to saved values in the 1900-date-system workbook."""
+    # Excel's fictitious leap day precedes every supported serial here.
+    epoch = date(1899, 12, 30)
+    periods_by_day = {}
+    expected = {}
+    for row in csv_rows:
+        day = date.fromisoformat(row["delivery_date"])
+        hour = int(row["hour"].removeprefix("H"))
+        if day not in periods_by_day:
+            periods_by_day[day] = expected_periods(day)
+        periods = periods_by_day[day]
+        serial = (day - epoch).days
+        key = serial, hour
+        utc_label = row.get("period_start_utc")
+        if (serial < 61 or len(periods) != 24 or hour not in range(1, 25)
+                or key in expected or (utc_label and _stamp(utc_label) != periods[hour - 1])
+                or not all(_number(row[field]) for field in ("jwcd_mw", "fix1_pln_mwh"))):
+            raise ValueError("Workbook comparison requires unique standard-day CSV price pairs")
+        expected[key] = Decimal(row["jwcd_mw"]), Decimal(row["fix1_pln_mwh"])
+
+    seen = Counter()
+    jwcd_differences = set()
+    fix1_differences = set()
+    for serial, hour, jwcd, fix1 in cells:
+        if type(serial) not in (int, float) or type(hour) not in (int, float):
+            continue
+        key = serial, hour
+        if key not in expected:
+            continue
+        seen[key] += 1
+        expected_jwcd, expected_fix1 = expected[key]
+        if not _number(jwcd) or Decimal(str(jwcd)) != expected_jwcd:
+            jwcd_differences.add(key)
+        if not _number(fix1) or Decimal(str(fix1)) != expected_fix1:
+            fix1_differences.add(key)
+
+    duplicates = {key for key, count in seen.items() if count > 1}
+    return {
+        "csv_rows": len(expected),
+        "matched_rows": len(seen.keys() - duplicates - jwcd_differences - fix1_differences),
+        "missing_workbook_rows": len(expected.keys() - seen.keys()),
+        "duplicate_workbook_keys": len(duplicates),
+        "jwcd_differences": len(jwcd_differences),
+        "fix1_differences": len(fix1_differences),
+    }
+
+
+def audit_bundle(path, *, reference_paths=(), verify_workbook=False):
     with ZipFile(path) as archive:
         names = archive.namelist()
         workbooks = [name for name in names if name.endswith(".xlsb")]
@@ -43,6 +103,10 @@ def audit_bundle(path, *, reference_paths=()):
         for name, digest in ((workbook, workbook_digest), (CSV_NAME, sha256(csv_bytes).hexdigest())):
             if checksums.get(name) != digest:
                 raise ValueError(f"SHA-256 mismatch or missing checksum for {name}")
+        if verify_workbook:
+            if manifest.get("sheet") != "KSEdo10" or manifest.get("columns") != WORKBOOK_COLUMNS:
+                raise ValueError("Unsupported workbook sheet or column mapping")
+            workbook_bytes = archive.read(workbook)
 
     with StringIO(csv_bytes.decode("utf-8-sig"), newline="") as stream:
         rows = read_csv_rows(stream, source=CSV_NAME)
@@ -79,6 +143,9 @@ def audit_bundle(path, *, reference_paths=()):
         "comparison_candidates": audit["comparison_candidates"],
         "comparison_blocked_by_late_fix1": audit["comparison_blocked_by_late_fix1"],
     }
+
+    if verify_workbook:
+        report["workbook_comparison"] = compare_workbook_rows(_workbook_cells(workbook_bytes), rows)
 
     if reference_paths:
         reference_rows = [row for path in reference_paths for row in read_csv(path)]
@@ -156,5 +223,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("zip")
     parser.add_argument("--reference", nargs="+", default=())
+    parser.add_argument("--verify-workbook", action="store_true", help="Compare saved XLSB cell values to CSV")
     args = parser.parse_args()
-    print(json.dumps(audit_bundle(args.zip, reference_paths=args.reference), indent=2))
+    report = audit_bundle(args.zip, reference_paths=args.reference, verify_workbook=args.verify_workbook)
+    print(json.dumps(report, indent=2))
