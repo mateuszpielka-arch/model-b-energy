@@ -70,6 +70,7 @@ class _FixingTable(_Rows):
         self.count = 0
         self.closed = False
         self.header_rows = []
+        self.header_spans = []
         self.span = 1
         self.is_header = False
 
@@ -84,8 +85,11 @@ class _FixingTable(_Rows):
             return
         if not self.active:
             return
-        if tag == "tr" and self.row is not None:
-            raise ValueError("Unclosed RDN row")
+        if tag == "tr":
+            if self.row is not None:
+                raise ValueError("Unclosed RDN row")
+            self.header_spans = []
+            self.is_header = False
         if tag in ("td", "th"):
             if self.cell is not None:
                 raise ValueError("Unclosed RDN cell")
@@ -111,9 +115,10 @@ class _FixingTable(_Rows):
             self.closed = True
             return
         if tag == "tr" and self.row is not None and self.is_header:
-            self.header_rows.append(list(self.row))
+            self.header_rows.append((list(self.row), tuple(self.header_spans)))
         super().handle_endtag(tag)
         if tag == "th" and self.row is not None:
+            self.header_spans.append(self.span)
             self.row.extend([self.row[-1]] * (self.span - 1))
 
 
@@ -129,8 +134,10 @@ def _validated_rdn_rows(html: str):
         raise ValueError("Expected one complete table id=rdn")
     if len(table.header_rows) != 2:
         raise ValueError("Expected two RDN header rows")
-    groups, columns = table.header_rows
-    if (groups[:4] != ["", "", "Fixing I", "Fixing I"] or
+    (groups, group_spans), (columns, column_spans) = table.header_rows
+    if (group_spans[:3] != (1, 1, 2) or sum(group_spans) != len(groups) or
+        column_spans != (1,) * len(columns) or
+        groups[:4] != ["", "", "Fixing I", "Fixing I"] or
         groups.count("Fixing I") != 2 or
         columns[:4] != ["Data dostawy", "Typ instrumentu", "Kurs [PLN/MWh]", "Wolumen [MW]"] or
         len(groups) != len(columns)):

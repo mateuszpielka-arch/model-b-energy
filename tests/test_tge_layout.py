@@ -1,3 +1,4 @@
+import gzip
 from pathlib import Path
 import unittest
 from tge_parser_safe import parse_verified_layout
@@ -49,6 +50,16 @@ class LayoutTests(unittest.TestCase):
         html = self.html[:start] + '<td>2492,98' + self.html[volume_end:]
         with self.assertRaisesRegex(ValueError, 'row width does not match header'):
             parse_verified_layout(html, '2026-11-02')
+
+    def test_split_fixing_i_header_is_rejected_on_november_12_capture(self):
+        path = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-12/tge_delivery_2026-11-12.html.gz'
+        source = gzip.decompress(path.read_bytes()).decode('utf-8')
+        original = '<th colspan="2" align="center">Fixing I</th>'
+        self.assertEqual(source.count(original), 1)
+        self.assertEqual(len(parse_verified_layout(source, '2026-11-12')), 24)
+        split = source.replace(original, '<th>Fixing I</th><th>Fixing I</th>', 1)
+        with self.assertRaisesRegex(ValueError, 'Fixing I columns changed'):
+            parse_verified_layout(split, '2026-11-12')
 
     def test_duplicate_fixing_i_group_rejected(self):
         html = self.html.replace('>Notowania ciągłe</th>', '>Fixing I</th>', 1)

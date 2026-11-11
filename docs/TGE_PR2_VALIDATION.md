@@ -1367,3 +1367,8 @@ Próba dwóch równoczesnych pierwszych importów na lokalnym PostgreSQL
 16.2 dała siedem zapisanych dób i siedem ponowień. Blokada inicjalizacji
 jest odrębna od blokad dób i obowiązuje tylko przy brakującym schemacie
 lub tabeli.
+
+Parser SHADOW sprawdza fizyczną grupę Fixing I z colspan=2 i pojedyncze
+komórki nagłówka kolumn. Test na HTML TGE dla dostawy 12.11.2026
+odczytuje 24 ceny z oryginału. Podział nagłówka na dwie identycznie
+opisane komórki przy niezmienionych danych powoduje odrzucenie tabeli.
