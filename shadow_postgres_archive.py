@@ -55,13 +55,17 @@ def _lock_delivery_day(conn, day):
     isolation = conn.execute('SHOW transaction_isolation').fetchone()[0]
     if isolation != 'read committed':
         raise ValueError('Fix1 day lock requires READ COMMITTED transaction isolation')
+    _lock_archive_key(conn, day.toordinal())
+
+
+def _lock_archive_key(conn, key):
     # Bound waits within the test transaction, preserving a stricter caller timeout.
     conn.execute("""
         SELECT set_config('lock_timeout', '5000', true)
         FROM (SELECT setting FROM pg_settings WHERE name = 'lock_timeout' LIMIT 1) AS timeout
         WHERE setting::int = 0 OR setting::int > 5000
     """)
-    conn.execute('SELECT pg_advisory_xact_lock(716101, %s)', (day.toordinal(),))
+    conn.execute('SELECT pg_advisory_xact_lock(716101, %s)', (key,))
 
 
 def _has_delivery_quarantine(conn, day):
@@ -79,7 +83,15 @@ def _has_delivery_quarantine(conn, day):
 def initialize(conn):
     _guard(conn)
     with conn.transaction():
-        conn.execute(DDL)
+        ready = conn.execute('''
+            SELECT to_regclass('fix1_shadow_test.batches') IS NOT NULL
+               AND to_regclass('fix1_shadow_test.prices') IS NOT NULL
+               AND to_regclass('fix1_shadow_test.quarantine') IS NOT NULL
+        ''').fetchone()[0]
+        if not ready:
+            # Reserve zero for schema creation; delivery-day ordinals start at one.
+            _lock_archive_key(conn, 0)
+            conn.execute(DDL)
 
 
 def archive_batch(conn, batch, raw):

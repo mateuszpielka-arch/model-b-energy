@@ -354,6 +354,30 @@ class ManifestPostgresTests(unittest.TestCase):
         self.assertEqual(self.conn.execute('SELECT count(*) FROM fix1_shadow_test.prices').fetchone()[0],0)
         self.assertEqual(self.conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone()[0],0)
 
+    def test_failed_first_import_rolls_back_schema_and_first_delivery(self):
+        from shadow_postgres_archive import archive_batch
+
+        first_day, second_day = [batch.delivery_date for batch, _ in load_batches(MANIFEST)[:2]]
+
+        def fail_after_first(conn, batch, raw):
+            if batch.delivery_date == second_day:
+                self.assertEqual(conn.execute(
+                    'SELECT DISTINCT delivery_date FROM fix1_shadow_test.prices'
+                ).fetchall(), [(first_day,)])
+                raise ValueError('Simulated failure on second delivery')
+            return archive_batch(conn, batch, raw)
+
+        # Restore the shared test schema when this test transaction exits.
+        with self.conn.transaction(force_rollback=True):
+            self.conn.execute('DROP SCHEMA fix1_shadow_test CASCADE')
+            with patch('shadow_postgres_archive.archive_batch', side_effect=fail_after_first):
+                with self.assertRaisesRegex(ValueError, 'Simulated failure'):
+                    ingest_manifest(MANIFEST, conn=self.conn)
+            self.assertIsNone(self.conn.execute(
+                "SELECT to_regnamespace('fix1_shadow_test')"
+            ).fetchone()[0])
+            self.assertEqual(ingest_manifest(MANIFEST, conn=self.conn)['inserted_periods'], 168)
+
     def test_failed_second_session_rolls_back_manifest_and_allows_retry(self):
         from psycopg.errors import CheckViolation
 

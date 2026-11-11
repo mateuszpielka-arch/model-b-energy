@@ -1358,3 +1358,12 @@ rewizji. Test na oficjalnym HTML TGE i syntetycznej zmianie jednej
 ceny zachowuje status REPLAY, wcześniej zapisany wynik i blokadę.
 Dwie kolejne doby tego manifestu zapisują się bez blokady.
 Dry-run podaje null, ponieważ nie odczytuje stanu bazy.
+
+Import manifestu SHADOW inicjalizuje schemat testowy w tej samej
+transakcji co ceny i kwarantannę. Test pustej bazy potwierdza, że
+błąd na drugiej dobie wycofuje zapis pierwszej doby wraz z utworzeniem
+schematu. Po ustąpieniu błędu ten sam manifest zapisuje 168 okresów.
+Próba dwóch równoczesnych pierwszych importów na lokalnym PostgreSQL
+16.2 dała siedem zapisanych dób i siedem ponowień. Blokada inicjalizacji
+jest odrębna od blokad dób i obowiązuje tylko przy brakującym schemacie
+lub tabeli.

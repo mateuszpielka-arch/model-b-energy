@@ -128,12 +128,14 @@ def ingest_manifest(manifest_path, *, conn=None, retry_lock=False):
 
 def _ingest_batches(batches, conn):
     if conn is not None:
-        from shadow_postgres_archive import _has_delivery_quarantine, archive_batch, initialize
-        initialize(conn)
+        from shadow_postgres_archive import _guard, _has_delivery_quarantine, archive_batch, initialize
+        _guard(conn)
     report=[]
     # Batches are sorted by delivery date, so overlapping imports acquire day
     # locks in the same order and retain them until the manifest commits.
     with (nullcontext() if conn is None else conn.transaction()):
+        if conn is not None:
+            initialize(conn)
         for batch,raw in batches:
             status = 'VALIDATED_DRY_RUN' if conn is None else archive_batch(conn, batch, raw)
             blocked = None
