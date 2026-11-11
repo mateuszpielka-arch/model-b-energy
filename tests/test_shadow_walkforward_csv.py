@@ -177,6 +177,39 @@ class WalkforwardCSVTests(unittest.TestCase):
                 self.assertEqual(result["walkforward"]["requested_days"], 0)
                 self.assertEqual(result["walkforward"]["ranking"], [])
 
+    def test_csv_comment_inside_quoted_version_preserves_provenance_conflict(self):
+        day = date(2026, 11, 11)
+        cutoff = cutoff_for_day(day)
+        fixture = Path(__file__).parent / "fixtures/tge_delivery_2026-11-11/tge_delivery_2026-11-11.csv"
+        rows = read_csv(fixture)
+        for row in rows:
+            row.update(
+                actual_verified="true", actual_version="test-reference",
+                actual_available_at=(cutoff + timedelta(hours=3)).isoformat(),
+                jwcd_mw="10000", jwcd_snapshot_id="jwcd-test",
+                publication_ts=(cutoff - timedelta(minutes=1)).isoformat(),
+                retrieved_at=cutoff.isoformat(), retrieval_completed_at=cutoff.isoformat(),
+            )
+        rows[0]["actual_version"] = "test-reference\n# different revision"
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "history.csv"
+            with path.open("w", newline="", encoding="utf-8") as stream:
+                stream.write("# export metadata\r\n")
+                writer = csv.DictWriter(stream, fieldnames=rows[0])
+                writer.writeheader()
+                writer.writerow(rows[0])
+                stream.write("# comment between records\r\n")
+                writer.writerows(rows[1:])
+            parsed = read_csv(path)
+
+        self.assertEqual(parsed, rows)
+        result = evaluate_csv_rows(parsed, evaluated_at=cutoff + timedelta(days=2))
+        self.assertEqual(result["history_audit"]["days"][0]["availability_proven_rows"], 24)
+        self.assertEqual(result["csv_admission"]["excluded_days"], {
+            day.isoformat(): ["CONFLICTING_ACTUAL_VERSIONS"],
+        })
+        self.assertEqual(result["walkforward"]["requested_days"], 0)
+
     def test_reversed_target_bounds_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "Target start"):
             evaluate_csv_rows([], evaluated_at=datetime(2026, 11, 4, tzinfo=timezone.utc),

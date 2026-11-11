@@ -7,6 +7,7 @@ import csv
 from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
+from itertools import chain
 from shadow_asof import cutoff_for_day, snapshot_identifier
 from shadow_scoring import _utc, expected_periods
 
@@ -234,16 +235,30 @@ def comparison_coverage(ready_at):
 
 
 def read_csv_rows(lines, *, source):
-    reader = csv.DictReader((line for line in lines if not line.startswith('#')), strict=True)
-    duplicates = sorted(name for name, count in Counter(reader.fieldnames or ()).items()
-                        if count > 1)
-    if duplicates:
-        raise ValueError(f'{source}: duplicate CSV columns: {", ".join(duplicates)}')
+    lines = iter(lines)
+    header = None
     rows = []
-    for record in reader:
-        if None in record or any(value is None for value in record.values()):
-            raise ValueError(f'{source}: CSV record at line {reader.line_num} has wrong field count')
-        rows.append(record)
+    line_num = 0
+    for line in lines:
+        line_num += 1
+        if line.startswith('#'):
+            continue
+        # Let the CSV reader consume continuation lines verbatim. Only a
+        # comment at the start of a new record can be skipped.
+        reader = csv.reader(chain((line,), lines), strict=True)
+        record = next(reader)
+        line_num += reader.line_num - 1
+        if not record:
+            continue
+        if header is None:
+            header = record
+            duplicates = sorted(name for name, count in Counter(header).items() if count > 1)
+            if duplicates:
+                raise ValueError(f'{source}: duplicate CSV columns: {", ".join(duplicates)}')
+            continue
+        if len(record) != len(header):
+            raise ValueError(f'{source}: CSV record at line {line_num} has wrong field count')
+        rows.append(dict(zip(header, record, strict=True)))
     return rows
 
 

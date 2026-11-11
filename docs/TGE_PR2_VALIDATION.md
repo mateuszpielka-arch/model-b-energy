@@ -1247,3 +1247,9 @@ JWCD według tych samych reguł co wybór snapshotu. Dopuszcza niepusty
 tekst lub liczbę całkowitą. Test na cenach TGE z 11.11.2026 i syntetycznym
 JWCD potwierdza wykluczenie doby z błędnym typem identyfikatora, nawet
 gdy wszystkie 24 okresy spełniają granicę D-1 09:50 Europe/Warsaw.
+
+Odczyt CSV pomija komentarze przed nagłówkiem i między rekordami.
+Wielowierszowe pola w cudzysłowie zachowują linie zaczynające się od `#`.
+Test na 24 cenach TGE z 11.11.2026 i syntetycznych metadanych sprawdza,
+że zachowana linia rozróżnia wersje Fix1, a konflikt wyklucza dobę
+z walk-forward mimo terminowej dostępności wszystkich wartości JWCD.
