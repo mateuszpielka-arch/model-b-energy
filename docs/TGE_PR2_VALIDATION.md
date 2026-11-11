@@ -1227,3 +1227,9 @@ i liczbę poprawnych wartości JWCD oraz Fix1. Numery godzin i komplet cen
 nie potwierdzają dostępności względem D-1 09:50 Europe/Warsaw.
 Test na izolowanym PostgreSQL łączy oficjalną dobę 11.11.2026
 z przypadkami zmiany czasu oraz sprawdza wartości NaN i nieskończone.
+
+Audyt read-only porównuje ceny Fix1 z `history.hourly` z przekazaną
+referencją TGE w ramach tego samego odczytu. Test na izolowanym
+PostgreSQL potwierdza zgodność 24 cen dostawy 11.11.2026 i wskazuje
+dokładny okres UTC po zmianie H07. Zgodność cen nie potwierdza
+dostępności danych do treningu przed D-1 09:50 Europe/Warsaw.

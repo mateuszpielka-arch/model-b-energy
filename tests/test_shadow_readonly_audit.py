@@ -152,18 +152,30 @@ class ReadonlyAuditTests(unittest.TestCase):
                 SELECT %s, hour, 1000, NULL FROM generate_series(1, 24) AS hour
             """, (spring, autumn))
             fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-11/tge_delivery_2026-11-11.csv'
+            reference = read_csv(fixture)
             with self.conn.cursor() as cursor:
                 cursor.executemany(
                     'INSERT INTO history.hourly VALUES (%s,%s,1000,%s)',
-                    [(standard, int(row['hour'][1:]), Decimal(row['price_pln_mwh'])) for row in read_csv(fixture)],
+                    [(standard, int(row['hour'][1:]), Decimal(row['price_pln_mwh'])) for row in reference],
                 )
-            full = audit_connection(self.conn)
+            full = audit_connection(self.conn, reference_rows=reference)
             self.assertTrue(full['transaction_read_only'])
             rows = full['legacy_hourly_history']['days']
             self.assertEqual([row['expected_periods'] for row in rows], [23, 25, 24])
             self.assertEqual([row['complete_pairs'] for row in rows], [False, False, True])
             self.assertTrue(all(not row['model_ready'] for row in rows))
             self.assertEqual(full['provisional_comparison_coverage']['paired_days'], 0)
+
+            self.assertEqual(full['legacy_hourly_history']['fix1_reference']['matched_days'], 1)
+            self.assertEqual(full['fix1_reference']['matched_days'], 0)
+            self.conn.execute('UPDATE history.hourly SET fix1_pln_mwh = fix1_pln_mwh + 1 '
+                              'WHERE delivery_date = %s AND hour = 7', (standard,))
+            mismatch = audit_connection(self.conn, reference_rows=reference)
+            comparison = mismatch['legacy_hourly_history']['fix1_reference']
+            self.assertEqual(comparison['compared_periods'], 24)
+            self.assertEqual(comparison['compared_days'][0]['different_periods_utc'],
+                             ['2026-11-11T05:00:00+00:00'])
+            self.assertEqual(mismatch['reference_matched_comparison_coverage']['paired_days'], 0)
 
             self.conn.execute("""
                 UPDATE history.hourly SET jwcd_mw = 'Infinity', fix1_pln_mwh = 'NaN'

@@ -116,7 +116,7 @@ def _finite_timestamptz(columns, column):
     return 'NULL::timestamptz'
 
 
-def audit_legacy_hourly(conn, start_day, end_day):
+def audit_legacy_hourly(conn, start_day, end_day, *, reference_rows=None, reference_days=()):
     """Inventory legacy history without treating hour labels as timing evidence."""
     required = {'delivery_date', 'hour', 'jwcd_mw', 'fix1_pln_mwh'}
     missing = sorted(required - table_columns(conn, 'history.hourly').keys())
@@ -141,10 +141,25 @@ def audit_legacy_hourly(conn, start_day, end_day):
                 complete_pairs=expected == count == hours == jwcd == fix1 == 24,
                 model_ready=False,
             ))
-    return dict(
+    report = dict(
         days=days, missing_columns=missing,
         missing_delivery_ranges=[] if missing else missing_delivery_ranges(days, start_day, end_day),
     )
+    if reference_rows is not None and not missing:
+        rows = conn.execute("""
+            SELECT delivery_date, hour, fix1_pln_mwh
+            FROM history.hourly
+            WHERE delivery_date = ANY(%s::date[])
+        """, (reference_days,)).fetchall()
+        history = [
+            dict(delivery_date=day.isoformat(), hour=hour, fix1=price)
+            for day, hour, price in rows
+        ]
+        history_range = (days[0]['day'], days[-1]['day']) if days else None
+        report['fix1_reference'] = compare_fix1_reference(
+            history, audit_rows(history), reference_rows, history_range=history_range,
+        )
+    return report
 
 
 def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None):
@@ -387,7 +402,9 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     }),
                     note='60/2026 are diagnostics, not proof of invalid price. Legacy retrieval time is not completion evidence.')
         if present['history.hourly']:
-            report['legacy_hourly_history'] = audit_legacy_hourly(conn, start_day, end_day)
+            report['legacy_hourly_history'] = audit_legacy_hourly(
+                conn, start_day, end_day, reference_rows=reference_rows, reference_days=reference_days,
+            )
         excluded_days = set()
         if reference_rows is not None:
             history = []
