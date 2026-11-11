@@ -21,6 +21,7 @@ class ManifestTests(unittest.TestCase):
         report=ingest_manifest(MANIFEST)
         self.assertTrue(report['dry_run']);self.assertEqual((report['days'],report['periods']),(7,168))
         self.assertTrue(all(r['status']=='VALIDATED_DRY_RUN' for r in report['results']))
+        self.assertTrue(all(r['scoring_blocked_by_quarantine'] is None for r in report['results']))
         self.assertEqual(report['days_by_status'], {'VALIDATED_DRY_RUN': 7})
         self.assertEqual(report['inserted_periods'], 0)
         self.assertTrue(all('?dateShow=' in r['source_url'] for r in report['results']))

@@ -1351,3 +1351,10 @@ Benchmark offline FROZEN 90D pokazuje pokrycie osobno dla dób 23h,
 24h i 25h. Liczy doby ocenione w SHADOW, doby sparowane z FROZEN,
 doby bez pary oraz okresy wspólne. Testy sprawdzają odrzuconą dobę
 25h przy zachowanej dobie 24h oraz eksport JSON z pełną parą 25h.
+
+Raport importu SHADOW wskazuje blokadę scoringu przez kwarantannę
+także przy ponowieniu oryginalnego zapisu po odrzuceniu sprzecznej
+rewizji. Test na oficjalnym HTML TGE i syntetycznej zmianie jednej
+ceny zachowuje status REPLAY, wcześniej zapisany wynik i blokadę.
+Dwie kolejne doby tego manifestu zapisują się bez blokady.
+Dry-run podaje null, ponieważ nie odczytuje stanu bazy.

@@ -414,6 +414,15 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             self.assertEqual(quarantined, [(revised.raw_sha256, revised.reference_sha256, revised_raw)])
             self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (2,))
 
+            report = ingest_manifest(FIXTURES / 'manifest.json', conn=conn)
+            replay, *new_days = report['results']
+            self.assertEqual((replay['day'], replay['status'], replay['scoring_blocked_by_quarantine']),
+                             (day, 'REPLAY', True))
+            self.assertEqual([(row['status'], row['scoring_blocked_by_quarantine']) for row in new_days],
+                             [('INSERT', False), ('INSERT', False)])
+            self.assertEqual(report['inserted_periods'], 48)
+            self.assertEqual(conn.execute(score_query).fetchall(), original_score)
+
     def test_score_monday_manifest_at_capture_time_against_csv_metrics(self):
         manifest_path = NOV_9_FIXTURES / 'manifest.json'
         entry, = json.loads(manifest_path.read_text())['entries']

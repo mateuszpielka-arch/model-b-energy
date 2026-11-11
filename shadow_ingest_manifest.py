@@ -128,16 +128,23 @@ def ingest_manifest(manifest_path, *, conn=None, retry_lock=False):
 
 def _ingest_batches(batches, conn):
     if conn is not None:
-        from shadow_postgres_archive import initialize,archive_batch
+        from shadow_postgres_archive import _has_delivery_quarantine, archive_batch, initialize
         initialize(conn)
     report=[]
     # Batches are sorted by delivery date, so overlapping imports acquire day
     # locks in the same order and retain them until the manifest commits.
     with (nullcontext() if conn is None else conn.transaction()):
         for batch,raw in batches:
-            status='VALIDATED_DRY_RUN' if conn is None else archive_batch(conn,batch,raw)
+            status = 'VALIDATED_DRY_RUN' if conn is None else archive_batch(conn, batch, raw)
+            blocked = None
+            if conn is not None:
+                # A replay can match accepted prices even after a different capture was quarantined.
+                blocked = status == 'QUARANTINE' or (
+                    status == 'REPLAY' and _has_delivery_quarantine(conn, batch.delivery_date)
+                )
             report.append(dict(day=batch.delivery_date.isoformat(),periods=len(batch.rows),status=status,
-                               raw_sha256=batch.raw_sha256,source_url=batch.source_url))
+                               raw_sha256=batch.raw_sha256,source_url=batch.source_url,
+                               scoring_blocked_by_quarantine=blocked))
     return dict(
         dry_run=conn is None,
         days=len(report),
