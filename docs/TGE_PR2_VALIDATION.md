@@ -1276,3 +1276,12 @@ Na oryginalnym ZIP z 04.11.2026 zgodnych było 50 928 z 50 928 par,
 bez braków, duplikatów lub różnic. SHA-256 ZIP przed audytem i po nim
 był identyczny. Zgodność komórek nie dokumentuje publikacji ani pobrania
 JWCD do D-1 09:50 Europe/Warsaw, więc audyt nadal dopuszcza 0 dób do treningu.
+
+Audyt `--verify-workbook` pokazuje także wiersze i etykiety godzin
+z XLSB dla dób zmiany czasu pominiętych przez CSV. W oryginalnym
+archiwum z 04.11.2026 wszystkie sześć dób 23h i pięć z sześciu dób
+25h ma po 24 wiersze. Tylko 30.10.2022 ma 25 wierszy, w tym liczbową
+etykietę 25. Każdy z tych wierszy ma skończone JWCD i Fix1.
+Same etykiety nie potwierdzają mapowania na UTC ani dostępności do
+D-1 09:50 Europe/Warsaw. Wynik standardowych dób nadal wynosi
+50 928 zgodnych par, a SHA-256 źródłowego ZIP był identyczny po audycie.

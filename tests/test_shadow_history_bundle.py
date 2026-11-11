@@ -132,7 +132,34 @@ class HistoryBundleTests(unittest.TestCase):
         self.assertEqual(report["workbook_comparison"], {
             "csv_rows": 24, "matched_rows": 20, "missing_workbook_rows": 1,
             "duplicate_workbook_keys": 1, "jwcd_differences": 1, "fix1_differences": 1,
+            "omitted_dst_days": [],
         })
+        self.assertEqual(report["model_ready_days"], 0)
+
+    def test_audit_counts_workbook_labels_for_dst_dates_omitted_from_csv(self):
+        spring, autumn = date(2026, 3, 29), date(2026, 10, 25)
+        epoch = date(1899, 12, 30)
+        cells = [
+            ((day - epoch).days, hour, 1200, -10)
+            for day, count in ((spring, 24), (autumn, 25))
+            for hour in range(1, count + 1)
+        ]
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "history.zip"
+            self.make_bundle(path, days=("2026-03-28", "2026-10-26"), manifest_changes={
+                "sheet": "KSEdo10", "columns": WORKBOOK_COLUMNS,
+            })
+            with patch("shadow_history_bundle._workbook_cells", return_value=iter(cells)):
+                report = audit_bundle(path, verify_workbook=True)
+
+        comparison = report["workbook_comparison"]
+        self.assertEqual(comparison["omitted_dst_days"], [
+            dict(day=spring.isoformat(), expected_periods=23, workbook_rows=24,
+                 finite_pair_rows=24, distinct_nonempty_labels=24, numeric_hour_25_rows=0),
+            dict(day=autumn.isoformat(), expected_periods=25, workbook_rows=25,
+                 finite_pair_rows=25, distinct_nonempty_labels=25, numeric_hour_25_rows=1),
+        ])
+        self.assertEqual(comparison["matched_rows"], 0)
         self.assertEqual(report["model_ready_days"], 0)
 
     def test_workbook_comparison_rejects_inconsistent_csv_hour_and_utc_key(self):

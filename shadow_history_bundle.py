@@ -38,8 +38,8 @@ def _workbook_cells(workbook):
             yield tuple(row[index].v if index < len(row) else None for index in (1, 2, 9, 21))
 
 
-def compare_workbook_rows(cells, csv_rows):
-    """Compare the CSV subset to saved values in the 1900-date-system workbook."""
+def compare_workbook_rows(cells, csv_rows, *, omitted_dst_days=None):
+    """Compare CSV rows and count omitted DST labels in the 1900-date-system workbook."""
     # Excel's fictitious leap day precedes every supported serial here.
     epoch = date(1899, 12, 30)
     periods_by_day = {}
@@ -59,11 +59,21 @@ def compare_workbook_rows(cells, csv_rows):
             raise ValueError("Workbook comparison requires unique standard-day CSV price pairs")
         expected[key] = Decimal(row["jwcd_mw"]), Decimal(row["fix1_pln_mwh"])
 
+    dst_by_serial = {
+        (day - epoch).days: (day, hours) for day, hours in (omitted_dst_days or {}).items()
+    }
+    dst_labels = defaultdict(Counter)
+    dst_pairs = Counter()
     seen = Counter()
     jwcd_differences = set()
     fix1_differences = set()
     for serial, hour, jwcd, fix1 in cells:
-        if type(serial) not in (int, float) or type(hour) not in (int, float):
+        if type(serial) not in (int, float):
+            continue
+        if serial in dst_by_serial:
+            dst_labels[serial][hour] += 1
+            dst_pairs[serial] += _number(jwcd) and _number(fix1)
+        if type(hour) not in (int, float):
             continue
         key = serial, hour
         if key not in expected:
@@ -83,6 +93,17 @@ def compare_workbook_rows(cells, csv_rows):
         "duplicate_workbook_keys": len(duplicates),
         "jwcd_differences": len(jwcd_differences),
         "fix1_differences": len(fix1_differences),
+        "omitted_dst_days": [
+            {
+                "day": day.isoformat(),
+                "expected_periods": hours,
+                "workbook_rows": dst_labels[serial].total(),
+                "finite_pair_rows": dst_pairs[serial],
+                "distinct_nonempty_labels": len(dst_labels[serial].keys() - {None, ""}),
+                "numeric_hour_25_rows": dst_labels[serial][25],
+            }
+            for serial, (day, hours) in sorted(dst_by_serial.items())
+        ],
     }
 
 
@@ -120,6 +141,7 @@ def audit_bundle(path, *, reference_paths=(), verify_workbook=False):
     first, last = date.fromisoformat(dates[0]), date.fromisoformat(dates[-1])
     calendar = {first + timedelta(days=offset) for offset in range((last - first).days + 1)}
     missing = calendar - {date.fromisoformat(day) for day in dates}
+    missing_day_hours = {day: len(expected_periods(day)) for day in missing}
     report = {
         "first_date": dates[0],
         "last_date": dates[-1],
@@ -133,9 +155,7 @@ def audit_bundle(path, *, reference_paths=(), verify_workbook=False):
         "delivery_days_by_hours": dict(sorted(Counter(
             entry["expected_periods"] for entry in audit["days"]
         ).items())),
-        "missing_delivery_days_by_hours": dict(sorted(Counter(
-            len(expected_periods(day)) for day in missing
-        ).items())),
+        "missing_delivery_days_by_hours": dict(sorted(Counter(missing_day_hours.values()).items())),
         "missing_delivery_ranges": missing_delivery_ranges(audit["days"], first, last),
         "days_by_issue": dict(sorted(Counter(
             issue for entry in audit["days"] for issue in entry["issues"]
@@ -145,7 +165,10 @@ def audit_bundle(path, *, reference_paths=(), verify_workbook=False):
     }
 
     if verify_workbook:
-        report["workbook_comparison"] = compare_workbook_rows(_workbook_cells(workbook_bytes), rows)
+        report["workbook_comparison"] = compare_workbook_rows(
+            _workbook_cells(workbook_bytes), rows,
+            omitted_dst_days={day: hours for day, hours in missing_day_hours.items() if hours != 24},
+        )
 
     if reference_paths:
         reference_rows = [row for path in reference_paths for row in read_csv(path)]
