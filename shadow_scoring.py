@@ -4,6 +4,7 @@ Inputs must already have independently verified actual provenance and UTC period
 mapping. This module does not certify either; it refuses unverified batches.
 """
 from dataclasses import dataclass
+from collections.abc import Mapping
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal, InvalidOperation, localcontext
 from zoneinfo import ZoneInfo
@@ -29,11 +30,15 @@ def expected_periods(day: date):
 def _prices(rows):
     # Sequence of pairs, not dict: duplicate periods must remain detectable.
     out = {}
+    if isinstance(rows, (Mapping, str, bytes)):
+        raise ValueError('Invalid price collection')
     try:
         records = iter(rows)
     except TypeError as exc:
         raise ValueError('Invalid price collection') from exc
     for record in records:
+        if isinstance(record, (Mapping, str, bytes)):
+            raise ValueError('Invalid price row')
         try:
             period, price = record
         except (TypeError, ValueError) as exc:

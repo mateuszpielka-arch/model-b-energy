@@ -1208,3 +1208,9 @@ najpóźniej w chwili wystawienia, do D-1 09:50 Europe/Warsaw włącznie.
 Test udostępnia spóźnioną prognozę jako iterator zgłaszający błąd
 przy odczycie. Doba zostaje wykluczona, a 49 wcześniejszych
 wspólnych okresów zachowuje wynik benchmarku.
+
+Wspólna walidacja cen SHADOW odrzuca słowniki podane jako kolekcja
+cen lub jako para [okres UTC, cena]. Klucze słownika nie mogą udawać
+danych cenowych. Testy obejmują prognozę i actual oraz zapis wyniku
+w izolowanym PostgreSQL przed i po poprawnym scoringu. Jednorazowe
+iteratory par pozostają obsługiwane.

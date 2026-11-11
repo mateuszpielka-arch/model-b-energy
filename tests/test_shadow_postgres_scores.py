@@ -48,6 +48,19 @@ class ScorePersistenceTests(unittest.TestCase):
                          ('REPLAY', score))
         self.assertEqual(self.conn.execute(query).fetchall(), previous)
 
+    def test_mapping_price_rows_cannot_create_or_replace_a_score(self):
+        rows = self.kw['forecast']
+        malformed = [{period: None, price: None} for period, price in rows]
+        with self.assertRaisesRegex(ValueError, 'Invalid price row'):
+            score_archived_day(self.conn, **{**self.kw, 'forecast': malformed})
+        self.assertEqual(self.count(), 0)
+        self.assertEqual(score_archived_day(self.conn, **self.kw)[0], 'INSERT')
+        previous = self.conn.execute('SELECT input_sha256, payload FROM fix1_shadow_test.scores').fetchall()
+        with self.assertRaisesRegex(ValueError, 'Invalid price row'):
+            score_archived_day(self.conn, **{**self.kw, 'forecast': malformed})
+        self.assertEqual(self.conn.execute('SELECT input_sha256, payload FROM fix1_shadow_test.scores').fetchall(),
+                         previous)
+
     def test_equivalent_decimal_spellings_replay_without_writing(self):
         first, *rest = self.kw['forecast']
         period, _ = first

@@ -54,6 +54,25 @@ class ScoringTests(unittest.TestCase):
         kw=self.args(); kw['actual'].append(kw['actual'][0])
         with self.assertRaises(ValueError): score_day(**kw)
 
+    def test_mapping_keys_cannot_be_interpreted_as_price_rows(self):
+        for field in ('forecast', 'actual'):
+            for as_collection in (False, True):
+                with self.subTest(field=field, as_collection=as_collection):
+                    args = self.args()
+                    rows = args[field]
+                    if as_collection:
+                        args[field] = {tuple(row): None for row in rows}
+                        message = 'Invalid price collection'
+                    else:
+                        args[field] = [{period: None, price: None} for period, price in rows]
+                        message = 'Invalid price row'
+                    with self.assertRaisesRegex(ValueError, message):
+                        score_day(**args)
+
+        args = self.args()
+        args['forecast'] = (iter(row) for row in args['forecast'])
+        self.assertEqual(score_day(**args).mae, 0)
+
     def test_nonfinite_and_invalid_prices_rejected(self):
         for value in ('NaN','Infinity','-Infinity',None,True,'bad'):
             kw=self.args(); p,_=kw['actual'][0]; kw['actual'][0]=(p,value)
