@@ -1253,3 +1253,13 @@ Wielowierszowe pola w cudzysłowie zachowują linie zaczynające się od `#`.
 Test na 24 cenach TGE z 11.11.2026 i syntetycznych metadanych sprawdza,
 że zachowana linia rozróżnia wersje Fix1, a konflikt wyklucza dobę
 z walk-forward mimo terminowej dostępności wszystkich wartości JWCD.
+
+Audyt read-only ZIP historii PK5/Fix1 odrzuca powtórzone klucze
+manifestu, również wewnątrz mapy SHA-256. Test tworzy izolowane ZIP-y,
+w których druga wartość liczby dób lub skrótu CSV/XLSB zgadza się
+z zawartością, a pierwsza jest sprzeczna. Każdy taki manifest jest
+odrzucany, a bajty archiwum pozostają identyczne.
+Zaostrzony audyt przeszedł również na oryginalnym ZIP z 04.11.2026
+(50 928 wierszy, 216/216 cen zgodnych z referencją TGE, identyczny
+SHA-256 ZIP po audycie). Brak znaczników dostępności nadal wyklucza
+te dane z treningu względem D-1 09:50 Europe/Warsaw.

@@ -28,7 +28,7 @@ class HistoryBundleTests(unittest.TestCase):
                          ['2026-11-09T22:00:00+00:00'])
 
     def make_bundle(self, path, *, manifest_changes=None, corrupt_csv=False,
-                    days=("2026-10-24", "2026-10-26")):
+                    days=("2026-10-24", "2026-10-26"), duplicate_manifest_field=None):
         workbook = b"opaque workbook bytes"
         csv_data = b"delivery_date,hour,fix1_pln_mwh,jwcd_mw\n" + b"".join(
             f"{day},H{hour:02d},-10,1200\n".encode()
@@ -41,8 +41,13 @@ class HistoryBundleTests(unittest.TestCase):
                     CSV_NAME: sha256(csv_data).hexdigest()},
         )
         manifest.update(manifest_changes or {})
+        manifest_json = json.dumps(manifest)
+        if duplicate_manifest_field is not None:
+            key, value = duplicate_manifest_field
+            token = json.dumps(key) + ":"
+            manifest_json = manifest_json.replace(token, f"{token} {json.dumps(value)}, {token}", 1)
         with ZipFile(path, "w") as bundle:
-            bundle.writestr("manifest.json", json.dumps(manifest))
+            bundle.writestr("manifest.json", manifest_json)
             bundle.writestr("test.xlsb", workbook)
             bundle.writestr(CSV_NAME, csv_data + (b"changed" if corrupt_csv else b""))
 
@@ -91,6 +96,16 @@ class HistoryBundleTests(unittest.TestCase):
                 self.make_bundle(path, **options)
                 with self.assertRaisesRegex(ValueError, error):
                     audit_bundle(path)
+
+    def test_rejects_duplicate_coverage_and_checksum_fields_in_history_manifest(self):
+        for key, value in (("days", 99), (CSV_NAME, "0" * 64), ("test.xlsb", "0" * 64)):
+            with self.subTest(key=key), TemporaryDirectory() as tmp:
+                path = Path(tmp) / "history.zip"
+                self.make_bundle(path, duplicate_manifest_field=(key, value))
+                before = path.read_bytes()
+                with self.assertRaisesRegex(ValueError, "Duplicate history manifest field"):
+                    audit_bundle(path)
+                self.assertEqual(path.read_bytes(), before)
 
     def test_reference_reports_price_difference_and_absent_history_day(self):
         with TemporaryDirectory() as tmp:

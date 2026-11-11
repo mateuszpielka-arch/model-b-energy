@@ -17,6 +17,15 @@ from shadow_scoring import expected_periods
 CSV_NAME = "fix1_jwcd_standard_days.csv"
 
 
+def _unique_manifest_object(pairs):
+    fields = {}
+    for key, value in pairs:
+        if key in fields:
+            raise ValueError(f"Duplicate history manifest field: {key}")
+        fields[key] = value
+    return fields
+
+
 def audit_bundle(path, *, reference_paths=()):
     with ZipFile(path) as archive:
         names = archive.namelist()
@@ -26,7 +35,7 @@ def audit_bundle(path, *, reference_paths=()):
         ):
             raise ValueError("Expected exactly one workbook, CSV and manifest")
         workbook, = workbooks
-        manifest = json.loads(archive.read("manifest.json"))
+        manifest = json.loads(archive.read("manifest.json"), object_pairs_hook=_unique_manifest_object)
         checksums = manifest["sha256"]
         with archive.open(workbook) as stream:
             workbook_digest = file_digest(stream, "sha256").hexdigest()
