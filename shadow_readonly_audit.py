@@ -244,14 +244,27 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     availability = 'UNPROVEN_NO_VERIFIED_COMPLETION_TIMESTAMP'
                 # v3 fetches all pages before opening the insert transaction.
                 # A recorded archive timestamp is a candidate bound, pending provenance review.
-                archive_timing_candidate = (
-                    source_version == 'energy-collector-v3'
-                    and retrieved_utc is not None
-                    and isinstance(archived, datetime) and archived.utcoffset() is not None
-                    and retrieved_utc <= archived <= cutoff
-                    and bool(publications) and len(publications) == len(values)
-                    and max(publications) <= archived
+                archived_utc = (
+                    archived.astimezone(timezone.utc)
+                    if isinstance(archived, datetime) and archived.utcoffset() is not None else None
                 )
+                latest_publication = max(publications, default=None)
+                archive_timing_rejections = [
+                    reason for rejected, reason in (
+                        (source_version != 'energy-collector-v3', 'UNSUPPORTED_ARCHIVE_SOURCE'),
+                        (retrieved_utc is None, 'MISSING_RETRIEVAL_START'),
+                        (archived_utc is None, 'MISSING_ARCHIVE_TIMESTAMP'),
+                        (retrieved_utc is not None and retrieved_utc > cutoff, 'RETRIEVAL_AFTER_CUTOFF'),
+                        (archived_utc is not None and archived_utc > cutoff, 'ARCHIVE_AFTER_CUTOFF'),
+                        (retrieved_utc is not None and archived_utc is not None
+                         and archived_utc < retrieved_utc, 'ARCHIVE_BEFORE_RETRIEVAL'),
+                        (not publications or len(publications) != len(values), 'INCOMPLETE_PUBLICATION_TIMESTAMPS'),
+                        (bool(late_publications), 'PUBLICATION_AFTER_CUTOFF'),
+                        (latest_publication is not None and archived_utc is not None
+                         and latest_publication > archived_utc, 'PUBLICATION_AFTER_ARCHIVE'),
+                    ) if rejected
+                ]
+                archive_timing_candidate = not archive_timing_rejections
                 utc_hours = audit_pk5_utc_hours(day, values)
                 hourly_candidate = (archive_timing_candidate and utc_hours['complete_utc_hours']
                                     and utc_hours['valid_jwcd_rows'] == len(values))
@@ -271,10 +284,12 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     publication_after_cutoff=late_publications,
                     retrieved_at_utc=retrieved_utc.isoformat() if retrieved_utc is not None else None,
                     cutoff_utc=cutoff.isoformat(),
-                    archived_at_utc=archived.astimezone(timezone.utc).isoformat()
-                    if isinstance(archived, datetime) and archived.utcoffset() is not None else None,
+                    archived_at_utc=archived_utc.isoformat() if archived_utc is not None else None,
+                    latest_publication_ts_utc=latest_publication.astimezone(timezone.utc).isoformat()
+                    if latest_publication is not None else None,
                     source_version=source_version,
                     archive_timing_candidate=archive_timing_candidate,
+                    archive_timing_rejections=archive_timing_rejections,
                     utc_hour_audit=utc_hours,
                     archive_hourly_candidate=hourly_candidate,
                     availability_status=availability,

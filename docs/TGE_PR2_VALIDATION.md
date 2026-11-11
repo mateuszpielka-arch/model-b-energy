@@ -1285,3 +1285,10 @@ etykietę 25. Każdy z tych wierszy ma skończone JWCD i Fix1.
 Same etykiety nie potwierdzają mapowania na UTC ani dostępności do
 D-1 09:50 Europe/Warsaw. Wynik standardowych dób nadal wynosi
 50 928 zgodnych par, a SHA-256 źródłowego ZIP był identyczny po audycie.
+
+Audyt read-only PK5/JWCD pokazuje najpóźniejszą odczytaną publikację
+dla każdego snapshotu oraz przyczyny wykluczenia kandydata czasowego.
+Test izolowanego PostgreSQL dla doby 25h odróżnia publikację po zapisie
+archiwalnym, ale przed D-1 09:50 Europe/Warsaw, od spóźnionego zapisu,
+braku pełnych znaczników i nieobsługiwanego źródła. Zapis dokładnie
+o 09:50 nadal przechodzi kontrolę pomocniczą i wymaga weryfikacji pochodzenia.

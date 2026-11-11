@@ -379,14 +379,18 @@ class ReadonlyAuditTests(unittest.TestCase):
         cutoff = '2026-10-24T07:50:00+00:00'
         rows = [{'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': 1000,
                  'publication_ts': '2026-10-24T07:20:00Z'} for period in expected_periods(day)]
-        for archive_time, source, publications, eligible in (
-            (cutoff, 'energy-collector-v3', rows, True),
-            ('2026-10-24T07:50:01+00:00', 'energy-collector-v3', rows, False),
-            ('2026-10-24T07:29:00+00:00', 'energy-collector-v3', rows, False),
-            (cutoff, 'imported', rows, False),
-            (cutoff, 'energy-collector-v3', [*rows[:-1], {'period': '25'}], False),
+        for archive_time, source, publications, rejections in (
+            (cutoff, 'energy-collector-v3', rows, []),
+            ('2026-10-24T07:50:01+00:00', 'energy-collector-v3', rows, ['ARCHIVE_AFTER_CUTOFF']),
+            ('2026-10-24T07:29:00+00:00', 'energy-collector-v3', rows, ['ARCHIVE_BEFORE_RETRIEVAL']),
+            (cutoff, 'imported', rows, ['UNSUPPORTED_ARCHIVE_SOURCE']),
+            (cutoff, 'energy-collector-v3', [*rows[:-1], {'period': '25'}], ['INCOMPLETE_PUBLICATION_TIMESTAMPS']),
+            ('2026-10-24T07:40:00+00:00', 'energy-collector-v3',
+             [*rows[:-1], {**rows[-1], 'publication_ts': '2026-10-24T09:45:00+02:00'}],
+             ['PUBLICATION_AFTER_ARCHIVE']),
         ):
-            with self.subTest(archive_time=archive_time, source=source, eligible=eligible):
+            eligible = not rejections
+            with self.subTest(archive_time=archive_time, source=source, rejections=rejections):
                 self.conn.execute('DELETE FROM raw.snapshots')
                 self.conn.execute(
                     'INSERT INTO raw.snapshots VALUES (%s,%s,%s,%s,%s,%s)',
@@ -395,6 +399,10 @@ class ReadonlyAuditTests(unittest.TestCase):
                 result = audit_connection(self.conn)
                 snapshot, = result['snapshots']
                 self.assertEqual(snapshot['archive_timing_candidate'], eligible)
+                self.assertEqual(snapshot['archive_timing_rejections'], rejections)
+                expected_publication = ('2026-10-24T07:45:00+00:00' if 'PUBLICATION_AFTER_ARCHIVE' in rejections
+                                        else '2026-10-24T07:20:00+00:00')
+                self.assertEqual(snapshot['latest_publication_ts_utc'], expected_publication)
                 self.assertEqual(result['archive_timing_candidate_days'], [day.isoformat()] if eligible else [])
                 self.assertEqual(result['archive_hourly_candidate_days'], [day.isoformat()] if eligible else [])
                 self.assertFalse(snapshot['model_ready'])
