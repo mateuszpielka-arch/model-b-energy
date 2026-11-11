@@ -1214,3 +1214,9 @@ cen lub jako para [okres UTC, cena]. Klucze słownika nie mogą udawać
 danych cenowych. Testy obejmują prognozę i actual oraz zapis wyniku
 w izolowanym PostgreSQL przed i po poprawnym scoringu. Jednorazowe
 iteratory par pozostają obsługiwane.
+
+Walk-forward i wspólny trening JWCD sprawdzają tekstową wersję
+zweryfikowanych cen Fix1 przed odczytem cen i snapshotów.
+Test z trzema dobami potwierdza, że liczbowa wersja wyklucza
+dobę z oceny oraz z treningu następnej prognozy. Wcześniejsza
+doba zachowuje 24 wspólne okresy w rankingu.

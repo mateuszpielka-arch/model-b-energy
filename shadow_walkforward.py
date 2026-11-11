@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal, localcontext
 from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
+from shadow_training import has_verified_actual
 from shadow_similar_consensus import MEDIAN_MEMBERS, median_consensus, predict_similar
 from shadow_scoring import WARSAW, _utc, _prices, expected_periods, score_day, validate_forecast_timing
 
@@ -79,8 +80,9 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
             actual_available = _utc(packet.get('actual_available_at'))
         except ValueError:
             actual_available = None
-        if actual_available is None or not cutoff_for_day(day) < actual_available <= evaluated:
-            # Keep the packet for cutoff diagnostics without consuming its payload.
+        if (not has_verified_actual(packet) or actual_available is None
+                or not cutoff_for_day(day) < actual_available <= evaluated):
+            # Keep the packet for diagnostics without consuming its payload.
             packets[day] = packet
             continue
         for field in ('snapshots', 'actual'):
@@ -118,7 +120,7 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                     raise ValueError(f'Unreadable target packet field: {unreadable_packets[day]}')
                 if day not in packets: raise ValueError('Missing target packet')
                 target=packets[day]
-                if target.get('actual_verified') is not True or not target.get('actual_version'):
+                if not has_verified_actual(target):
                     raise ValueError('Unverified target actual')
                 actual_available = _utc(target.get('actual_available_at'))
                 if actual_available > evaluated:

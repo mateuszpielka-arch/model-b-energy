@@ -137,6 +137,28 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(before['accepted'][0]['predictions'],after['accepted'][0]['predictions'])
         self.assertNotEqual(before['ranking'],after['ranking'])
 
+    def test_invalid_fix1_version_blocks_target_and_training_without_reading_payload(self):
+        history = fixtures.OLSTests().data(93)['history']
+        first, invalid, later = history[-3:]
+
+        def unreadable():
+            self.fail('Unverified Fix1 packet payload was consumed')
+            yield
+
+        invalid.update(actual_version=42, actual=unreadable(), snapshots=unreadable())
+        report = run_walkforward(
+            history=history, target_days=[first['day'], invalid['day'], later['day']],
+            evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual([entry['day'] for entry in report['accepted']], [first['day'].isoformat()])
+        self.assertEqual(report['common_periods'], 24)
+        self.assertEqual(report['skipped'], [
+            dict(day=invalid['day'].isoformat(), stage='actual', reason='Unverified target actual'),
+            dict(day=later['day'].isoformat(), stage='ols30',
+                 reason=f"Historical actual provenance not verified: {invalid['day']}"),
+        ])
+
     def test_out_of_window_payloads_are_not_read_for_earlier_ranking(self):
         args = self.args()
         target, future = args['target_days']

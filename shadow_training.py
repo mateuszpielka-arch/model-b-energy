@@ -3,6 +3,11 @@ from datetime import timedelta
 from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_scoring import _utc,_prices,expected_periods
 
+def has_verified_actual(packet):
+    version = packet.get('actual_version')
+    return packet.get('actual_verified') is True and isinstance(version, str) and bool(version.strip())
+
+
 def prepare_training(*,target_day,target_snapshots,history,window_days):
     if window_days not in (30,60,90):
         raise ValueError('Only JWCD OLS 30/60/90 calendar-day windows allowed')
@@ -21,8 +26,8 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
     if target.snapshot_id is None: raise ValueError('No complete pre-cutoff target JWCD')
     prepared=[]; evidence=[]; timing=[]
     for day,p in sorted(packets.items()):
-        if p.get('actual_verified') is not True or not p.get('actual_version'):
-            raise ValueError('Historical actual provenance not verified')
+        if not has_verified_actual(p):
+            raise ValueError(f'Historical actual provenance not verified: {day}')
         actual_available = _utc(p.get('actual_available_at'))
         if actual_available > cutoff:
             raise ValueError(f'Historical actual unavailable at target cutoff: {day}')
