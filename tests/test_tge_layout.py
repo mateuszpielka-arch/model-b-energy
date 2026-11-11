@@ -1,7 +1,7 @@
 import gzip
 from pathlib import Path
 import unittest
-from tge_parser_safe import parse_verified_layout
+from tge_parser_safe import parse_complete_standard_day, parse_verified_layout
 
 class LayoutTests(unittest.TestCase):
     @classmethod
@@ -60,6 +60,21 @@ class LayoutTests(unittest.TestCase):
         split = source.replace(original, '<th>Fixing I</th><th>Fixing I</th>', 1)
         with self.assertRaisesRegex(ValueError, 'Fixing I columns changed'):
             parse_verified_layout(split, '2026-11-12')
+
+    def test_header_and_prices_must_come_from_their_own_sections(self):
+        self.assertEqual(len(parse_complete_standard_day(self.html, '2026-11-02')), 24)
+        start = self.html.index('id="rdn"')
+        for section, error in (
+            ('thead', 'Expected two RDN header rows'),
+            ('tbody', 'Incomplete hourly Fixing I snapshot'),
+        ):
+            with self.subTest(section=section):
+                rdn = self.html[start:]
+                moved = rdn.replace(f'<{section}>', '<tfoot>', 1)
+                moved = moved.replace(f'</{section}>', '</tfoot>', 1)
+                self.assertNotEqual(moved, rdn)
+                with self.assertRaisesRegex(ValueError, error):
+                    parse_complete_standard_day(self.html[:start] + moved, '2026-11-02')
 
     def test_duplicate_fixing_i_group_rejected(self):
         html = self.html.replace('>Notowania ciągłe</th>', '>Fixing I</th>', 1)

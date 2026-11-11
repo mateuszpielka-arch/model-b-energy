@@ -1372,3 +1372,8 @@ Parser SHADOW sprawdza fizyczną grupę Fixing I z colspan=2 i pojedyncze
 komórki nagłówka kolumn. Test na HTML TGE dla dostawy 12.11.2026
 odczytuje 24 ceny z oryginału. Podział nagłówka na dwie identycznie
 opisane komórki przy niezmienionych danych powoduje odrzucenie tabeli.
+
+Parser SHADOW wymaga nagłówków Fixing I w sekcji thead i odczytuje
+ceny wyłącznie z tbody. Test na oficjalnym HTML TGE dla dostawy
+02.11.2026 potwierdza komplet 24 cen w oryginale. Przeniesienie
+nagłówków lub cen do tfoot blokuje przyjęcie doby.

@@ -63,7 +63,9 @@ def parse_fix1(html: str, day: str) -> dict[int, float]:
 
 
 class _FixingTable(_Rows):
-    """Select the official RDN table and retain expanded header groups."""
+    """Read the RDN header and body from their respective table sections."""
+
+    SECTIONS = ("thead", "tbody", "tfoot")
     def __init__(self):
         super().__init__()
         self.active = False
@@ -72,7 +74,7 @@ class _FixingTable(_Rows):
         self.header_rows = []
         self.header_spans = []
         self.span = 1
-        self.is_header = False
+        self.section = None
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
@@ -85,11 +87,14 @@ class _FixingTable(_Rows):
             return
         if not self.active:
             return
+        if tag in self.SECTIONS:
+            if self.section is not None or self.row is not None:
+                raise ValueError("Unclosed RDN table section")
+            self.section = tag
         if tag == "tr":
             if self.row is not None:
                 raise ValueError("Unclosed RDN row")
             self.header_spans = []
-            self.is_header = False
         if tag in ("td", "th"):
             if self.cell is not None:
                 raise ValueError("Unclosed RDN cell")
@@ -98,7 +103,6 @@ class _FixingTable(_Rows):
                 raise ValueError("Unsupported RDN header span")
             if tag == "td" and self.span != 1:
                 raise ValueError("Unsupported RDN data cell colspan")
-            self.is_header = tag == "th"
         super().handle_starttag(tag, list(attrs.items()))
 
     def handle_data(self, data):
@@ -109,13 +113,25 @@ class _FixingTable(_Rows):
         if not self.active:
             return
         if tag == "table":
-            if self.row is not None or self.cell is not None:
+            if self.section is not None or self.row is not None or self.cell is not None:
                 raise ValueError("Incomplete RDN table")
             self.active = False
             self.closed = True
             return
-        if tag == "tr" and self.row is not None and self.is_header:
-            self.header_rows.append((list(self.row), tuple(self.header_spans)))
+        if tag in self.SECTIONS:
+            if self.section != tag or self.row is not None or self.cell is not None:
+                raise ValueError("Unclosed RDN table section")
+            self.section = None
+            return
+        if tag == "tr" and self.row is not None:
+            if self.cell is not None:
+                raise ValueError("Unclosed RDN cell")
+            if self.section == "thead":
+                self.header_rows.append((self.row, tuple(self.header_spans)))
+            elif self.section == "tbody":
+                self.rows.append(self.row)
+            self.row = None
+            return
         super().handle_endtag(tag)
         if tag == "th" and self.row is not None:
             self.header_spans.append(self.span)
