@@ -134,6 +134,31 @@ class AvailabilityTests(unittest.TestCase):
         s=self.snapshot(); out=select_snapshot(s['delivery_date'],[s,deepcopy(s)])
         self.assertIsNone(out.snapshot_id); self.assertEqual(len(out.rejected),2)
 
+    def test_late_copy_with_same_id_cannot_change_asof_selection(self):
+        def unreadable_rows():
+            self.fail('Rows of an ineligible snapshot were read')
+            yield
+
+        for day, periods in ((date(2026, 3, 29), 23), (date(2026, 10, 25), 25)):
+            with self.subTest(day=day):
+                early = self.snapshot(day)
+                baseline = select_snapshot(day, [early])
+                late = {
+                    **early, 'rows': unreadable_rows(),
+                    'retrieval_completed_at': baseline.cutoff_utc + timedelta(seconds=1),
+                }
+                wrong_day = {
+                    **early, 'rows': unreadable_rows(),
+                    'delivery_date': day + timedelta(days=1),
+                }
+                out = select_snapshot(day, [late, early, wrong_day])
+                self.assertEqual((out.snapshot_id, out.rows), (baseline.snapshot_id, baseline.rows))
+                self.assertEqual(len(out.rows), periods)
+                self.assertEqual(out.rejected, (
+                    ('early', 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER'),
+                    ('early', 'WRONG_DELIVERY_DATE'),
+                ))
+
     def test_both_dst_days_retain_every_utc_period(self):
         for day,n in [(date(2026,3,29),23),(date(2026,10,25),25)]:
             s=self.snapshot(day)

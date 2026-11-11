@@ -84,22 +84,39 @@ def select_snapshot(day, snapshots):
         return SnapshotSelection(None, cutoff, (), (("", "INVALID_SNAPSHOT_COLLECTION"),))
     except (ValueError, RuntimeError, OSError):
         return SnapshotSelection(None, cutoff, (), (("", "UNREADABLE_SNAPSHOT_COLLECTION"),))
-    ids = Counter(snapshot_identifier(s) for s in snapshots)
-    eligible, rejected = [], []
-    periods = set(expected_periods(day))
-    for s in snapshots:
-        sid = snapshot_identifier(s)
+    # Only snapshots visible at the simulated cutoff can conflict on identity.
+    # Keep duplicate pre-cutoff IDs rejected before their payloads are read.
+    metadata = []
+    ids = Counter()
+    for snapshot in snapshots:
+        sid = snapshot_identifier(snapshot)
         try:
-            if not isinstance(s, Mapping):
+            if not isinstance(snapshot, Mapping):
                 raise ValueError('INVALID_SNAPSHOT_OBJECT')
-            if not sid or ids[sid] != 1:
+            if not sid:
                 raise ValueError('MISSING_OR_DUPLICATE_SNAPSHOT_ID')
-            if s.get('delivery_date') != day:
+            if snapshot.get('delivery_date') != day:
                 raise ValueError('WRONG_DELIVERY_DATE')
-            retrieved = _utc(s.get('retrieved_at'))
-            completed = _utc(s.get('retrieval_completed_at'))
+            retrieved = _utc(snapshot.get('retrieved_at'))
+            completed = _utc(snapshot.get('retrieval_completed_at'))
             if not retrieved <= completed <= cutoff:
                 raise ValueError('RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER')
+        except (ValueError, TypeError) as exc:
+            metadata.append((snapshot, sid, None, None, str(exc)))
+        else:
+            ids[sid] += 1
+            metadata.append((snapshot, sid, retrieved, completed, None))
+
+    eligible, rejected = [], []
+    periods = set(expected_periods(day))
+    for s, sid, retrieved, completed, rejection in metadata:
+        if rejection is not None:
+            rejected.append((sid, rejection))
+            continue
+        if ids[sid] != 1:
+            rejected.append((sid, 'MISSING_OR_DUPLICATE_SNAPSHOT_ID'))
+            continue
+        try:
             source_rows = s.get('rows', ())
             if isinstance(source_rows, (Iterator, _ReplayableRows)):
                 try:

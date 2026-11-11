@@ -1315,3 +1315,9 @@ Wspólna konwersja timestampów do UTC zgłasza błąd walidacji przy
 wyjściu poza zakres dat. Test doby 25h odrzuca dwa wadliwe snapshoty
 JWCD po błędnej publikacji lub pobraniu i zachowuje poprawne 25 okresów.
 Test scoringu potwierdza odrzucenie wadliwych metadanych przed odczytem cen.
+
+Selekcja as-of JWCD sprawdza datę dostawy i dostępność pobrania do
+D-1 09:50 Europe/Warsaw przed kontrolą duplikatów identyfikatora.
+Test dób 23h i 25h potwierdza, że spóźniony snapshot lub snapshot
+innej doby z tym samym identyfikatorem nie zmienia poprawnego wyboru.
+Dwa duplikaty dostępne przed granicą nadal są odrzucane przed odczytem danych.
