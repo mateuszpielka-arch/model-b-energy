@@ -178,6 +178,36 @@ class WalkforwardTests(unittest.TestCase):
         ))
         self.assertEqual(run_walkforward(**args), baseline)
 
+    def test_training_only_payload_is_unread_when_late_for_every_relevant_target(self):
+        args = self.args()
+        first, second = args['target_days']
+        packet = next(row for row in args['history'] if row['day'] == first - timedelta(days=1))
+        packet['actual_available_at'] = cutoff_for_day(second) + timedelta(seconds=1)
+        # A later target outside the packet's 90-day window cannot authorize its use.
+        args['target_days'].append(second + timedelta(days=90))
+        baseline = run_walkforward(**args)
+        self.assertEqual(baseline['ranking'], [])
+        self.assertEqual([item['reason'] for item in baseline['skipped']], [
+            f"Historical actual unavailable at target cutoff: {packet['day']}",
+            f"Historical actual unavailable at target cutoff: {packet['day']}",
+            'Missing target packet',
+        ])
+
+        def unreadable():
+            self.fail('Training data unavailable at every applicable cutoff was read')
+            yield
+
+        actual, snapshots = packet['actual'], packet['snapshots']
+        packet.update(actual=unreadable(), snapshots=unreadable())
+        self.assertEqual(run_walkforward(**args), baseline)
+
+        packet.update(actual=iter(actual), snapshots=iter(snapshots),
+                      actual_available_at=cutoff_for_day(second))
+        at_cutoff = run_walkforward(**args)
+        self.assertEqual([item['day'] for item in at_cutoff['accepted']], [second.isoformat()])
+        self.assertEqual(at_cutoff['skipped'][0], baseline['skipped'][0])
+        self.assertEqual(at_cutoff['common_periods'], 24)
+
     def test_no_available_target_actual_means_no_ranking(self):
         kw=self.args();kw['evaluated_at']=datetime(2026,1,1,tzinfo=timezone.utc)
         out=run_walkforward(**kw)

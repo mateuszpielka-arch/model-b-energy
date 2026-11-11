@@ -1326,3 +1326,11 @@ Selekcja as-of traktuje przerwany odczyt niestandardowego źródła
 wierszy JWCD jako wadę pojedynczego snapshotu. Test dla doby 25h
 sprawdza przerwanie po pierwszym wierszu, odrzucenie częściowej
 wersji i zachowanie pełnej wersji dostępnej do D-1 09:50 Europe/Warsaw.
+
+Walk-forward nie odczytuje cen ani snapshotów paczki używanej wyłącznie
+do treningu, jeśli ceny Fix1 pojawiły się po D-1 09:50 Europe/Warsaw
+dla wszystkich prognoz, których okna obejmują tę paczkę. Test z dwoma
+oknami zachowuje diagnostykę spóźnionych cen. Dodatkowa prognoza poza
+oknem 90 dni nie powoduje odczytu tej paczki.
+Przy dostępności dokładnie o 09:50 do oceny przechodzi późniejsza
+prognoza i jej 24 wspólne okresy.

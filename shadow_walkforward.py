@@ -3,10 +3,10 @@
 Simulates issuance at each D-1 09:50; never creates real FROZEN forecasts.
 No I/O. Verified canonical history is a prerequisite, not produced by this module.
 """
-from bisect import bisect_left
+from bisect import bisect_left, bisect_right
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal, localcontext
 from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
@@ -66,13 +66,15 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
     """
     evaluated = _utc(evaluated_at)
     target_days = sorted(set(target_days))
-    max_window = timedelta(days=90)
+    max_window_days = 90
+    target_ordinals = [day.toordinal() for day in target_days]
     packets = {}
     unreadable_packets = {}
     for packet in history:
         day = packet['day']
-        next_target = bisect_left(target_days, day)
-        if next_target == len(target_days) or target_days[next_target] - day > max_window:
+        ordinal = day.toordinal()
+        next_target = bisect_left(target_ordinals, ordinal)
+        if next_target == len(target_days) or target_ordinals[next_target] - ordinal > max_window_days:
             continue
         if day in packets or day in unreadable_packets:
             raise ValueError('Duplicate historical packet day')
@@ -85,6 +87,12 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
             # Keep the packet for diagnostics without consuming its payload.
             packets[day] = packet
             continue
+        if target_ordinals[next_target] != ordinal:
+            last_target = bisect_right(target_ordinals, ordinal + max_window_days) - 1
+            if actual_available > cutoff_for_day(target_days[last_target]):
+                # Even the latest forecast that could train on this packet was too early.
+                packets[day] = packet
+                continue
         for field in ('snapshots', 'actual'):
             values = packet.get(field)
             if not isinstance(values, Iterable) or isinstance(values, (list, tuple, str, bytes, Mapping)):
