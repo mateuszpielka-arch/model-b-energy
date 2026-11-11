@@ -1241,3 +1241,9 @@ legacy nie identyfikują okresów UTC. Test na izolowanym PostgreSQL
 sprawdza obie doby zmiany czasu oraz dobę TGE 11.11.2026 z błędnym
 JWCD w H01 i Fix1 w H02. Po 23 poprawne wartości każdej serii
 dają 22 wspólne godziny.
+
+Audyt danych wejściowych walk-forward sprawdza identyfikator snapshotu
+JWCD według tych samych reguł co wybór snapshotu. Dopuszcza niepusty
+tekst lub liczbę całkowitą. Test na cenach TGE z 11.11.2026 i syntetycznym
+JWCD potwierdza wykluczenie doby z błędnym typem identyfikatora, nawet
+gdy wszystkie 24 okresy spełniają granicę D-1 09:50 Europe/Warsaw.

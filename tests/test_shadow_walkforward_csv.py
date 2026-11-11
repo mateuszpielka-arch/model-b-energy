@@ -148,6 +148,35 @@ class WalkforwardCSVTests(unittest.TestCase):
                       result["csv_admission"]["excluded_days"]["2026-11-03"])
         self.assertEqual(result["walkforward"]["requested_days"], 0)
 
+    def test_snapshot_identifier_type_gates_admission_before_ranking(self):
+        day = date(2026, 11, 11)
+        cutoff = cutoff_for_day(day)
+        fixture = Path(__file__).parent / "fixtures/tge_delivery_2026-11-11/tge_delivery_2026-11-11.csv"
+        rows = read_csv(fixture)
+        for row in rows:
+            row.update(
+                actual_verified="true", actual_version="test-reference",
+                actual_available_at=(cutoff + timedelta(hours=3)).isoformat(),
+                jwcd_mw="10000", jwcd_snapshot_id=42,
+                publication_ts=(cutoff - timedelta(minutes=1)).isoformat(),
+                retrieved_at=cutoff.isoformat(), retrieval_completed_at=cutoff.isoformat(),
+            )
+        evaluated_at = cutoff + timedelta(days=2)
+        valid = evaluate_csv_rows(rows, evaluated_at=evaluated_at)
+        self.assertEqual(valid["csv_admission"]["admitted_days"], 1)
+        self.assertEqual(valid["walkforward"]["requested_days"], 1)
+
+        for identifier in (True, 4.2, ["snapshot"], {"id": "snapshot"}, " "):
+            with self.subTest(identifier=identifier):
+                invalid_rows = [{**row, "jwcd_snapshot_id": identifier} for row in rows]
+                result = evaluate_csv_rows(invalid_rows, evaluated_at=evaluated_at)
+                self.assertEqual(result["history_audit"]["days"][0]["availability_proven_rows"], 24)
+                self.assertEqual(result["csv_admission"]["excluded_days"], {
+                    day.isoformat(): ["MISSING_JWCD_SNAPSHOT_ID"],
+                })
+                self.assertEqual(result["walkforward"]["requested_days"], 0)
+                self.assertEqual(result["walkforward"]["ranking"], [])
+
     def test_reversed_target_bounds_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "Target start"):
             evaluate_csv_rows([], evaluated_at=datetime(2026, 11, 4, tzinfo=timezone.utc),
