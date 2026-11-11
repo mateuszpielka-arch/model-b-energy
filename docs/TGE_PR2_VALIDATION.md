@@ -1334,3 +1334,9 @@ oknami zachowuje diagnostykę spóźnionych cen. Dodatkowa prognoza poza
 oknem 90 dni nie powoduje odczytu tej paczki.
 Przy dostępności dokładnie o 09:50 do oceny przechodzi późniejsza
 prognoza i jej 24 wspólne okresy.
+
+Walk-forward ogranicza odczyt paczek treningowych także do prognoz,
+których granica D-1 09:50 Europe/Warsaw już minęła lub przypada
+dokładnie w chwili oceny. Test potwierdza brak odczytu paczki potrzebnej
+wyłącznie przyszłej prognozie i zachowanie wcześniejszych 24 okresów
+w rankingu wszystkich sześciu modeli.

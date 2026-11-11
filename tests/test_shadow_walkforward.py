@@ -208,6 +208,29 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(at_cutoff['skipped'][0], baseline['skipped'][0])
         self.assertEqual(at_cutoff['common_periods'], 24)
 
+    def test_future_issuance_does_not_authorize_reading_training_only_packets(self):
+        args = self.args()
+        earlier, future = args['target_days']
+        # Supply one earlier target and a second target whose cutoff has not arrived.
+        future += timedelta(days=1)
+        args['target_days'] = [earlier, future]
+        args['evaluated_at'] = cutoff_for_day(future) - timedelta(seconds=1)
+        training_only = args['history'][-1]
+        self.assertGreater(training_only['day'], earlier)
+        self.assertLess(training_only['actual_available_at'], args['evaluated_at'])
+
+        baseline = run_walkforward(**args)
+        self.assertEqual([entry['day'] for entry in baseline['accepted']], [earlier.isoformat()])
+        self.assertEqual(baseline['common_periods'], 24)
+        self.assertEqual(baseline['skipped'][0]['reason'], 'Missing target packet')
+
+        def unreadable():
+            self.fail('Training data was read for a forecast not yet issued')
+            yield
+
+        training_only.update(actual=unreadable(), snapshots=unreadable())
+        self.assertEqual(run_walkforward(**args), baseline)
+
     def test_no_available_target_actual_means_no_ranking(self):
         kw=self.args();kw['evaluated_at']=datetime(2026,1,1,tzinfo=timezone.utc)
         out=run_walkforward(**kw)

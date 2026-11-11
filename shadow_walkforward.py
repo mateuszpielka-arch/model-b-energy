@@ -68,6 +68,7 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
     target_days = sorted(set(target_days))
     max_window_days = 90
     target_ordinals = [day.toordinal() for day in target_days]
+    elapsed_targets = bisect_right(target_days, evaluated, key=cutoff_for_day)
     packets = {}
     unreadable_packets = {}
     for packet in history:
@@ -88,9 +89,11 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
             packets[day] = packet
             continue
         if target_ordinals[next_target] != ordinal:
-            last_target = bisect_right(target_ordinals, ordinal + max_window_days) - 1
-            if actual_available > cutoff_for_day(target_days[last_target]):
-                # Even the latest forecast that could train on this packet was too early.
+            last_target = bisect_right(
+                target_ordinals, ordinal + max_window_days, hi=elapsed_targets,
+            ) - 1
+            if last_target < next_target or actual_available > cutoff_for_day(target_days[last_target]):
+                # No forecast in this window could use the packet at its simulated issuance.
                 packets[day] = packet
                 continue
         for field in ('snapshots', 'actual'):
