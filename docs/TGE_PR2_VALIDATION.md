@@ -1220,3 +1220,10 @@ zweryfikowanych cen Fix1 przed odczytem cen i snapshotów.
 Test z trzema dobami potwierdza, że liczbowa wersja wyklucza
 dobę z oceny oraz z treningu następnej prognozy. Wcześniejsza
 doba zachowuje 24 wspólne okresy w rankingu.
+
+Audyt SQL read-only inwentaryzuje teraz starszą tabelę `history.hourly`
+według zakresu dostaw. Raport podaje luki, oczekiwane 23/24/25 okresów
+i liczbę poprawnych wartości JWCD oraz Fix1. Numery godzin i komplet cen
+nie potwierdzają dostępności względem D-1 09:50 Europe/Warsaw.
+Test na izolowanym PostgreSQL łączy oficjalną dobę 11.11.2026
+z przypadkami zmiany czasu oraz sprawdza wartości NaN i nieskończone.

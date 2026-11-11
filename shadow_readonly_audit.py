@@ -116,6 +116,37 @@ def _finite_timestamptz(columns, column):
     return 'NULL::timestamptz'
 
 
+def audit_legacy_hourly(conn, start_day, end_day):
+    """Inventory legacy history without treating hour labels as timing evidence."""
+    required = {'delivery_date', 'hour', 'jwcd_mw', 'fix1_pln_mwh'}
+    missing = sorted(required - table_columns(conn, 'history.hourly').keys())
+    days = []
+    if not missing:
+        rows = conn.execute("""
+            SELECT delivery_date, count(*),
+                   count(DISTINCT hour) FILTER (WHERE hour BETWEEN 1 AND 24),
+                   count(*) FILTER (WHERE jwcd_mw::text NOT IN ('NaN', 'Infinity', '-Infinity')),
+                   count(*) FILTER (WHERE fix1_pln_mwh::text NOT IN ('NaN', 'Infinity', '-Infinity'))
+            FROM history.hourly
+            WHERE delivery_date BETWEEN COALESCE(%s::date, '-infinity'::date)
+                                    AND COALESCE(%s::date, 'infinity'::date)
+            GROUP BY delivery_date
+            ORDER BY delivery_date
+        """, (start_day, end_day)).fetchall()
+        for day, count, hours, jwcd, fix1 in rows:
+            expected = len(expected_periods(day))
+            days.append(dict(
+                day=day.isoformat(), rows=count, expected_periods=expected,
+                distinct_legacy_hours=hours, valid_jwcd_rows=jwcd, valid_fix1_rows=fix1,
+                complete_pairs=expected == count == hours == jwcd == fix1 == 24,
+                model_ready=False,
+            ))
+    return dict(
+        days=days, missing_columns=missing,
+        missing_delivery_ranges=[] if missing else missing_delivery_ranges(days, start_day, end_day),
+    )
+
+
 def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None):
     if start_day is not None and end_day is not None and start_day > end_day:
         raise ValueError('Start day must not be after end day')
@@ -355,6 +386,8 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                         s['day'] for s in snapshots if s.get('archive_hourly_candidate')
                     }),
                     note='60/2026 are diagnostics, not proof of invalid price. Legacy retrieval time is not completion evidence.')
+        if present['history.hourly']:
+            report['legacy_hourly_history'] = audit_legacy_hourly(conn, start_day, end_day)
         excluded_days = set()
         if reference_rows is not None:
             history = []

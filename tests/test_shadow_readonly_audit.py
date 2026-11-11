@@ -130,6 +130,57 @@ class ReadonlyAuditTests(unittest.TestCase):
             (1,date(2026,10,25),datetime(2026,10,24,7,tzinfo=timezone.utc),Jsonb({'pk5l-wp':rows})))
         with self.conn.cursor() as c:c.executemany('INSERT INTO actual.tge_fix1 VALUES(%s,%s,%s)',[(date(2026,10,25),h,60) for h in range(1,25)])
 
+    def test_legacy_hourly_inventory_reports_dst_and_finite_prices_without_admission(self):
+        from decimal import Decimal
+        from pathlib import Path
+        from shadow_history_audit import read_csv
+
+        self.conn.execute('CREATE SCHEMA history')
+        try:
+            self.conn.execute("""
+                CREATE TABLE history.hourly(
+                    delivery_date date, hour smallint, jwcd_mw numeric, fix1_pln_mwh numeric
+                )
+            """)
+            spring = date(2026, 3, 29)
+            autumn = date(2026, 10, 25)
+            standard = date(2026, 11, 11)
+            self.conn.execute("""
+                INSERT INTO history.hourly
+                SELECT %s, hour, 1000, 100 FROM generate_series(1, 23) AS hour
+                UNION ALL
+                SELECT %s, hour, 1000, NULL FROM generate_series(1, 24) AS hour
+            """, (spring, autumn))
+            fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-11/tge_delivery_2026-11-11.csv'
+            with self.conn.cursor() as cursor:
+                cursor.executemany(
+                    'INSERT INTO history.hourly VALUES (%s,%s,1000,%s)',
+                    [(standard, int(row['hour'][1:]), Decimal(row['price_pln_mwh'])) for row in read_csv(fixture)],
+                )
+            full = audit_connection(self.conn)
+            self.assertTrue(full['transaction_read_only'])
+            rows = full['legacy_hourly_history']['days']
+            self.assertEqual([row['expected_periods'] for row in rows], [23, 25, 24])
+            self.assertEqual([row['complete_pairs'] for row in rows], [False, False, True])
+            self.assertTrue(all(not row['model_ready'] for row in rows))
+            self.assertEqual(full['provisional_comparison_coverage']['paired_days'], 0)
+
+            self.conn.execute("""
+                UPDATE history.hourly SET jwcd_mw = 'Infinity', fix1_pln_mwh = 'NaN'
+                WHERE delivery_date = %s AND hour = 1
+            """, (standard,))
+            scoped = audit_connection(self.conn, start_day=date(2026, 11, 10), end_day=standard)
+            legacy = scoped['legacy_hourly_history']
+            day, = legacy['days']
+            self.assertEqual((day['valid_jwcd_rows'], day['valid_fix1_rows']), (23, 23))
+            self.assertFalse(day['complete_pairs'])
+            self.assertEqual(legacy['missing_delivery_ranges'], [
+                {'start_day': '2026-11-10', 'end_day': '2026-11-10', 'days': 1},
+            ])
+            self.assertEqual(self.conn.execute('SELECT count(*) FROM history.hourly').fetchone(), (71,))
+        finally:
+            self.conn.execute('DROP SCHEMA history CASCADE')
+
     def test_dst_incompleteness_and_unproven_availability_are_explicit(self):
         self.seed_dst();out=audit_connection(self.conn)
         self.assertTrue(out['transaction_read_only'])
