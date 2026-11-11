@@ -10,6 +10,7 @@ from pathlib import Path
 from threading import Barrier
 from time import monotonic, sleep
 import unittest
+from unittest.mock import patch
 
 from shadow_archive_batch import prepare_batch, read_reference_csv
 from shadow_asof import cutoff_for_day
@@ -171,6 +172,44 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
     def test_november_12_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_12_FIXTURES)
+
+    def test_november_12_score_rejects_late_inputs_before_reading_prices_or_locking(self):
+        day = date(2026, 11, 12)
+        cutoff = cutoff_for_day(day)
+        manifest = NOV_12_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        _, reference, _ = load_session(entry, NOV_12_FIXTURES)
+        inputs = dict(
+            day=day, forecast_id='november-12-constant-1000-test',
+            model_version='synthetic-test', forecast_status='SHADOW',
+            issued_at=cutoff, publication_ts=cutoff - timedelta(minutes=1),
+            retrieved_at=cutoff, reference_csv=reference,
+        )
+        forecast = [(period, Decimal(1000)) for period in expected_periods(day)]
+
+        def unreadable_forecast():
+            self.fail('Late forecast prices were read')
+            yield
+
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            status, score = score_archived_day(conn, **inputs, forecast=iter(forecast))
+            self.assertEqual(status, 'INSERT')
+            expected = ('790.971666666667', '44.077655362379', '48.864095598316', '-618.717500000000')
+            for metric, value in zip(('mae', 'mape_pct', 'wape_pct', 'bias'), expected, strict=True):
+                self.assertEqual(getattr(score, metric).quantize(Decimal('1e-12')), Decimal(value))
+            query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+            stored = conn.execute(query).fetchall()
+
+            for field in ('issued_at', 'publication_ts', 'retrieved_at'):
+                with self.subTest(field=field), patch('shadow_postgres_scores._lock_delivery_day') as lock:
+                    late = {**inputs, field: cutoff + timedelta(seconds=1)}
+                    with self.assertRaisesRegex(ValueError, 'unavailable before D-1 09:50'):
+                        score_archived_day(conn, **late, forecast=unreadable_forecast())
+                    lock.assert_not_called()
+            self.assertEqual(conn.execute(query).fetchall(), stored)
+            self.assertEqual(score_archived_day(conn, **inputs, forecast=iter(forecast)), ('REPLAY', score))
 
     def check_manifest_archive_and_replay(self, directory):
         manifest_path = directory / 'manifest.json'

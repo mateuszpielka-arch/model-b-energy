@@ -1302,3 +1302,11 @@ tej samej odpowiedzi. H10 zachowuje 2 700,83 PLN/MWh z Fixing I
 przy 2 700,70 PLN/MWh z notowań ciągłych. Test integracyjny sprawdza
 zapis 24 okresów oraz zero nowych wierszy przy ponowieniu manifestu
 na izolowanym PostgreSQL.
+
+Scoring archiwalny sprawdza wystawienie, publikację i pobranie względem
+D-1 09:50 Europe/Warsaw przed odczytem prognozy lub blokadą doby.
+Test izolowanego PostgreSQL używa oficjalnych 24 cen TGE z 12.11.2026
+i syntetycznej prognozy 1 000 PLN/MWh. Sprawdza MAE, MAPE, WAPE i bias
+względem obliczeń na ułamkach dokładnych, a następnie odrzuca każdy
+z trzech znaczników przesunięty o sekundę po granicy i zachowuje
+wcześniejszy wynik przy ponowieniu.

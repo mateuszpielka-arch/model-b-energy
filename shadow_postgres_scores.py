@@ -7,7 +7,9 @@ import re
 from shadow_archive_batch import PARSER_VERSION, prepare_batch, read_reference_csv, validate_source_url
 from shadow_asof import cutoff_for_day
 from shadow_postgres_archive import _guard, _has_delivery_quarantine, _lock_delivery_day
-from shadow_scoring import SCORING_VERSION, _prices, _utc, expected_periods, score_day
+from shadow_scoring import (
+    SCORING_VERSION, _prices, _utc, expected_periods, score_day, validate_forecast_timing,
+)
 from tge_parser_safe import parse_complete_standard_day
 
 DDL = '''CREATE TABLE IF NOT EXISTS fix1_shadow_test.scores (
@@ -53,6 +55,7 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
     Scoring requires a READ COMMITTED transaction.
     """
     _guard(conn)
+    validate_forecast_timing(day, issued_at, publication_ts, retrieved_at)
     evaluation_time = _utc(evaluated_at) if evaluated_at is not None else None
     forecast_prices = _prices(forecast)
     with conn.transaction():
