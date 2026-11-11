@@ -92,6 +92,21 @@ class AvailabilityTests(unittest.TestCase):
         self.assertEqual(len(result.rows), 24)
         self.assertEqual(result.rejected, (('broken', 'UNREADABLE_SNAPSHOT_ROWS'),))
 
+    def test_partial_read_from_custom_iterable_keeps_valid_snapshot(self):
+        day = date(2026, 10, 25)
+        good = self.snapshot(day)
+
+        class InterruptedRows:
+            def __iter__(self):
+                yield good['rows'][0]
+                raise OSError('Unexpected end of snapshot')
+
+        broken = {**good, 'id': 'partial', 'rows': InterruptedRows()}
+        result = select_snapshot(day, [broken, good])
+        self.assertEqual(result.snapshot_id, good['id'])
+        self.assertEqual(len(result.rows), 25)
+        self.assertEqual(result.rejected, (('partial', 'UNREADABLE_SNAPSHOT_ROWS'),))
+
     def test_late_snapshot_rows_are_not_read(self):
         late = self.snapshot(sid='late')
         late['retrieval_completed_at'] += timedelta(hours=2)

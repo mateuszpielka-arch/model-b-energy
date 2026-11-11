@@ -4,7 +4,7 @@ Legacy PSE payloads need a separately verified adapter for local/DST period labe
 retrieval_completed_at must be evidenced, never inferred from a request start time.
 """
 from collections import Counter
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
@@ -61,7 +61,8 @@ def preserve_snapshot_rows(snapshots):
         {**snapshot, 'rows': _ReplayableRows(snapshot['rows'])}
         if isinstance(snapshot, Mapping)
         and isinstance(snapshot.get('rows'), Iterable)
-        and not isinstance(snapshot['rows'], (list, tuple, str, bytes, Mapping, _ReplayableRows))
+        and type(snapshot['rows']) not in (list, tuple)
+        and not isinstance(snapshot['rows'], (str, bytes, Mapping, _ReplayableRows))
         else snapshot
         for snapshot in snapshots
     )
@@ -118,7 +119,7 @@ def select_snapshot(day, snapshots):
             continue
         try:
             source_rows = s.get('rows', ())
-            if isinstance(source_rows, (Iterator, _ReplayableRows)):
+            if type(source_rows) not in (list, tuple):
                 try:
                     source_rows = tuple(source_rows)
                 except (ValueError, TypeError, RuntimeError, OSError):

@@ -1321,3 +1321,8 @@ D-1 09:50 Europe/Warsaw przed kontrolą duplikatów identyfikatora.
 Test dób 23h i 25h potwierdza, że spóźniony snapshot lub snapshot
 innej doby z tym samym identyfikatorem nie zmienia poprawnego wyboru.
 Dwa duplikaty dostępne przed granicą nadal są odrzucane przed odczytem danych.
+
+Selekcja as-of traktuje przerwany odczyt niestandardowego źródła
+wierszy JWCD jako wadę pojedynczego snapshotu. Test dla doby 25h
+sprawdza przerwanie po pierwszym wierszu, odrzucenie częściowej
+wersji i zachowanie pełnej wersji dostępnej do D-1 09:50 Europe/Warsaw.
