@@ -1294,3 +1294,11 @@ braku pełnych znaczników i nieobsługiwanego źródła. Zapis dokładnie
 o 09:50 nadal przechodzi kontrolę pomocniczą i wymaga weryfikacji pochodzenia.
 Znacznik spoza zakresu po konwersji na UTC jest liczony jako
 niezweryfikowany. Test potwierdza, że odczyt raportu trwa dalej.
+
+Dla dostawy 12.11.2026 zapisano oficjalny HTML TGE z sesji 11.11,
+pobrany o 12:20:00 Europe/Warsaw, oraz CSV i manifest SHA-256.
+Parser zgadza się w 24 okresach UTC z osobną ekstrakcją XPath
+tej samej odpowiedzi. H10 zachowuje 2 700,83 PLN/MWh z Fixing I
+przy 2 700,70 PLN/MWh z notowań ciągłych. Test integracyjny sprawdza
+zapis 24 okresów oraz zero nowych wierszy przy ponowieniu manifestu
+na izolowanym PostgreSQL.
