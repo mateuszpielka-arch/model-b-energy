@@ -1466,3 +1466,8 @@ Test na kopii oficjalnej odpowiedzi dla dostawy 13.11.2026 zachowuje
 24 ceny z oryginału i poprawnie czyta grupowanie tysięcy spacją
 nierozdzielającą. Błędne grupowanie lub więcej niż cztery cyfry po
 przecinku w H08 przerywa zapis przed utworzeniem plików.
+
+Ekstraktor XPath sprawdza także jednostkę wolumenu w nagłówku
+Fixing I. Test na oficjalnym HTML dla dostawy 13.11.2026 potwierdza
+odczyt 24 cen z oryginału. Zmiana nagłówka wolumenu z MW na MWh
+blokuje utworzenie plików HTML i CSV.

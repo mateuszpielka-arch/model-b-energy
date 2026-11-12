@@ -321,6 +321,25 @@ class CaptureReferenceTest(unittest.TestCase):
                         capture(day, Path(directory))
                 self.assertEqual(list(Path(directory).iterdir()), [])
 
+    def test_capture_rejects_changed_fixing_i_volume_header_before_writing(self):
+        from lxml import html
+
+        day = date(2026, 11, 13)
+        fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-13/tge_delivery_2026-11-13.html.gz'
+        raw = gzip.decompress(fixture.read_bytes())
+        self.assertEqual(len(extract_reference(raw, day.isoformat())), 24)
+        document = html.fromstring(raw.decode('utf-8'))
+        volume, = document.xpath('//table[@id="rdn"]/thead/tr[2]/th[4]')
+        self.assertEqual(volume.text_content().strip(), 'Wolumen [MW]')
+        volume.text = 'Wolumen [MWh]'
+        changed = html.tostring(document, encoding='ascii')
+
+        with tempfile.TemporaryDirectory() as directory:
+            with patch('tools.capture_tge_validation._fetch_session', return_value=(200, changed)):
+                with self.assertRaisesRegex(ValueError, 'Wrong market/unit/columns'):
+                    capture(day, Path(directory))
+            self.assertEqual(list(Path(directory).iterdir()), [])
+
     def test_header_span_cannot_shift_fixing_i_group(self):
         from lxml import html
 

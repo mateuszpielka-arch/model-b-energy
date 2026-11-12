@@ -48,7 +48,7 @@ def extract_reference(raw, day, *, autumn_25h=False):
     ) or any(cell.get('colspan', '1') != '1' for cell in columns):
         raise ValueError('Unsupported reference header spans')
     names=[' '.join(x.text_content().split()) for x in columns]
-    if names[:3]!=['Data dostawy','Typ instrumentu','Kurs [PLN/MWh]']:
+    if names[:4] != ['Data dostawy', 'Typ instrumentu', 'Kurs [PLN/MWh]', 'Wolumen [MW]']:
         raise ValueError('Wrong market/unit/columns')
     rows=[]
     for row in tables[0].xpath('./tbody/tr'):
