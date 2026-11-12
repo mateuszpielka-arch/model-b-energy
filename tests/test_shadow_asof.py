@@ -149,6 +149,26 @@ class AvailabilityTests(unittest.TestCase):
         s=self.snapshot(); out=select_snapshot(s['delivery_date'],[s,deepcopy(s)])
         self.assertIsNone(out.snapshot_id); self.assertEqual(len(out.rejected),2)
 
+    def test_padded_snapshot_ids_cannot_bypass_duplicate_check(self):
+        def unreadable_rows():
+            self.fail('Duplicate snapshot rows were read')
+            yield
+
+        for day, count in ((date(2026, 3, 29), 23), (date(2026, 10, 25), 25)):
+            with self.subTest(day=day):
+                good = self.snapshot(day, sid=17)
+                baseline = select_snapshot(day, [good])
+                self.assertEqual((baseline.snapshot_id, len(baseline.rows)), ('17', count))
+                duplicate = {**good, 'id': ' 17 ', 'rows': unreadable_rows()}
+                result = select_snapshot(day, [{**good, 'rows': unreadable_rows()}, duplicate])
+                self.assertIsNone(result.snapshot_id)
+                self.assertEqual(result.rejected, (('17', 'MISSING_OR_DUPLICATE_SNAPSHOT_ID'),) * 2)
+
+                duplicate['retrieval_completed_at'] = baseline.cutoff_utc + timedelta(seconds=1)
+                result = select_snapshot(day, [duplicate, good])
+                self.assertEqual((result.snapshot_id, result.rows), (baseline.snapshot_id, baseline.rows))
+                self.assertEqual(result.rejected, (('17', 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER'),))
+
     def test_late_copy_with_same_id_cannot_change_asof_selection(self):
         def unreadable_rows():
             self.fail('Rows of an ineligible snapshot were read')

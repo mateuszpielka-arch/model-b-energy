@@ -1454,3 +1454,9 @@ blokadą doby i odczytem cen Fix1. Test PostgreSQL na cenach TGE
 z 13.11.2026 odrzuca brak jednego okresu oraz okres z innej doby przy
 zachowanej liczbie 24 wierszy. Wynik zapisany dla kompletnej
 syntetycznej prognozy pozostaje dostępny przez REPLAY.
+
+Selekcja snapshotów JWCD i audyt CSV tak samo normalizują
+identyfikatory przed kontrolą duplikatów. Test dla dób 23h i 25h
+potwierdza odrzucenie pary identyfikatorów 17 i „ 17 ” bez odczytu
+wierszy, gdy oba snapshoty były dostępne do D-1 09:50 Europe/Warsaw.
+Duplikat dostępny sekundę po granicy nie wpływa na wybór.

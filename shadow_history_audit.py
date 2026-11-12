@@ -82,7 +82,7 @@ def audit_rows(rows):
                 verified += 1
             actual_version = r.get('actual_version')
             actual_versions.add(actual_version.strip() if isinstance(actual_version, str) else '')
-            snapshot_ids.add(snapshot_identifier({"id": r.get("jwcd_snapshot_id")}).strip())
+            snapshot_ids.add(snapshot_identifier({"id": r.get("jwcd_snapshot_id")}))
             raw_actual_time = r.get('actual_available_at')
             if raw_actual_time in (None, ''):
                 missing_timestamps['actual_available_at'] += 1

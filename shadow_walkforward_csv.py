@@ -8,6 +8,7 @@ from decimal import Decimal
 import json
 from pathlib import Path
 
+from shadow_asof import snapshot_identifier
 from shadow_history_audit import FIX1_COLUMNS, _stamp, audit_rows, missing_delivery_ranges, read_csv
 from shadow_scoring import Score, expected_periods
 from shadow_walkforward import run_walkforward
@@ -53,7 +54,7 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
             actual_available_at=max(_stamp(row["actual_available_at"]) for row in records),
             actual=actual,
             snapshots=[dict(
-                id=str(first["jwcd_snapshot_id"]).strip(), delivery_date=day,
+                id=snapshot_identifier({"id": first["jwcd_snapshot_id"]}), delivery_date=day,
                 retrieved_at=_stamp(first.get("retrieved_at") or first["retrieved_at_utc"]),
                 retrieval_completed_at=_stamp(first["retrieval_completed_at"]), rows=jwcd,
             )],

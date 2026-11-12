@@ -30,9 +30,9 @@ def snapshot_identifier(snapshot):
     if not isinstance(snapshot, Mapping):
         return ''
     identifier = snapshot.get('id')
-    if type(identifier) not in (str, int) or not str(identifier).strip():
+    if type(identifier) not in (str, int):
         return ''
-    return str(identifier)
+    return str(identifier).strip()
 
 
 class _ReplayableRows:
