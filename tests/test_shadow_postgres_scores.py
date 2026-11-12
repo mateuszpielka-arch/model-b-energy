@@ -2,7 +2,7 @@ import os
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
-from decimal import Decimal
+from decimal import Decimal, Inexact, ROUND_UP, localcontext
 import test_shadow_archive_batch as fixtures
 from shadow_archive_batch import prepare_batch
 from shadow_asof import cutoff_for_day
@@ -47,6 +47,21 @@ class ScorePersistenceTests(unittest.TestCase):
         self.assertEqual(score_archived_day(self.conn, **{**self.kw, 'forecast': replay_rows}),
                          ('REPLAY', score))
         self.assertEqual(self.conn.execute(query).fetchall(), previous)
+
+    def test_decimal_context_change_replays_immutable_score(self):
+        self.kw['forecast'] = [(period, '1000') for period, _ in self.kw['forecast']]
+        inserted, expected = score_archived_day(self.conn, **self.kw)
+        self.assertEqual(inserted, 'INSERT')
+        query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+        saved = self.conn.execute(query).fetchall()
+
+        with localcontext() as context:
+            context.prec = 6
+            context.rounding = ROUND_UP
+            context.traps[Inexact] = True
+            self.assertEqual(score_archived_day(self.conn, **self.kw), ('REPLAY', expected))
+
+        self.assertEqual(self.conn.execute(query).fetchall(), saved)
 
     def test_mapping_price_rows_cannot_create_or_replace_a_score(self):
         rows = self.kw['forecast']

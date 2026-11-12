@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, Inexact, ROUND_UP, localcontext
 import unittest
 from shadow_scoring import expected_periods, score_day
 
@@ -31,6 +31,17 @@ class ScoringTests(unittest.TestCase):
         expected = score_day(**args)
         args['actual'].reverse()
         self.assertEqual(score_day(**args), expected)
+
+    def test_metrics_ignore_callers_decimal_rounding_and_traps(self):
+        args = self.args()
+        period, _ = args['forecast'][0]
+        args['forecast'][0] = (period, '101')
+        expected = score_day(**args)
+        with localcontext() as context:
+            context.prec = 6
+            context.rounding = ROUND_UP
+            context.traps[Inexact] = True
+            self.assertEqual(score_day(**args), expected)
 
     def test_all_zero_actual(self):
         kw=self.args(); kw['actual']=[(p,0) for p,_ in kw['actual']]

@@ -6,7 +6,9 @@ mapping. This module does not certify either; it refuses unverified batches.
 from dataclasses import dataclass
 from collections.abc import Mapping
 from datetime import date, datetime, time, timedelta, timezone
-from decimal import Decimal, InvalidOperation, localcontext
+from decimal import (
+    Context, Decimal, DivisionByZero, InvalidOperation, Overflow, ROUND_HALF_EVEN, localcontext,
+)
 from zoneinfo import ZoneInfo
 
 SCORING_VERSION = 'fix1-shadow-score-v1'
@@ -110,8 +112,8 @@ def score_day(*, day, forecast, actual, forecast_id, model_version, actual_versi
     expected = set(expected_periods(day))
     if set(fp) != expected or set(ap) != expected:
         raise ValueError('Incomplete or mismatched delivery periods')
-    with localcontext() as ctx:
-        ctx.prec = 34
+    with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN,
+                              traps=[InvalidOperation, DivisionByZero, Overflow])):
         periods = sorted(expected)
         errors = [fp[p] - ap[p] for p in periods]
         abs_sum = sum(map(abs, errors), Decimal(0))

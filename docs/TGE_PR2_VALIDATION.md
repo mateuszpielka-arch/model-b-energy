@@ -1403,3 +1403,10 @@ retrieved_at_utc wyklucza dobę z walk-forward, nawet gdy drugie pole
 zawiera poprawny czas. Test syntetyczny dla dób 23h i 25h potwierdza
 przyjęcie zgodnych znaczników dokładnie o D-1 09:50 Europe/Warsaw
 oraz wykluczenie każdej doby po zmianie jednego pola.
+
+Scoring dobowy liczy MAE, MAPE, WAPE i bias z precyzją 34 cyfr
+i zaokrągleniem ROUND_HALF_EVEN niezależnie od ustawień arytmetyki
+wywołującego. Test na izolowanym PostgreSQL używa cen z archiwum TGE
+dla 02.11.2026 i syntetycznej prognozy 1 000 PLN/MWh. Zmiana
+zaokrąglenia i włączenie wyjątku dla wyniku niedokładnego zachowuje
+status REPLAY, zapisany odcisk wejścia i zapisane metryki.
