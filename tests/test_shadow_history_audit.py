@@ -125,6 +125,27 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertFalse(day['model_ready'])
 
 
+    def test_falsey_retrieval_timestamp_cannot_be_hidden_by_an_alias(self):
+        for delivery, cutoff in (
+            ('2026-03-29', '2026-03-28T08:50:00Z'),
+            ('2026-10-25', '2026-10-24T07:50:00Z'),
+        ):
+            rows = self.rows(delivery)
+            for row in rows:
+                row.update(publication_ts=cutoff, retrieved_at=cutoff, retrieved_at_utc=cutoff,
+                           retrieval_completed_at=cutoff)
+            baseline, = audit_rows(rows)['days']
+            self.assertTrue(baseline['model_ready'])
+            for field in ('retrieved_at', 'retrieved_at_utc'):
+                for value in (False, 0):
+                    with self.subTest(delivery=delivery, field=field, value=value):
+                        changed = [{**rows[0], field: value}, *rows[1:]]
+                        day, = audit_rows(changed)['days']
+                        self.assertTrue(day['complete_pairs'])
+                        self.assertFalse(day['model_ready'])
+                        self.assertEqual(day['availability_invalid_timestamp_rows'], 1)
+                        self.assertEqual(day['availability_proven_rows'], len(rows) - 1)
+
     def test_fix1_requires_timestamp_strictly_after_issuance(self):
         rows = self.rows()
         for row in rows:

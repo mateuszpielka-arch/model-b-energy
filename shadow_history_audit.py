@@ -98,8 +98,9 @@ def audit_rows(rows):
                         actual_times.append(actual_time)
             canonical_start = r.get('retrieved_at')
             legacy_start = r.get('retrieved_at_utc')
-            stamps = (r.get('publication_ts'), canonical_start or legacy_start,
-                      r.get('retrieval_completed_at'))
+            has_canonical_start = canonical_start not in (None, '')
+            start_stamp = canonical_start if has_canonical_start else legacy_start
+            stamps = (r.get('publication_ts'), start_stamp, r.get('retrieval_completed_at'))
             missing_fields = [
                 field for field, stamp in zip(JWCD_TIMESTAMPS, stamps) if stamp in (None, '')
             ]
@@ -109,7 +110,8 @@ def audit_rows(rows):
                 continue
             try:
                 pub, start, end = map(_stamp, stamps)
-                if canonical_start and legacy_start and _stamp(legacy_start) != start:
+                if (has_canonical_start and legacy_start not in (None, '')
+                        and _stamp(legacy_start) != start):
                     raise ValueError('Conflicting retrieval timestamps')
             except (ValueError, TypeError):
                 invalid_timing += 1

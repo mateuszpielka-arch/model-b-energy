@@ -1396,3 +1396,10 @@ otwarcia i zamknięcia komórek. Test na oficjalnym HTML dla dostaw
 02.11.2026 i 25.10.2026 potwierdza odczyt odpowiednio 24 i 25 cen.
 Zamiana komórki ceny na th lub domknięcie td znacznikiem </th>
 powoduje odrzucenie tabeli, także dla powtórzonego okresu H02a.
+
+Audyt CSV rozróżnia pominięte i puste pola czasu pobrania od
+nieprawidłowych wartości. Nieprawidłowa wartość logiczna lub zero w retrieved_at albo
+retrieved_at_utc wyklucza dobę z walk-forward, nawet gdy drugie pole
+zawiera poprawny czas. Test syntetyczny dla dób 23h i 25h potwierdza
+przyjęcie zgodnych znaczników dokładnie o D-1 09:50 Europe/Warsaw
+oraz wykluczenie każdej doby po zmianie jednego pola.
