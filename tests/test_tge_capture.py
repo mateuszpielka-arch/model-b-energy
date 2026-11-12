@@ -1,5 +1,6 @@
 import csv
 from datetime import date, datetime
+from decimal import Decimal
 import gzip
 from hashlib import sha256
 from http.client import IncompleteRead
@@ -294,6 +295,31 @@ class CaptureReferenceTest(unittest.TestCase):
         row.remove(cells[2])
         with self.assertRaisesRegex(ValueError, "reference row does not match header"):
             extract_reference(html.tostring(document), "2026-11-02")
+
+    def test_capture_rejects_malformed_fixing_i_price_before_writing_evidence(self):
+        from lxml import html
+
+        day = date(2026, 11, 13)
+        fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-13/tge_delivery_2026-11-13.html.gz'
+        raw = gzip.decompress(fixture.read_bytes())
+        baseline = extract_reference(raw, day.isoformat())
+        self.assertEqual(len(baseline), 24)
+        self.assertEqual(dict(baseline)['H08'], Decimal('711.58'))
+        document = html.fromstring(raw.decode('utf-8'))
+        price, = document.xpath('//table[@id="rdn"]/tbody/tr[normalize-space(td[1])="2026-11-13_H08"]/td[3]')
+
+        price.text = '1 711,58'
+        grouped = extract_reference(html.tostring(document, encoding='ascii'), day.isoformat())
+        self.assertEqual(dict(grouped)['H08'], Decimal('1711.58'))
+
+        for malformed in ('71 1,58', '711,58001'):
+            with self.subTest(price=malformed), tempfile.TemporaryDirectory() as directory:
+                price.text = malformed
+                changed = html.tostring(document, encoding='ascii')
+                with patch('tools.capture_tge_validation._fetch_session', return_value=(200, changed)):
+                    with self.assertRaisesRegex(ValueError, 'Invalid reference number'):
+                        capture(day, Path(directory))
+                self.assertEqual(list(Path(directory).iterdir()), [])
 
     def test_header_span_cannot_shift_fixing_i_group(self):
         from lxml import html

@@ -1460,3 +1460,9 @@ identyfikatory przed kontrolą duplikatów. Test dla dób 23h i 25h
 potwierdza odrzucenie pary identyfikatorów 17 i „ 17 ” bez odczytu
 wierszy, gdy oba snapshoty były dostępne do D-1 09:50 Europe/Warsaw.
 Duplikat dostępny sekundę po granicy nie wpływa na wybór.
+
+Ekstraktor XPath sprawdza format cen Fixing I przed zapisem HTML i CSV.
+Test na kopii oficjalnej odpowiedzi dla dostawy 13.11.2026 zachowuje
+24 ceny z oryginału i poprawnie czyta grupowanie tysięcy spacją
+nierozdzielającą. Błędne grupowanie lub więcej niż cztery cyfry po
+przecinku w H08 przerywa zapis przed utworzeniem plików.
