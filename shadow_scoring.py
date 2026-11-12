@@ -94,6 +94,14 @@ def validate_forecast_timing(day, issued_at, publication_ts, retrieved_at):
         raise ValueError('Invalid chronology or data unavailable before D-1 09:50')
 
 
+def validate_forecast_identity(forecast_id, model_version, forecast_status):
+    if any(not isinstance(value, str) or not value.strip() for value in
+           (forecast_id, model_version)):
+        raise ValueError('Explicit forecast/model/actual identities required')
+    if forecast_status not in ('FROZEN', 'SHADOW'):
+        raise ValueError('Only FROZEN or SHADOW forecasts can be scored')
+
+
 def score_day(*, day, forecast, actual, forecast_id, model_version, actual_version,
               forecast_status, actual_verified, issued_at, publication_ts, retrieved_at):
     """Score one complete day, with all forecast inputs available by D-1 09:50.
@@ -105,11 +113,9 @@ def score_day(*, day, forecast, actual, forecast_id, model_version, actual_versi
     """
     if actual_verified is not True:
         raise ValueError('Unverified actual batch')
-    if any(not isinstance(v, str) or not v.strip() for v in
-           (forecast_id, model_version, actual_version)):
+    if not isinstance(actual_version, str) or not actual_version.strip():
         raise ValueError('Explicit forecast/model/actual identities required')
-    if forecast_status not in ('FROZEN', 'SHADOW'):
-        raise ValueError('Only FROZEN or SHADOW forecasts can be scored')
+    validate_forecast_identity(forecast_id, model_version, forecast_status)
     validate_forecast_timing(day, issued_at, publication_ts, retrieved_at)
     fp, ap = _prices(forecast), _prices(actual)
     expected = set(expected_periods(day))

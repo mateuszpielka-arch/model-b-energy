@@ -10,7 +10,8 @@ from shadow_postgres_archive import (
     _SCHEMA_INIT_LOCK_KEY, _guard, _has_delivery_quarantine, _lock_archive_key, _lock_delivery_day,
 )
 from shadow_scoring import (
-    SCORING_VERSION, _prices, _utc, expected_periods, score_day, validate_forecast_timing,
+    SCORING_VERSION, _prices, _utc, expected_periods, score_day,
+    validate_forecast_identity, validate_forecast_timing,
 )
 from tge_parser_safe import parse_complete_standard_day
 
@@ -74,6 +75,7 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
     Scoring requires a READ COMMITTED transaction.
     """
     _guard(conn)
+    validate_forecast_identity(forecast_id, model_version, forecast_status)
     validate_forecast_timing(day, issued_at, publication_ts, retrieved_at)
     evaluation_time = _utc(evaluated_at) if evaluated_at is not None else None
     forecast_prices = _prices(forecast)

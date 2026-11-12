@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import patch
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal, Inexact, ROUND_UP, localcontext
@@ -305,6 +306,21 @@ class ScorePersistenceTests(unittest.TestCase):
                                             evaluated_at=captured + timedelta(seconds=1))[0], 'REPLAY')
         with self.assertRaisesRegex(ValueError, 'not yet available at evaluation time'):
             score_archived_day(self.conn, **self.kw, evaluated_at=too_early)
+        self.assertEqual(self.count(), 1)
+
+    def test_invalid_forecast_identity_is_rejected_before_delivery_lock(self):
+        self.assertEqual(score_archived_day(self.conn, **self.kw)[0], 'INSERT')
+        with patch('shadow_postgres_scores._lock_delivery_day') as lock:
+            for override, error in (
+                ({'forecast_id': '  '}, 'Explicit forecast/model/actual identities required'),
+                ({'model_version': 90}, 'Explicit forecast/model/actual identities required'),
+                ({'forecast_status': 'DRAFT'}, 'Only FROZEN or SHADOW'),
+            ):
+                with self.subTest(override=override), self.assertRaisesRegex(ValueError, error):
+                    score_archived_day(self.conn, **{**self.kw, **override})
+            lock.assert_not_called()
+
+        self.assertEqual(score_archived_day(self.conn, **self.kw)[0], 'REPLAY')
         self.assertEqual(self.count(), 1)
 
     def test_late_forecast_has_no_stored_score(self):

@@ -1523,3 +1523,8 @@ dla ocenianej dostawy. Test syntetycznej doby 25h wykazuje dwa
 spóźnione zestawy cen w oknie OLS 90D. Zestaw dostępny dokładnie
 o 09:50 mieści się w limicie, a doba z dwoma spóźnionymi zestawami
 nie trafia do wspólnego rankingu.
+
+Scoring PostgreSQL odrzuca pusty identyfikator, nieprawidłową wersję
+modelu lub niedozwolony status prognozy przed transakcją, blokadą doby
+i odczytem cen. Test integracyjny potwierdza brak próby blokady
+i ponowne odtworzenie zapisanego wyniku dla poprawnej prognozy.
