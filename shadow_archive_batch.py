@@ -13,7 +13,7 @@ from io import StringIO
 import re
 from shadow_asof import cutoff_for_day
 from shadow_history_audit import _stamp, read_csv_rows
-from shadow_scoring import expected_periods
+from shadow_scoring import _utc, expected_periods
 from tge_parser_safe import parse_complete_standard_day
 
 SOURCE_URL = 'https://tge.pl/energia-elektryczna-rdn'
@@ -89,11 +89,8 @@ def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: dateti
     validate_source_url(source_url, day)
     if not isinstance(raw, bytes) or not raw:
         raise ValueError('Nonempty raw HTTP bytes required')
-    if (not isinstance(retrieved_at, datetime) or retrieved_at.tzinfo is None
-            or retrieved_at.utcoffset() is None):
-        raise ValueError('Aware retrieval timestamp required')
     d = date.fromisoformat(day)
-    retrieved_at = retrieved_at.astimezone(timezone.utc)
+    retrieved_at = _utc(retrieved_at)
     if retrieved_at <= cutoff_for_day(d):
         raise ValueError('Fix1 retrieval must be after D-1 09:50 Europe/Warsaw')
     if not re.fullmatch('[0-9a-f]{64}', reference_sha256):

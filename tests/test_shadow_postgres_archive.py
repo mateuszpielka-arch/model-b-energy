@@ -2,6 +2,8 @@
 import os
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+from datetime import datetime
 from unittest.mock import Mock, patch
 from shadow_postgres_archive import connect_test_database, initialize, archive_batch
 import test_shadow_archive_batch as fixtures
@@ -126,6 +128,18 @@ class PostgresArchiveTests(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=4) as pool: results=list(pool.map(write,range(4)))
         self.assertEqual(results.count('INSERT'),1); self.assertEqual(results.count('REPLAY'),3)
         self.assertEqual(self.count('prices'),24); self.assertEqual(self.count('batches'),1)
+
+    def test_invalid_capture_timestamp_is_rejected_before_locking_existing_day(self):
+        self.assertEqual(archive_batch(self.conn, self.batch, self.raw), 'INSERT')
+        invalid = replace(self.batch, retrieved_at=datetime.fromisoformat('9999-12-31T23:59:59-01:00'))
+        with patch('shadow_postgres_archive._lock_delivery_day') as lock:
+            with self.assertRaisesRegex(ValueError, 'outside the supported UTC range'):
+                archive_batch(self.conn, invalid, self.raw)
+            lock.assert_not_called()
+        self.assertEqual(self.count('prices'), 24)
+        self.assertEqual(self.count('batches'), 1)
+        self.assertEqual(self.count('quarantine'), 0)
+        self.assertEqual(archive_batch(self.conn, self.batch, self.raw), 'REPLAY')
 
     def test_mismatched_raw_rejected_before_write(self):
         with self.assertRaises(ValueError): archive_batch(self.conn,self.batch,b'wrong')

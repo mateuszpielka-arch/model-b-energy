@@ -1377,3 +1377,10 @@ Parser SHADOW wymaga nagłówków Fixing I w sekcji thead i odczytuje
 ceny wyłącznie z tbody. Test na oficjalnym HTML TGE dla dostawy
 02.11.2026 potwierdza komplet 24 cen w oryginale. Przeniesienie
 nagłówków lub cen do tfoot blokuje przyjęcie doby.
+
+Bezpośredni zapis dowodu Fix1 stosuje wspólną walidację czasu UTC
+dla pobrania, tak jak import manifestu. Testy na HTML TGE dla dostawy
+02.11.2026 zachowują identyczny wynik dla równoważnych stref czasowych.
+Znacznik poza zakresem UTC jest odrzucany przed blokadą doby.
+Test PostgreSQL potwierdza zachowanie 24 cen, jednej paczki i pustej
+kwarantanny oraz poprawne ponowienie.

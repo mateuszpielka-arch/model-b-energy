@@ -42,6 +42,16 @@ class ArchiveAdmissionTests(unittest.TestCase):
             kw=self.args(); kw[field]=value
             with self.subTest(field=field), self.assertRaises(ValueError): prepare_batch(**kw)
 
+    def test_capture_timestamp_must_be_representable_in_utc(self):
+        args = self.args()
+        for timestamp in ('0001-01-01T00:00:00+01:00', '9999-12-31T23:59:59-01:00'):
+            with self.subTest(timestamp=timestamp):
+                with self.assertRaisesRegex(ValueError, 'outside the supported UTC range'):
+                    prepare_batch(**{**args, 'retrieved_at': datetime.fromisoformat(timestamp)})
+
+        local_capture = datetime.fromisoformat('2026-11-01T21:00:00+01:00')
+        self.assertEqual(prepare_batch(**{**args, 'retrieved_at': local_capture}), prepare_batch(**args))
+
     def test_unchanged_replay_and_conflict_never_overwrite(self):
         batch=prepare_batch(**self.args()); old=list(batch.rows)
         self.assertEqual(classify_existing(batch,[]),'INSERT')
