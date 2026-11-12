@@ -3,6 +3,12 @@ from datetime import timedelta
 from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_scoring import _utc,_prices,expected_periods
 
+class IncompleteTrainingWindow(ValueError):
+    def __init__(self, missing_days):
+        self.missing_days = tuple(sorted(missing_days))
+        super().__init__(f'Incomplete calendar training window: first missing day {self.missing_days[0]}')
+
+
 def has_verified_actual(packet):
     version = packet.get('actual_version')
     return packet.get('actual_verified') is True and isinstance(version, str) and bool(version.strip())
@@ -21,7 +27,7 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
         packets[d]=packet
     missing = required - packets.keys()
     if missing:
-        raise ValueError(f'Incomplete calendar training window: first missing day {min(missing)}')
+        raise IncompleteTrainingWindow(missing)
     target=select_snapshot(target_day,target_snapshots)
     if target.snapshot_id is None: raise ValueError('No complete pre-cutoff target JWCD')
     prepared=[]; evidence=[]; timing=[]

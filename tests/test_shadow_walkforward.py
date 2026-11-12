@@ -214,6 +214,21 @@ class WalkforwardTests(unittest.TestCase):
         ))
         self.assertEqual(run_walkforward(**args), baseline)
 
+    def test_incomplete_training_window_lists_every_missing_delivery(self):
+        target = date(2026, 10, 25)
+        history = fixtures.OLSTests().data(91, target=target + timedelta(days=1))['history']
+        missing = [target - timedelta(days=offset) for offset in (87, 66)]
+        result = run_walkforward(
+            history=[packet for packet in reversed(history) if packet['day'] not in missing],
+            target_days=[target],
+            evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
+        )
+        skipped, = result['skipped']
+        self.assertEqual(skipped['stage'], 'ols90')
+        self.assertEqual(skipped['missing_training_days'], [day.isoformat() for day in missing])
+        self.assertEqual(result['common_periods'], 0)
+        self.assertEqual(result['ranking'], [])
+
     def test_training_only_payload_is_unread_when_late_for_every_relevant_target(self):
         args = self.args()
         first, second = args['target_days']

@@ -10,7 +10,7 @@ from datetime import date, datetime
 from decimal import Decimal, localcontext
 from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
-from shadow_training import has_verified_actual
+from shadow_training import IncompleteTrainingWindow, has_verified_actual
 from shadow_similar_consensus import MEDIAN_MEMBERS, median_consensus, predict_similar
 from shadow_scoring import (
     WARSAW, _SHADOW_DECIMAL_CONTEXT, _prices, _utc, expected_periods, score_day,
@@ -219,6 +219,8 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         issued_at=selected.cutoff_utc,publication_ts=latest_publication,retrieved_at=latest_retrieval)
             except ValueError as exc:
                 rejection = dict(day=day.isoformat(), stage=stage, reason=str(exc))
+                if isinstance(exc, IncompleteTrainingWindow):
+                    rejection['missing_training_days'] = [missing.isoformat() for missing in exc.missing_days]
                 if scoring_model is not None:
                     rejection['model'] = scoring_model
                 skipped.append(rejection)

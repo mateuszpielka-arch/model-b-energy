@@ -1490,3 +1490,9 @@ Test na kopii paczki TGE z 13.11.2026 potwierdza odrzucenie brakującej
 kolumny mimo zgodnego SHA-256. Starsza paczka bez deklaracji przechodzi
 dotychczasową walidację. Nieznana deklaracja jest odrzucana przed
 odczytem HTML.
+
+Walk-forward raportuje wszystkie brakujące daty w niepełnym oknie
+treningowym modelu, który zablokował ocenę. Test syntetycznej doby
+25h potwierdza, że dwie luki poza oknami 30D i 60D są wskazane
+chronologicznie przy OLS 90D. Doba z niepełnym oknem nie trafia
+do rankingu na wspólnych okresach.
