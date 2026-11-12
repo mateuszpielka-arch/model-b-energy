@@ -7,7 +7,7 @@ import test_shadow_archive_batch as fixtures
 from shadow_archive_batch import prepare_batch
 from shadow_asof import cutoff_for_day
 from shadow_postgres_archive import connect_test_database, initialize, archive_batch
-from shadow_postgres_scores import initialize_scores, score_archived_day
+from shadow_postgres_scores import initialize_scores, input_fingerprint, score_archived_day
 
 DSN=os.environ.get('FIX1_SHADOW_TEST_DSN')
 
@@ -56,12 +56,38 @@ class ScorePersistenceTests(unittest.TestCase):
         saved = self.conn.execute(query).fetchall()
 
         with localcontext() as context:
+            context.capitals = 0
             context.prec = 6
             context.rounding = ROUND_UP
             context.traps[Inexact] = True
             self.assertEqual(score_archived_day(self.conn, **self.kw), ('REPLAY', expected))
 
         self.assertEqual(self.conn.execute(query).fetchall(), saved)
+
+    def test_preexisting_lowercase_exponents_replay_without_rewriting(self):
+        from psycopg.types.json import Jsonb
+
+        self.kw['forecast'] = [(period, '1000') for period, _ in self.kw['forecast']]
+        _, expected = score_archived_day(self.conn, **self.kw)
+        query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+        upper_hash, payload = self.conn.execute(query).fetchone()
+        metadata = dict(day=self.kw['day'].isoformat(), forecast_status=self.kw['forecast_status'])
+        for field in ('issued_at', 'publication_ts', 'retrieved_at'):
+            metadata[field] = self.kw[field].isoformat()
+        upper_rows = [(period.isoformat(), '1E+3') for period, _ in self.kw['forecast']]
+        lower_rows = [(period, value.lower()) for period, value in upper_rows]
+        self.assertEqual(upper_hash, input_fingerprint({**metadata, 'forecast': upper_rows}))
+        old_hash = input_fingerprint({**metadata, 'forecast': lower_rows})
+        self.assertNotEqual(upper_hash, old_hash)
+        old_payload = {**payload}
+        for metric in ('mae', 'mape_pct', 'wape_pct', 'bias'):
+            if old_payload[metric] is not None:
+                old_payload[metric] = old_payload[metric].lower()
+        self.conn.execute('UPDATE fix1_shadow_test.scores SET input_sha256=%s,payload=%s',
+                          (old_hash, Jsonb(old_payload)))
+
+        self.assertEqual(score_archived_day(self.conn, **self.kw), ('REPLAY', expected))
+        self.assertEqual(self.conn.execute(query).fetchone(), (old_hash, old_payload))
 
     def test_mapping_price_rows_cannot_create_or_replace_a_score(self):
         rows = self.kw['forecast']

@@ -29,11 +29,19 @@ def canonical_decimal(value):
     last = len(digits)
     while digits[last - 1] == 0:
         last -= 1
-    return str(Decimal((sign, digits[:last], exponent + len(digits) - last)))
+    return str(Decimal((sign, digits[:last], exponent + len(digits) - last))).upper()
 
 
 def input_fingerprint(inputs):
     return sha256(json.dumps(inputs, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def _score_record(metadata, forecast_prices, score_values, decimal_text):
+    inputs = {**metadata, 'forecast': sorted(
+        (period.isoformat(), decimal_text(price)) for period, price in forecast_prices.items()
+    )}
+    payload = json.loads(json.dumps(score_values, default=decimal_text, sort_keys=True))
+    return input_fingerprint(inputs), payload
 
 
 def initialize_scores(conn):
@@ -110,14 +118,11 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
             publication_ts=publication_ts,retrieved_at=retrieved_at)
         # Bind every forecast input, not just aggregate metrics. This detects a
         # changed forecast even when it happens to produce identical MAE/bias.
-        inputs = dict(day=day.isoformat(),forecast_status=forecast_status,
-            issued_at=_utc(issued_at).isoformat(),publication_ts=_utc(publication_ts).isoformat(),
-            retrieved_at=_utc(retrieved_at).isoformat(),
-            forecast=sorted((p.isoformat(), canonical_decimal(v))
-                            for p, v in forecast_prices.items()))
-        fingerprint = input_fingerprint(inputs)
+        metadata = dict(day=day.isoformat(), forecast_status=forecast_status,
+            issued_at=_utc(issued_at).isoformat(), publication_ts=_utc(publication_ts).isoformat(),
+            retrieved_at=_utc(retrieved_at).isoformat())
         score_values = asdict(score)
-        payload = json.loads(json.dumps(score_values, default=canonical_decimal, sort_keys=True))
+        fingerprint, payload = _score_record(metadata, forecast_prices, score_values, canonical_decimal)
         key = (forecast_id,model_version,bid,SCORING_VERSION)
         from psycopg.types.json import Jsonb
         inserted = conn.execute('''INSERT INTO fix1_shadow_test.scores
@@ -130,16 +135,22 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
             if previous is None:
                 raise ValueError('Score identity conflict: existing result unavailable')
             if previous != (fingerprint, payload):
-                # Existing rows may use the original spelling-sensitive hash.
-                legacy_inputs = {**inputs, 'forecast': sorted(
-                    (p.isoformat(), str(v)) for p, v in forecast_prices.items()
-                )}
-                legacy_payload = json.loads(json.dumps(score_values, default=str, sort_keys=True))
-                legacy_fingerprint = input_fingerprint(legacy_inputs)
-                if previous != (legacy_fingerprint, legacy_payload):
+                # Older rows may use lowercase exponents or preserve Decimal spelling.
+                previous_formats = (
+                    lambda value: canonical_decimal(value).lower(),
+                    lambda value: str(value).upper(),
+                    lambda value: str(value).lower(),
+                )
+                known_fingerprints = {fingerprint}
+                for decimal_text in previous_formats:
+                    candidate = _score_record(metadata, forecast_prices, score_values, decimal_text)
+                    if previous == candidate:
+                        break
+                    known_fingerprints.add(candidate[0])
+                else:
                     reason = (
                         'stored score payload differs'
-                        if previous[0] in (fingerprint, legacy_fingerprint)
+                        if previous[0] in known_fingerprints
                         else 'input fingerprint differs'
                     )
                     raise ValueError(f'Score identity conflict: {reason}; existing result preserved')

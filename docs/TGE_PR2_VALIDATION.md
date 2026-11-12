@@ -1410,3 +1410,9 @@ wywołującego. Test na izolowanym PostgreSQL używa cen z archiwum TGE
 dla 02.11.2026 i syntetycznej prognozy 1 000 PLN/MWh. Zmiana
 zaokrąglenia i włączenie wyjątku dla wyniku niedokładnego zachowuje
 status REPLAY, zapisany odcisk wejścia i zapisane metryki.
+
+Odcisk i metryki nowego scoringu PostgreSQL zapisują wykładniki z E
+niezależnie od ustawień Decimal wywołującego. Ponowienie rozpoznaje
+także wcześniejszy zapis z małym e bez zmiany jego odcisku lub metryk.
+Testy na cenach TGE z 02.11.2026 i syntetycznej prognozie 1 000 PLN/MWh
+sprawdzają obie ścieżki oraz zgodność odcisku z kanonicznym zapisem.
