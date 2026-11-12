@@ -119,6 +119,26 @@ def _python_utc_timestamptz(columns, column):
     return 'NULL::timestamptz'
 
 
+
+# The audit needs both D-1 issuance and the next local midnight.
+_MIN_DELIVERY_DAY = date.min + timedelta(days=1)
+_MAX_DELIVERY_DAY = date.max - timedelta(days=1)
+
+
+def _audit_bounds(start_day, end_day):
+    first = max(start_day or _MIN_DELIVERY_DAY, _MIN_DELIVERY_DAY)
+    last = min(end_day or _MAX_DELIVERY_DAY, _MAX_DELIVERY_DAY)
+    return first, last
+
+
+def _count_invalid_delivery_dates(conn, table, column):
+    # Table and column names are fixed by the audit, never by CLI input.
+    return conn.execute(
+        f'SELECT count(*) FROM {table} WHERE {column} IS NULL OR {column} NOT BETWEEN %s AND %s',
+        (_MIN_DELIVERY_DAY, _MAX_DELIVERY_DAY),
+    ).fetchone()[0]
+
+
 def audit_legacy_hourly(conn, start_day, end_day, *, reference_rows=None, reference_days=()):
     """Inventory legacy history without treating hour labels as timing evidence."""
     required = {'delivery_date', 'hour', 'jwcd_mw', 'fix1_pln_mwh'}
@@ -138,12 +158,11 @@ def audit_legacy_hourly(conn, start_day, end_day, *, reference_rows=None, refere
                        jwcd_mw::text NOT IN ('NaN', 'Infinity', '-Infinity') AS valid_jwcd,
                        fix1_pln_mwh::text NOT IN ('NaN', 'Infinity', '-Infinity') AS valid_fix1
                 FROM history.hourly
-                WHERE delivery_date BETWEEN COALESCE(%s::date, '-infinity'::date)
-                                        AND COALESCE(%s::date, 'infinity'::date)
+                WHERE delivery_date BETWEEN %s AND %s
             ) AS hourly
             GROUP BY delivery_date
             ORDER BY delivery_date
-        """, (start_day, end_day)).fetchall()
+        """, _audit_bounds(start_day, end_day)).fetchall()
         for day, count, hours, jwcd, fix1, paired_labels in rows:
             expected = len(expected_periods(day))
             paired_hours = set(paired_labels or ())
@@ -179,7 +198,7 @@ def audit_legacy_hourly(conn, start_day, end_day, *, reference_rows=None, refere
 def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None):
     if start_day is not None and end_day is not None and start_day > end_day:
         raise ValueError('Start day must not be after end day')
-    bounds = (start_day, end_day)
+    bounds = _audit_bounds(start_day, end_day)
     reference_days = []
     if reference_rows is not None:
         reference_rows = list(reference_rows)
@@ -208,8 +227,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
             rows = conn.execute(
                 f'SELECT id,business_date,{retrieval_column} AS retrieval_time,'
                 f'payload,{archived_column},{source_column} '
-                'FROM raw.snapshots WHERE business_date BETWEEN '
-                "COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date) "
+                'FROM raw.snapshots WHERE business_date BETWEEN %s AND %s '
                 'ORDER BY business_date,retrieval_time,id', bounds,
             ).fetchall()
             for sid,day,retrieved,payload,archived,source_version in rows:
@@ -324,8 +342,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     FILTER (WHERE {period_column} IS NOT NULL),
                 array_agg({hour_column} ORDER BY {period_column}, {hour_column})
                     FILTER (WHERE {period_column} IS NOT NULL)
-                FROM actual.tge_fix1 WHERE delivery_date BETWEEN
-                COALESCE(%s::date, '-infinity'::date) AND COALESCE(%s::date, 'infinity'::date)
+                FROM actual.tge_fix1 WHERE delivery_date BETWEEN %s AND %s
                 GROUP BY delivery_date ORDER BY delivery_date''', bounds).fetchall()
             for (day,n,hours,suspect,missing_prices,nonfinite_prices,latest_first_seen,
                  earliest_retrieved,latest_retrieved,missing_timing,invalid_timing,refetched,
@@ -433,6 +450,17 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
             report['legacy_hourly_history'] = audit_legacy_hourly(
                 conn, start_day, end_day, reference_rows=reference_rows, reference_days=reference_days,
             )
+        report['invalid_delivery_date_rows_by_table'] = {
+            table: _count_invalid_delivery_dates(conn, table, column)
+            for table, column in (
+                ('raw.snapshots', 'business_date'), ('actual.tge_fix1', 'delivery_date'),
+                ('history.hourly', 'delivery_date'),
+            )
+            if present[table] and not (
+                table == 'history.hourly'
+                and column in report['legacy_hourly_history']['missing_columns']
+            )
+        }
         excluded_days = set()
         if reference_rows is not None:
             history = []

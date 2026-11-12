@@ -210,6 +210,40 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertFalse(s['model_ready']);self.assertIn('UNPROVEN',s['availability_status'])
         a=out['actual_days'][0];self.assertFalse(a['structurally_complete']);self.assertEqual(a['prices_equal_60_or_2026'],24)
 
+    def test_invalid_delivery_dates_do_not_abort_readonly_inventory(self):
+        self.seed_dst()
+        self.conn.execute('CREATE SCHEMA history')
+        try:
+            self.conn.execute('CREATE TABLE history.hourly '
+                              '(delivery_date date, hour smallint, jwcd_mw numeric, fix1_pln_mwh numeric)')
+            self.conn.execute("INSERT INTO history.hourly VALUES ('2026-11-13', 1, 1000, 591.13)")
+            baseline = audit_connection(self.conn)
+            bad_dates = ('0001-01-01', '9999-12-31', '10000-01-01', 'infinity', None)
+            with self.conn.cursor() as cursor:
+                cursor.executemany(
+                    "INSERT INTO raw.snapshots VALUES (%s, %s, NULL, '{}'::jsonb)",
+                    [(i, day) for i, day in enumerate(bad_dates, 2)],
+                )
+                cursor.executemany(
+                    'INSERT INTO actual.tge_fix1 VALUES (%s, 1, 100)',
+                    [(day,) for day in bad_dates],
+                )
+                cursor.executemany(
+                    'INSERT INTO history.hourly VALUES (%s, 1, 1000, 100)',
+                    [(day,) for day in bad_dates],
+                )
+            report = audit_connection(self.conn)
+            for field in ('snapshots', 'actual_days', 'delivery_coverage', 'missing_delivery_ranges'):
+                self.assertEqual(report[field], baseline[field])
+            self.assertEqual(report['legacy_hourly_history']['days'],
+                             baseline['legacy_hourly_history']['days'])
+            self.assertEqual(report['invalid_delivery_date_rows_by_table'], {
+                'raw.snapshots': 5, 'actual.tge_fix1': 5, 'history.hourly': 5,
+            })
+            self.assertTrue(report['transaction_read_only'])
+        finally:
+            self.conn.execute('DROP SCHEMA history CASCADE')
+
     def test_audit_does_not_mutate_existing_records(self):
         self.seed_dst();before=self.conn.execute('SELECT * FROM actual.tge_fix1 ORDER BY hour').fetchall()
         audit_connection(self.conn)
@@ -230,7 +264,7 @@ class ReadonlyAuditTests(unittest.TestCase):
         execute = self.conn.execute
         with connect_test_database(DSN) as writer:
             def execute_with_concurrent_insert(query, *args, **kwargs):
-                if 'FROM actual.tge_fix1 WHERE' in query:
+                if 'FROM actual.tge_fix1 WHERE delivery_date BETWEEN' in query:
                     writer.execute(
                         'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s)',
                         (date(2026, 10, 25), 25, 100),

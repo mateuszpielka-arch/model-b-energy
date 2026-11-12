@@ -1477,3 +1477,9 @@ granic doby lub D-1 09:50 Europe/Warsaw, jako błędne rekordy.
 Test dodaje osobno 01.01.0001 i 31.12.9999 do referencji TGE
 z 13.11.2026. W obu przypadkach raport zachowuje wszystkie 24 ceny
 i oznacza dokładnie jeden błędny wiersz daty.
+
+Audyt PostgreSQL w trybie tylko do odczytu pomija nieobsługiwane daty
+dostawy w raw.snapshots, actual.tge_fix1 i history.hourly. Raport
+liczy takie wiersze osobno dla każdej tabeli, niezależnie od filtra dat.
+Test na izolowanej bazie dodaje po pięć wadliwych rekordów do każdego
+źródła i potwierdza, że raport prawidłowych dostaw nadal się generuje.
