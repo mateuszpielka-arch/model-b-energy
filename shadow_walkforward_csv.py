@@ -27,6 +27,9 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
     rows = list(rows)
     readiness = audit_rows(rows)
     ready_days = {entry["day"] for entry in readiness["days"] if entry["model_ready"]}
+    excluded_days = {
+        entry["day"]: entry["issues"] for entry in readiness["days"] if not entry["model_ready"]
+    }
     grouped = defaultdict(list)
     for row in rows:
         try:
@@ -67,10 +70,17 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
         history=history, target_days=targets, evaluated_at=evaluated_at,
         frozen_90d_by_day=frozen_90d_by_day,
     )
+    observed_days = ready_days | excluded_days.keys()
+    for skipped in comparison["skipped"]:
+        missing = skipped.get("missing_training_days")
+        if missing:
+            skipped["training_days_excluded_by_csv_audit"] = {
+                day: excluded_days[day] for day in missing if day in excluded_days
+            }
+            skipped["training_days_absent_from_csv"] = [day for day in missing if day not in observed_days]
     comparison["targets_excluded_by_csv_audit"] = {
-        entry["day"]: entry["issues"]
-        for entry in readiness["days"]
-        if not entry["model_ready"] and within_target_range(date.fromisoformat(entry["day"]))
+        day: issues for day, issues in excluded_days.items()
+        if within_target_range(date.fromisoformat(day))
     }
     comparison["target_from"] = target_from.isoformat() if target_from is not None else None
     comparison["target_to"] = target_to.isoformat() if target_to is not None else None
@@ -80,10 +90,7 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
     admission = {
         "delivery_days": len(readiness["days"]),
         "admitted_days": len(ready_days),
-        "excluded_days": {
-            entry["day"]: entry["issues"] for entry in readiness["days"]
-            if not entry["model_ready"]
-        },
+        "excluded_days": excluded_days,
     }
     return dict(history_audit=readiness, csv_admission=admission, walkforward=comparison)
 

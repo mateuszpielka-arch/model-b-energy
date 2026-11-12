@@ -1496,3 +1496,9 @@ treningowym modelu, który zablokował ocenę. Test syntetycznej doby
 25h potwierdza, że dwie luki poza oknami 30D i 60D są wskazane
 chronologicznie przy OLS 90D. Doba z niepełnym oknem nie trafia
 do rankingu na wspólnych okresach.
+
+Raport walk-forward dla CSV rozróżnia brakujące daty treningowe
+od dostaw obecnych w pliku, które odrzucił audyt. Dla odrzuconych
+dat zwraca przyczyny. Test z cenami TGE z 12–13.11.2026 i syntetycznym
+JWCD dla daty ocenianej wykazuje 29 nieobecnych dat oraz jedną dobę
+z cenami, lecz bez JWCD. OLS 30D blokuje wspólny ranking.

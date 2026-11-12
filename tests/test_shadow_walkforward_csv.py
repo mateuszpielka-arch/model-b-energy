@@ -237,6 +237,35 @@ class WalkforwardCSVTests(unittest.TestCase):
         ])
         self.assertEqual(result["walkforward"]["ranking"], [])
 
+    def test_training_gaps_distinguish_missing_csv_dates_from_audit_rejections(self):
+        fixtures = Path(__file__).parent / "fixtures"
+        target = date(2026, 11, 13)
+        cutoff = cutoff_for_day(target)
+        rows = read_csv(fixtures / "tge_delivery_2026-11-13/tge_delivery_2026-11-13.csv")
+        rows = [
+            dict(row, jwcd_mw="10000", jwcd_snapshot_id="synthetic-target",
+                 publication_ts=(cutoff - timedelta(minutes=1)).isoformat(),
+                 retrieved_at=cutoff.isoformat(), retrieval_completed_at=cutoff.isoformat(),
+                 actual_available_at=(cutoff + timedelta(hours=2)).isoformat(),
+                 actual_version="test-tge", actual_verified="true")
+            for row in rows
+        ]
+        rows += read_csv(fixtures / "tge_delivery_2026-11-12/tge_delivery_2026-11-12.csv")
+        result = evaluate_csv_rows(
+            rows, evaluated_at=cutoff + timedelta(days=2), target_from=target, target_to=target,
+        )
+        comparison = result["walkforward"]
+        skipped, = comparison["skipped"]
+        self.assertEqual(skipped["stage"], "ols30")
+        self.assertEqual(len(skipped["missing_training_days"]), 30)
+        rejected = result["csv_admission"]["excluded_days"]["2026-11-12"]
+        self.assertIn("MISSING_OR_INVALID_JWCD", rejected)
+        self.assertEqual(skipped["training_days_excluded_by_csv_audit"], {"2026-11-12": rejected})
+        self.assertEqual(skipped["training_days_absent_from_csv"], [
+            (target - timedelta(days=offset)).isoformat() for offset in range(30, 1, -1)
+        ])
+        self.assertEqual(comparison["ranking"], [])
+
     def test_empty_source_reports_full_explicit_target_range(self):
         result = evaluate_csv_rows(
             [], evaluated_at=datetime(2026, 11, 7, tzinfo=timezone.utc),
