@@ -14,6 +14,9 @@ from zoneinfo import ZoneInfo
 SCORING_VERSION = 'fix1-shadow-score-v1'
 UTC = timezone.utc
 WARSAW = ZoneInfo('Europe/Warsaw')
+_SHADOW_DECIMAL_CONTEXT = Context(
+    prec=34, rounding=ROUND_HALF_EVEN, traps=[InvalidOperation, DivisionByZero, Overflow],
+)
 
 
 def _utc(value):
@@ -112,8 +115,7 @@ def score_day(*, day, forecast, actual, forecast_id, model_version, actual_versi
     expected = set(expected_periods(day))
     if set(fp) != expected or set(ap) != expected:
         raise ValueError('Incomplete or mismatched delivery periods')
-    with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN,
-                              traps=[InvalidOperation, DivisionByZero, Overflow])):
+    with localcontext(_SHADOW_DECIMAL_CONTEXT):
         periods = sorted(expected)
         errors = [fp[p] - ap[p] for p in periods]
         abs_sum = sum(map(abs, errors), Decimal(0))

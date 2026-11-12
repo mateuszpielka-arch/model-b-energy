@@ -1416,3 +1416,9 @@ niezależnie od ustawień Decimal wywołującego. Ponowienie rozpoznaje
 także wcześniejszy zapis z małym e bez zmiany jego odcisku lub metryk.
 Testy na cenach TGE z 02.11.2026 i syntetycznej prognozie 1 000 PLN/MWh
 sprawdzają obie ścieżki oraz zgodność odcisku z kanonicznym zapisem.
+
+Walk-forward SHADOW korzysta z tych samych ustawień Decimal co
+scoring dobowy. Test syntetyczny dla dób 24h i 25h potwierdza te same
+prognozy sześciu modeli, cztery metryki i ranking na 49 wspólnych
+okresach po zmianie ustawień wywołującego. Porównanie offline
+z syntetyczną prognozą oznaczoną FROZEN zachowuje 25 okresów.

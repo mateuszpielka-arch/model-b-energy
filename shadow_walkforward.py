@@ -12,7 +12,10 @@ from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
 from shadow_training import has_verified_actual
 from shadow_similar_consensus import MEDIAN_MEMBERS, median_consensus, predict_similar
-from shadow_scoring import WARSAW, _utc, _prices, expected_periods, score_day, validate_forecast_timing
+from shadow_scoring import (
+    WARSAW, _SHADOW_DECIMAL_CONTEXT, _prices, _utc, expected_periods, score_day,
+    validate_forecast_timing,
+)
 
 MODELS=('ols30','ols60','ols90','similar_shape','similar_level','median4')
 FROZEN_90D_VERSION = 'jwcd-linear-hourly-90d-v1-20261006'
@@ -120,8 +123,7 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
     common_days_by_day_type = Counter()
     totals_by_local_hour = defaultdict(_empty_totals)
     common_periods_by_local_hour = Counter()
-    with localcontext() as ctx:
-        ctx.prec=34
+    with localcontext(_SHADOW_DECIMAL_CONTEXT):
         for day in target_days:
             stage='actual'
             scoring_model = None

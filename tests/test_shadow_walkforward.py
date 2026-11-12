@@ -1,6 +1,6 @@
 from copy import deepcopy
 from datetime import date,datetime,timedelta,timezone
-from decimal import Decimal
+from decimal import Decimal, Inexact, ROUND_UP, localcontext
 from fractions import Fraction
 import unittest
 from unittest.mock import patch
@@ -326,6 +326,31 @@ class WalkforwardTests(unittest.TestCase):
                 for metric, value in expected.items():
                     exact = Decimal(value.numerator) / Decimal(value.denominator)
                     self.assertLess(abs(row[metric] - exact), Decimal('1e-22'), metric)
+
+    def test_dst_walkforward_ignores_caller_decimal_rounding_and_traps(self):
+        autumn = date(2026, 10, 25)
+        history = fixtures.OLSTests().data(92, target=autumn + timedelta(days=1))['history']
+        targets = [packet['day'] for packet in history[-2:]]
+        cutoff = cutoff_for_day(autumn)
+        archived = {
+            autumn: dict(
+                forecast_id=f'frozen:{autumn}', model_version=FROZEN_90D_VERSION,
+                forecast_status='FROZEN', issued_at=cutoff, publication_ts=cutoff,
+                retrieved_at=cutoff,
+                prices=[(period, '1000') for period, _ in history[-1]['actual']],
+            ),
+        }
+        args = dict(history=history, target_days=targets, frozen_90d_by_day=archived,
+                    evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc))
+        expected = run_walkforward(**args)
+        self.assertEqual(expected['common_periods'], 49)
+        self.assertEqual(expected['frozen_90d_benchmark']['coverage_by_hours']['25']['paired_periods'], 25)
+
+        with localcontext() as context:
+            context.prec = 6
+            context.rounding = ROUND_UP
+            context.traps[Inexact] = True
+            self.assertEqual(run_walkforward(**args), expected)
 
     def test_ranking_reports_common_coverage_across_all_delivery_day_lengths(self):
         spring = date(2026, 3, 29)
