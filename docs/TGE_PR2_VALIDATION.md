@@ -1502,3 +1502,11 @@ od dostaw obecnych w pliku, które odrzucił audyt. Dla odrzuconych
 dat zwraca przyczyny. Test z cenami TGE z 12–13.11.2026 i syntetycznym
 JWCD dla daty ocenianej wykazuje 29 nieobecnych dat oraz jedną dobę
 z cenami, lecz bez JWCD. OLS 30D blokuje wspólny ranking.
+
+Audyt CSV raportuje osobno, ile rekordów JWCD przekroczyło D-1 09:50
+Europe/Warsaw w polach `publication_ts`, `retrieved_at` i
+`retrieval_completed_at`, dla każdej doby i dla całego pliku. Liczniki
+mogą się nakładać i obejmują tylko rekordy z poprawną chronologią.
+Test obejmuje doby 23h, 24h i 25h oraz znaczniki dokładnie na granicy
+i sekundę po niej. Doba 24h używa cen TGE z 13.11.2026 i syntetycznych
+znaczników JWCD.

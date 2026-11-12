@@ -120,6 +120,44 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(day['availability_after_cutoff_rows'], 1)
         self.assertFalse(day['model_ready'])
 
+    def test_counts_late_jwcd_fields_against_warsaw_cutoff(self):
+        fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-13/tge_delivery_2026-11-13.csv'
+        official = read_csv(fixture)
+        records = []
+        deliveries = (
+            ('2026-03-29', '2026-03-28T08:50:00Z', '2026-03-28T08:50:01Z', 23),
+            ('2026-10-25', '2026-10-24T07:50:00Z', '2026-10-24T07:50:01Z', 25),
+            ('2026-11-13', '2026-11-12T08:50:00Z', '2026-11-12T08:50:01Z', 24),
+        )
+        for delivery, cutoff, late, count in deliveries:
+            rows = self.rows(delivery)
+            self.assertEqual(len(rows), count)
+            for i, row in enumerate(rows):
+                if delivery == '2026-11-13':
+                    row['fix1'] = official[i]['price_pln_mwh']
+                row.update(publication_ts=cutoff, retrieved_at_utc=cutoff,
+                           retrieval_completed_at=cutoff)
+            rows[0]['retrieval_completed_at'] = late
+            rows[1].update(retrieved_at_utc=late, retrieval_completed_at=late)
+            rows[2].update(publication_ts=late, retrieved_at_utc=late, retrieval_completed_at=late)
+            rows[3]['publication_ts'] = late
+            records.extend(rows)
+
+        report = audit_rows(records)
+        for day, (delivery, _, _, count) in zip(report['days'], deliveries, strict=True):
+            self.assertEqual(day['day'], delivery)
+            self.assertTrue(day['complete_pairs'])
+            self.assertFalse(day['model_ready'])
+            self.assertEqual(day['availability_proven_rows'], count - 4)
+            self.assertEqual(day['availability_invalid_timestamp_rows'], 1)
+            self.assertEqual(day['availability_after_cutoff_rows'], 3)
+            self.assertEqual(day['after_cutoff_rows_by_field'], {
+                'publication_ts': 1, 'retrieved_at': 2, 'retrieval_completed_at': 3,
+            })
+        self.assertEqual(report['after_cutoff_rows_by_field'], {
+            'publication_ts': 3, 'retrieved_at': 6, 'retrieval_completed_at': 9,
+        })
+
     def test_accepts_canonical_retrieved_at_and_rejects_conflicting_legacy_alias(self):
         rows = self.rows()
         for row in rows:

@@ -42,6 +42,7 @@ def audit_rows(rows):
     days=[]
     ready_at = {}
     missing_timestamp_totals = Counter(dict.fromkeys((*JWCD_TIMESTAMPS, 'actual_available_at'), 0))
+    late_timestamp_totals = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
     for d,records in sorted(groups.items()):
         periods=expected_periods(d); expected=set(periods); seen=[]; issues=set()
         good_prices=good_jwcd=available=verified=0
@@ -52,6 +53,7 @@ def audit_rows(rows):
         snapshot_ids = set()
         missing_timing = invalid_timing = late_timing = 0
         missing_timestamps = Counter(dict.fromkeys(missing_timestamp_totals, 0))
+        late_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
         cutoff = cutoff_for_day(d)
         conflicting_price_periods = set()
         uses_explicit_utc = any(r.get('period_start_utc') not in (None, '') for r in records)
@@ -127,6 +129,10 @@ def audit_rows(rows):
                 invalid_timing += 1
             elif end > cutoff:
                 late_timing += 1
+                late_timestamps.update(
+                    field for field, stamp in zip(JWCD_TIMESTAMPS, (pub, start, end))
+                    if stamp > cutoff
+                )
             else:
                 available += 1
                 retrieval_windows.add((start, end))
@@ -153,6 +159,7 @@ def audit_rows(rows):
         if len(snapshot_ids - {""}) > 1:
             issues.add("MIXED_JWCD_SNAPSHOT_IDS")
         missing_timestamp_totals.update(missing_timestamps)
+        late_timestamp_totals.update(late_timestamps)
         days.append(dict(day=d.isoformat(),expected_periods=len(periods),rows=len(records),
             unique_periods=len(set(seen)),complete_periods=complete,
             missing_periods_utc=[p.isoformat() for p in sorted(missing)],
@@ -170,6 +177,7 @@ def audit_rows(rows):
             missing_timestamp_rows_by_field=dict(missing_timestamps),
             availability_invalid_timestamp_rows=invalid_timing,
             availability_after_cutoff_rows=late_timing,
+            after_cutoff_rows_by_field=dict(late_timestamps),
             model_ready=not issues,issues=sorted(issues)))
         if not issues:
             ready_at[d] = max(actual_times)
@@ -180,6 +188,7 @@ def audit_rows(rows):
     }
     return dict(days=days, invalid_date_rows=invalid_dates,
                 missing_timestamp_rows_by_field=dict(missing_timestamp_totals),
+                after_cutoff_rows_by_field=dict(late_timestamp_totals),
                 actual_availability_invalid_timestamp_rows=sum(
                     d['actual_availability_invalid_timestamp_rows'] for d in days),
                 actual_availability_at_or_before_cutoff_rows=sum(
