@@ -6,6 +6,8 @@ from shadow_archive_batch import classify_existing, revalidate_batch
 
 LOOPBACK_ADDRESSES = ('127.0.0.1', '::1')
 LOCAL_HOSTS = (*LOOPBACK_ADDRESSES, 'localhost')
+# Delivery-day ordinals start at one.
+_SCHEMA_INIT_LOCK_KEY = 0
 
 DDL = '''
 CREATE SCHEMA IF NOT EXISTS fix1_shadow_test;
@@ -89,8 +91,7 @@ def initialize(conn):
                AND to_regclass('fix1_shadow_test.quarantine') IS NOT NULL
         ''').fetchone()[0]
         if not ready:
-            # Reserve zero for schema creation; delivery-day ordinals start at one.
-            _lock_archive_key(conn, 0)
+            _lock_archive_key(conn, _SCHEMA_INIT_LOCK_KEY)
             conn.execute(DDL)
 
 

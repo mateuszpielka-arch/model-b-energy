@@ -312,6 +312,37 @@ class ScorePersistenceTests(unittest.TestCase):
         with self.assertRaises(ValueError): score_archived_day(self.conn,**self.kw)
         self.assertEqual(self.count(),0)
 
+    def test_concurrent_first_score_initialization_is_serialized(self):
+        from threading import Barrier
+        from psycopg.errors import LockNotAvailable
+        from shadow_postgres_archive import _SCHEMA_INIT_LOCK_KEY, _lock_archive_key
+
+        self.conn.execute('DROP TABLE fix1_shadow_test.scores')
+        with self.conn.transaction(), connect_test_database(DSN) as worker:
+            _lock_archive_key(self.conn, _SCHEMA_INIT_LOCK_KEY)
+            worker.execute("SET lock_timeout = '150ms'")
+            with self.assertRaises(LockNotAvailable):
+                initialize_scores(worker)
+            self.assertIsNone(worker.execute(
+                "SELECT to_regclass('fix1_shadow_test.scores')"
+            ).fetchone()[0])
+
+        start = Barrier(4)
+
+        def initialize_and_score(_):
+            with connect_test_database(DSN) as conn:
+                start.wait(timeout=5)
+                initialize_scores(conn)
+                return score_archived_day(conn, **self.kw)[0]
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            decisions = list(pool.map(initialize_and_score, range(4)))
+        self.assertCountEqual(decisions, ['INSERT', 'REPLAY', 'REPLAY', 'REPLAY'])
+        self.assertEqual(self.count(), 1)
+        self.assertEqual(self.conn.execute(
+            'SELECT count(*) FROM fix1_shadow_test.prices'
+        ).fetchone()[0], 24)
+
     def test_four_concurrent_scores_only_insert_once(self):
         def write(_):
             with connect_test_database(DSN) as conn: return score_archived_day(conn,**self.kw)[0]

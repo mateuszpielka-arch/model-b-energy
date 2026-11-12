@@ -6,7 +6,9 @@ import json
 import re
 from shadow_archive_batch import PARSER_VERSION, prepare_batch, read_reference_csv, validate_source_url
 from shadow_asof import cutoff_for_day
-from shadow_postgres_archive import _guard, _has_delivery_quarantine, _lock_delivery_day
+from shadow_postgres_archive import (
+    _SCHEMA_INIT_LOCK_KEY, _guard, _has_delivery_quarantine, _lock_archive_key, _lock_delivery_day,
+)
 from shadow_scoring import (
     SCORING_VERSION, _prices, _utc, expected_periods, score_day, validate_forecast_timing,
 )
@@ -46,7 +48,16 @@ def _score_record(metadata, forecast_prices, score_values, decimal_text):
 
 def initialize_scores(conn):
     _guard(conn)
-    with conn.transaction(): conn.execute(DDL)
+    with conn.transaction():
+        exists = conn.execute(
+            "SELECT to_regclass('fix1_shadow_test.scores') IS NOT NULL"
+        ).fetchone()[0]
+        if not exists:
+            isolation = conn.execute('SHOW transaction_isolation').fetchone()[0]
+            if isolation != 'read committed':
+                raise ValueError('Fix1 score initialization requires READ COMMITTED')
+            _lock_archive_key(conn, _SCHEMA_INIT_LOCK_KEY)
+            conn.execute(DDL)
 
 
 def score_archived_day(conn, *, day, forecast, forecast_id, model_version,

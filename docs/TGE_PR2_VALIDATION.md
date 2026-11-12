@@ -1429,3 +1429,9 @@ błędne czasy dostępności Fix1 trafiają do braków, a jawny wadliwy okres
 Fix1 blokuje uznanie doby za kompletną. Testy izolowanego PostgreSQL
 obejmują daty p.n.e. i rok 10000 oraz potwierdzają zachowanie strefy
 sesji po zakończeniu audytu.
+
+Pierwsze utworzenie tabeli scoringu korzysta z tej samej blokady
+transakcyjnej co inicjalizacja archiwum SHADOW. Test PostgreSQL
+na 24 cenach TGE z 02.11.2026 potwierdza, że przy zajętej blokadzie
+tabela nie powstaje. Po jej zwolnieniu cztery równoległe wywołania
+dają jeden INSERT i trzy REPLAY, zachowując 24 ceny i jeden wynik.
