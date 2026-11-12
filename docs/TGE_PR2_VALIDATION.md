@@ -1441,3 +1441,10 @@ korzystają z tych samych ustawień Decimal co walk-forward.
 Test syntetyczny dla doby 25h potwierdza identyczne wyniki wszystkich
 sześciu wariantów po zmianie trybu zaokrąglania i włączeniu wyjątku
 dla wyniku niedokładnego u wywołującego.
+
+Dla dostawy 13.11.2026 dodano oficjalny HTML TGE z sesji 12.11,
+pobrany o 11:17:05 Europe/Warsaw, oraz referencję XPath i manifest
+SHA-256. Parser i ekstrakcja XPath zgadzają się dla wszystkich
+24 okresów UTC. H08 zachowuje cenę Fixing I 711,58 PLN/MWh mimo
+braku wolumenu w tej kolumnie i ceny 712,00 PLN/MWh w notowaniach
+ciągłych. Test PostgreSQL sprawdza import i ponowienie tej paczki.

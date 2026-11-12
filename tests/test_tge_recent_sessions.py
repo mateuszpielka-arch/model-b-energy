@@ -29,6 +29,7 @@ NOV_9_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-09')
 NOV_10_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-10')
 NOV_11_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-11')
 NOV_12_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-12')
+NOV_13_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-13')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
@@ -123,6 +124,21 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         self.assertEqual(report['days_by_status'], {'VALIDATED_DRY_RUN': 1})
         self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
 
+    def test_november_13_fixing_i_accepts_missing_volume_and_preserves_utc(self):
+        day = date(2026, 11, 13)
+        self.check_sessions(NOV_13_FIXTURES, [day.isoformat()])
+        manifest = NOV_13_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        raw, _, rows = load_session(entry, NOV_13_FIXTURES)
+        self.assertEqual([row['period_start_utc'] for row in rows],
+                         [period.isoformat() for period in expected_periods(day)])
+        # H08 has no Fixing I volume. Its continuous-trading price is 712.00.
+        prices = parse_complete_standard_day(raw.decode('utf-8'), day.isoformat())
+        self.assertEqual(Decimal(str(prices[8])), Decimal('711.58'))
+        report = ingest_manifest(manifest)
+        self.assertEqual(report['days_by_status'], {'VALIDATED_DRY_RUN': 1})
+        self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
+
     def check_sessions(self, directory, days):
         manifest = json.loads((directory / 'manifest.json').read_text())
         self.assertEqual(manifest['errors'], [])
@@ -172,6 +188,9 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
     def test_november_12_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_12_FIXTURES)
+
+    def test_november_13_manifest_is_archived_and_replayed_without_duplicate_rows(self):
+        self.check_manifest_archive_and_replay(NOV_13_FIXTURES)
 
     def test_november_12_score_rejects_late_inputs_before_reading_prices_or_locking(self):
         day = date(2026, 11, 12)
