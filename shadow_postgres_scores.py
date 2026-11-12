@@ -69,14 +69,17 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
     flag from caller is accepted. The archived raw hash and every stored actual
     are rechecked. Supplying the original reference CSV also verifies its
     archived hash and hourly prices. The archived capture must follow
-    issuance and D-1 09:50 Warsaw. If evaluated_at is supplied, it must be no later
-    than that time. Current quarantine checks still apply. Standard 24h days only.
+    issuance and D-1 09:50 Warsaw. If evaluated_at is supplied, the capture
+    must be available by that time. Current quarantine checks still apply. Standard 24h days only.
     Scoring requires a READ COMMITTED transaction.
     """
     _guard(conn)
     validate_forecast_timing(day, issued_at, publication_ts, retrieved_at)
     evaluation_time = _utc(evaluated_at) if evaluated_at is not None else None
     forecast_prices = _prices(forecast)
+    periods = expected_periods(day)
+    if set(forecast_prices) != set(periods):
+        raise ValueError('Incomplete or mismatched delivery periods')
     with conn.transaction():
         _lock_delivery_day(conn, day)
         actual = conn.execute('''SELECT period_start_utc,price,batch_id
@@ -108,8 +111,8 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         if reference_csv is None:
             validate_source_url(source_url, day.isoformat())
             parsed = parse_complete_standard_day(raw.decode('utf-8'), day.isoformat())
-            expected = expected_periods(day)
-            parsed_rows = [(expected[h-1], Decimal(str(parsed[h]))) for h in range(1,25)]
+            parsed_rows = [(period, Decimal(str(parsed[hour])))
+                           for hour, period in enumerate(periods, 1)]
         else:
             if not isinstance(reference_csv, bytes) or sha256(reference_csv).hexdigest() != ref_hash:
                 raise ValueError('Archived reference CSV hash mismatch')

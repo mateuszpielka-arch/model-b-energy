@@ -1448,3 +1448,9 @@ SHA-256. Parser i ekstrakcja XPath zgadzają się dla wszystkich
 24 okresów UTC. H08 zachowuje cenę Fixing I 711,58 PLN/MWh mimo
 braku wolumenu w tej kolumnie i ceny 712,00 PLN/MWh w notowaniach
 ciągłych. Test PostgreSQL sprawdza import i ponowienie tej paczki.
+
+Scoring archiwalny sprawdza komplet okresów UTC prognozy przed
+blokadą doby i odczytem cen Fix1. Test PostgreSQL na cenach TGE
+z 13.11.2026 odrzuca brak jednego okresu oraz okres z innej doby przy
+zachowanej liczbie 24 wierszy. Wynik zapisany dla kompletnej
+syntetycznej prognozy pozostaje dostępny przez REPLAY.

@@ -230,6 +230,41 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             self.assertEqual(conn.execute(query).fetchall(), stored)
             self.assertEqual(score_archived_day(conn, **inputs, forecast=iter(forecast)), ('REPLAY', score))
 
+    def test_november_13_score_checks_forecast_periods_before_locking(self):
+        day = date(2026, 11, 13)
+        cutoff = cutoff_for_day(day)
+        manifest = NOV_13_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        _, reference, _ = load_session(entry, NOV_13_FIXTURES)
+        inputs = dict(
+            day=day, forecast_id='november-13-complete-periods-test',
+            model_version='synthetic-test', forecast_status='SHADOW',
+            issued_at=cutoff, publication_ts=cutoff, retrieved_at=cutoff,
+            reference_csv=reference,
+        )
+        forecast = [(period, Decimal(1000)) for period in expected_periods(day)]
+        wrong_period = (forecast[0][0] - timedelta(hours=1), Decimal(1000))
+
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            status, score = score_archived_day(conn, **inputs, forecast=iter(forecast))
+            self.assertEqual(status, 'INSERT')
+            self.assertEqual(score.periods, 24)
+            query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+            stored = conn.execute(query).fetchall()
+
+            for label, incomplete in (
+                ('missing_period', forecast[1:]),
+                ('wrong_period', [wrong_period, *forecast[1:]]),
+            ):
+                with self.subTest(label=label), patch('shadow_postgres_scores._lock_delivery_day') as lock:
+                    with self.assertRaisesRegex(ValueError, 'Incomplete or mismatched delivery periods'):
+                        score_archived_day(conn, **inputs, forecast=iter(incomplete))
+                    lock.assert_not_called()
+            self.assertEqual(conn.execute(query).fetchall(), stored)
+            self.assertEqual(score_archived_day(conn, **inputs, forecast=reversed(forecast)), ('REPLAY', score))
+
     def check_manifest_archive_and_replay(self, directory):
         manifest_path = directory / 'manifest.json'
         entry, = json.loads(manifest_path.read_text())['entries']
