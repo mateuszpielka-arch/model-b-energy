@@ -65,6 +65,7 @@ class CaptureOutputTest(unittest.TestCase):
             fetch.assert_not_called()
 
             entry = capture(date(2026, 11, 9), output)
+            self.assertEqual(entry['period_basis'], 'EXPLICIT_UTC')
             reference = (output / entry['reference_file']).read_bytes()
             rows = list(csv.DictReader(reference.decode().splitlines()))
             self.assertEqual(entry['reference_sha256'], sha256(reference).hexdigest())

@@ -176,6 +176,38 @@ class ManifestTests(unittest.TestCase):
                         with self.assertRaisesRegex(ValueError, error):
                             ingest_manifest(manifest, conn=object())
 
+    def test_manifest_explicit_utc_requires_period_column_in_reference(self):
+        source = FIX.with_name('tge_delivery_2026-11-13')
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'capture'
+            shutil.copytree(source, root)
+            manifest = root / 'manifest.json'
+            data = json.loads(manifest.read_text())
+            entry, = data['entries']
+            entry['period_basis'] = 'EXPLICIT_UTC'
+            manifest.write_text(json.dumps(data))
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+
+            reference = root / entry['reference_file']
+            lines = [line.rsplit(',', 1)[0] for line in reference.read_text().splitlines()]
+            payload = ('\n'.join(lines) + '\n').encode()
+            reference.write_bytes(payload)
+            entry['reference_sha256'] = sha256(payload).hexdigest()
+            manifest.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError, 'Missing Fix1 reference UTC period column'):
+                ingest_manifest(manifest, conn=object())
+
+            del entry['period_basis']
+            manifest.write_text(json.dumps(data))
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+
+            entry['period_basis'] = 'LOCAL_HOUR'
+            manifest.write_text(json.dumps(data))
+            with patch('shadow_ingest_manifest._read_raw_evidence') as read_evidence:
+                with self.assertRaisesRegex(ValueError, 'Unsupported Fix1 manifest period basis'):
+                    ingest_manifest(manifest, conn=object())
+                read_evidence.assert_not_called()
+
     def test_manifest_requires_matching_session_date_before_database_initialization(self):
         source = FIX.with_name('tge_delivery_2026-11-08')
         for session_date in (None, '2026-11-06', '2026-11-08', '07-11-2026'):

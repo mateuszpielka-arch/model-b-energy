@@ -171,7 +171,7 @@ def capture(day, directory, *, autumn_25h=False):
         raw_sha256=sha256(raw).hexdigest(),reference_sha256=sha256(reference).hexdigest(),
         reference_method='independent lxml XPath extraction from SAME official HTML, not independent official export',
         hours=len(rows),bytes=len(raw),
-        **({'period_basis': 'TGE_LABEL_ONLY'} if autumn_25h else {}))
+        period_basis='TGE_LABEL_ONLY' if autumn_25h else 'EXPLICIT_UTC')
 
 
 def write_manifest(directory, manifest):

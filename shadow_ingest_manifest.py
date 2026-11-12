@@ -69,8 +69,11 @@ def load_batches(manifest_path):
     batches=[];dates=set()
     for e in entries:
         day=e['delivery_date']
-        if e.get('period_basis') == 'TGE_LABEL_ONLY':
+        period_basis = e.get('period_basis')
+        if period_basis == 'TGE_LABEL_ONLY':
             raise ValueError(f'TGE label-only evidence has no verified UTC mapping for {day}')
+        if 'period_basis' in e and period_basis != 'EXPLICIT_UTC':
+            raise ValueError(f'Unsupported Fix1 manifest period basis for {day}')
         delivery = date.fromisoformat(day)
         session = (delivery - timedelta(days=1)).isoformat()
         if e.get('session_date') != session:
@@ -96,7 +99,7 @@ def load_batches(manifest_path):
             raise ValueError('Evidence hash mismatch')
         batch=prepare_batch(raw=raw,day=day,source_url=source_url,
             retrieved_at=retrieved_at,
-            reference_rows=read_reference_csv(reference, day),
+            reference_rows=read_reference_csv(reference, day, require_utc=period_basis == 'EXPLICIT_UTC'),
             reference_sha256=e['reference_sha256'])
         hours = e.get('hours')
         if type(hours) is not int or hours != len(batch.rows):

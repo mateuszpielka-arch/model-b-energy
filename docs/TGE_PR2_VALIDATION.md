@@ -1483,3 +1483,10 @@ dostawy w raw.snapshots, actual.tge_fix1 i history.hourly. Raport
 liczy takie wiersze osobno dla każdej tabeli, niezależnie od filtra dat.
 Test na izolowanej bazie dodaje po pięć wadliwych rekordów do każdego
 źródła i potwierdza, że raport prawidłowych dostaw nadal się generuje.
+
+Nowe manifesty standardowych dób deklarują EXPLICIT_UTC.
+Import wymaga wtedy kolumny period_start_utc i jej zgodności z H01–H24.
+Test na kopii paczki TGE z 13.11.2026 potwierdza odrzucenie brakującej
+kolumny mimo zgodnego SHA-256. Starsza paczka bez deklaracji przechodzi
+dotychczasową walidację. Nieznana deklaracja jest odrzucana przed
+odczytem HTML.

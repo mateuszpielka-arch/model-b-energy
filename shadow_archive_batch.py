@@ -37,7 +37,7 @@ class ArchiveBatch:
                 self.reference_sha256, self.parser_version)
 
 
-def read_reference_csv(reference, day):
+def read_reference_csv(reference, day, *, require_utc=False):
     """Read reference pairs from the original bytes, preserving duplicate hours."""
     if len(reference) > MAX_REFERENCE_BYTES:
         raise ValueError('Fix1 reference CSV exceeds 64 KiB')
@@ -50,7 +50,10 @@ def read_reference_csv(reference, day):
         raise ValueError('Missing required Fix1 reference CSV columns')
     if any(row['delivery_date'] != day for row in rows):
         raise ValueError('Reference delivery date mismatch')
-    if rows and 'period_start_utc' in rows[0]:
+    has_utc = bool(rows and 'period_start_utc' in rows[0])
+    if require_utc and not has_utc:
+        raise ValueError('Missing Fix1 reference UTC period column')
+    if has_utc:
         periods = {
             f'H{hour:02d}': period
             for hour, period in enumerate(expected_periods(date.fromisoformat(day)), 1)
