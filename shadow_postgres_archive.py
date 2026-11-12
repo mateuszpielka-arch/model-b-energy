@@ -2,6 +2,8 @@
 
 Only accepts a dedicated local test database. Not a production integration.
 """
+from hashlib import sha256
+
 from shadow_archive_batch import classify_existing, revalidate_batch
 
 LOOPBACK_ADDRESSES = ('127.0.0.1', '::1')
@@ -120,6 +122,15 @@ def archive_batch(conn, batch, raw):
         else:
             decision = classify_existing(batch, [(period, price) for period, price, _, _ in existing])
             reason = 'Existing prices differ or day is partial'
+        if decision == 'REPLAY':
+            (source_id, _), = source_batches
+            stored_hash, stored_raw = conn.execute(
+                'SELECT raw_sha256, raw_html FROM fix1_shadow_test.batches WHERE id = %s',
+                (source_id,),
+            ).fetchone()
+            if sha256(stored_raw).hexdigest() != stored_hash:
+                decision = 'QUARANTINE'
+                reason = 'Existing price batch raw HTML hash mismatch'
         if decision == 'INSERT':
             if _has_delivery_quarantine(conn, batch.delivery_date):
                 decision = 'QUARANTINE'

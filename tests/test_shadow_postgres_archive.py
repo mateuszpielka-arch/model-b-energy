@@ -90,6 +90,26 @@ class PostgresArchiveTests(unittest.TestCase):
             'SELECT reason FROM fix1_shadow_test.quarantine'
         ).fetchall(), [('Existing prices do not point to one batch for the delivery day',)])
 
+    def test_matching_prices_with_corrupt_evidence_are_quarantined_on_replay(self):
+        self.assertEqual(archive_batch(self.conn, self.batch, self.raw), 'INSERT')
+        corrupt = b'invalid archived evidence'
+        self.conn.execute('UPDATE fix1_shadow_test.batches SET raw_html = %s', (corrupt,))
+        before = self.conn.execute(
+            'SELECT * FROM fix1_shadow_test.prices ORDER BY period_start_utc'
+        ).fetchall()
+
+        for _ in range(2):
+            self.assertEqual(archive_batch(self.conn, self.batch, self.raw), 'QUARANTINE')
+        self.assertEqual(self.conn.execute(
+            'SELECT * FROM fix1_shadow_test.prices ORDER BY period_start_utc'
+        ).fetchall(), before)
+        self.assertEqual(self.conn.execute(
+            'SELECT raw_html FROM fix1_shadow_test.batches'
+        ).fetchall(), [(corrupt,)])
+        self.assertEqual(self.conn.execute(
+            'SELECT reason FROM fix1_shadow_test.quarantine'
+        ).fetchall(), [('Existing price batch raw HTML hash mismatch',)])
+
     def test_mid_insert_failure_rolls_back_evidence_and_rows(self):
         import psycopg
         self.conn.execute('ALTER TABLE fix1_shadow_test.prices ADD CONSTRAINT force_test_failure CHECK(price<1000)')

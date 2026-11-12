@@ -1528,3 +1528,9 @@ Scoring PostgreSQL odrzuca pusty identyfikator, nieprawidłową wersję
 modelu lub niedozwolony status prognozy przed transakcją, blokadą doby
 i odczytem cen. Test integracyjny potwierdza brak próby blokady
 i ponowne odtworzenie zapisanego wyniku dla poprawnej prognozy.
+
+Przed potwierdzeniem ponownego importu zgodnych cen Fix1 archiwum
+testowe sprawdza SHA-256 zapisanego HTML paczki, z której pochodzą ceny.
+Test PostgreSQL na paczce TGE z 02.11.2026 potwierdza, że zmieniony HTML
+skutkuje jedną kwarantanną także przy powtórzeniu importu. Zachowane
+zostają ceny i zastane bajty HTML.
