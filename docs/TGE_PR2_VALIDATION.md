@@ -1516,3 +1516,10 @@ której nie udało się odczytać. Dla wadliwej paczki podaje datę i pole
 (`actual` lub `snapshots`). Test syntetycznej doby 25h potwierdza,
 że brak jednej doby i błąd odczytu drugiej są raportowane osobno
 w oknie OLS 90D. Taka doba nie wchodzi do wspólnego rankingu.
+
+Dla kompletnego okna treningowego walk-forward raportuje wszystkie
+daty, których ceny Fix1 stały się dostępne po D-1 09:50 Europe/Warsaw
+dla ocenianej dostawy. Test syntetycznej doby 25h wykazuje dwa
+spóźnione zestawy cen w oknie OLS 90D. Zestaw dostępny dokładnie
+o 09:50 mieści się w limicie, a doba z dwoma spóźnionymi zestawami
+nie trafia do wspólnego rankingu.

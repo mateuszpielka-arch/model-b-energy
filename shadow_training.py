@@ -9,6 +9,12 @@ class IncompleteTrainingWindow(ValueError):
         super().__init__(f'Incomplete calendar training window: first missing day {self.missing_days[0]}')
 
 
+class LateTrainingActuals(ValueError):
+    def __init__(self, days):
+        self.days = tuple(days)
+        super().__init__(f'Historical actual unavailable at target cutoff: {self.days[0]}')
+
+
 def has_verified_actual(packet):
     version = packet.get('actual_version')
     return packet.get('actual_verified') is True and isinstance(version, str) and bool(version.strip())
@@ -30,15 +36,23 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
         raise IncompleteTrainingWindow(missing)
     target=select_snapshot(target_day,target_snapshots)
     if target.snapshot_id is None: raise ValueError('No complete pre-cutoff target JWCD')
-    prepared=[]; evidence=[]; timing=[]
-    for day,p in sorted(packets.items()):
+    available_at = {}
+    late_days = []
+    for day, p in sorted(packets.items()):
         if not has_verified_actual(p):
             raise ValueError(f'Historical actual provenance not verified: {day}')
         actual_available = _utc(p.get('actual_available_at'))
-        if actual_available > cutoff:
-            raise ValueError(f'Historical actual unavailable at target cutoff: {day}')
         if actual_available <= cutoff_for_day(day):
             raise ValueError(f'Historical actual available at or before its simulated issuance: {day}')
+        if actual_available > cutoff:
+            late_days.append(day)
+        available_at[day] = actual_available
+    if late_days:
+        raise LateTrainingActuals(late_days)
+
+    prepared=[]; evidence=[]; timing=[]
+    for day, actual_available in available_at.items():
+        p = packets[day]
         selection=select_snapshot(day, p.get('snapshots', ()))
         if selection.snapshot_id is None:
             reason = f'Historical JWCD availability not proven: {day}'

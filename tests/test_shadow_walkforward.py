@@ -229,6 +229,34 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(result['common_periods'], 0)
         self.assertEqual(result['ranking'], [])
 
+    def test_reports_all_training_actuals_arriving_after_the_target_cutoff(self):
+        target = date(2026, 10, 25)
+        history = fixtures.OLSTests().data(91, target=target + timedelta(days=1))['history']
+        cutoff = cutoff_for_day(target)
+        late_days = [target - timedelta(days=offset) for offset in (87, 66)]
+        exactly_on_cutoff = target - timedelta(days=61)
+
+        def unavailable():
+            self.fail('A training actual was read before its availability time')
+            yield
+
+        for packet in history:
+            if packet['day'] in late_days:
+                packet.update(actual_available_at=cutoff + timedelta(seconds=1), actual=unavailable())
+            elif packet['day'] == exactly_on_cutoff:
+                packet['actual_available_at'] = cutoff
+
+        result = run_walkforward(
+            history=reversed(history), target_days=[target],
+            evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
+        )
+
+        skipped, = result['skipped']
+        self.assertEqual(skipped['stage'], 'ols90')
+        self.assertEqual(skipped['late_training_actual_days'], [day.isoformat() for day in late_days])
+        self.assertEqual(result['common_periods'], 0)
+        self.assertEqual(result['ranking'], [])
+
     def test_training_only_payload_is_unread_when_late_for_every_relevant_target(self):
         args = self.args()
         first, second = args['target_days']
