@@ -1471,3 +1471,9 @@ Ekstraktor XPath sprawdza także jednostkę wolumenu w nagłówku
 Fixing I. Test na oficjalnym HTML dla dostawy 13.11.2026 potwierdza
 odczyt 24 cen z oryginału. Zmiana nagłówka wolumenu z MW na MWh
 blokuje utworzenie plików HTML i CSV.
+
+Audyt CSV liczy skrajne daty dostawy, dla których nie da się ustalić
+granic doby lub D-1 09:50 Europe/Warsaw, jako błędne rekordy.
+Test dodaje osobno 01.01.0001 i 31.12.9999 do referencji TGE
+z 13.11.2026. W obu przypadkach raport zachowuje wszystkie 24 ceny
+i oznacza dokładnie jeden błędny wiersz daty.

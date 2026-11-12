@@ -22,6 +22,16 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertTrue(all(d['complete_periods'] for d in out['days']))
         self.assertTrue(all('MISSING_OR_INVALID_JWCD' in d['issues'] for d in out['days']))
 
+    def test_delivery_dates_without_both_day_boundaries_do_not_abort_audit(self):
+        fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-13/tge_delivery_2026-11-13.csv'
+        official = read_csv(fixture)
+        baseline = audit_rows(official)
+        for invalid in ('0001-01-01', '9999-12-31'):
+            with self.subTest(delivery_date=invalid):
+                report = audit_rows([{**official[0], 'delivery_date': invalid}, *official])
+                self.assertEqual(report, {**baseline, 'invalid_date_rows': 1})
+                self.assertEqual(report['days'][0]['valid_fix1_rows'], 24)
+
     def test_late_availability_rejected(self):
         out=audit_rows(self.rows());self.assertEqual(out['model_ready_days'],0)
         self.assertIn('AVAILABILITY_NOT_PROVEN',out['days'][0]['issues'])

@@ -29,8 +29,15 @@ def _stamp(value):
 def audit_rows(rows):
     groups=defaultdict(list); invalid_dates=0
     for row in rows:
-        try: d=date.fromisoformat(row['delivery_date'])
-        except (ValueError,KeyError,TypeError): invalid_dates+=1; continue
+        try:
+            d = date.fromisoformat(row['delivery_date'])
+        except (ValueError, KeyError, TypeError):
+            invalid_dates += 1
+            continue
+        # The audit needs both D-1 issuance and the following local midnight.
+        if d in (date.min, date.max):
+            invalid_dates += 1
+            continue
         groups[d].append(row)
     days=[]
     ready_at = {}
