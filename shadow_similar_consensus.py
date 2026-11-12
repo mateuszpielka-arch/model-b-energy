@@ -2,7 +2,7 @@
 from collections import defaultdict
 from decimal import Decimal, localcontext
 from shadow_training import prepare_training
-from shadow_scoring import WARSAW, _prices, expected_periods
+from shadow_scoring import WARSAW, _SHADOW_DECIMAL_CONTEXT, _prices, expected_periods
 
 
 def _local_average(rows):
@@ -23,8 +23,7 @@ def predict_similar(*, target_day, target_snapshots, history, window_days=90, k=
         raise ValueError('Fixed valid mode and positive integer k required')
     cutoff,target,prepared,evidence,timing=prepare_training(target_day=target_day,
         target_snapshots=target_snapshots,history=history,window_days=window_days)
-    with localcontext() as ctx:
-        ctx.prec=34
+    with localcontext(_SHADOW_DECIMAL_CONTEXT):
         tx=_local_average(target.rows); hours=sorted(tx); candidates=[]; excluded=[]
         tmean=sum(tx.values())/len(tx) if mode=='shape' else Decimal(0)
         for day,xrows,actual in prepared:
@@ -60,8 +59,7 @@ def median_consensus(*,target_day,models):
         prices=_prices(m['prices'])
         if set(prices)!=expected: raise ValueError('Incomplete median member periods')
         member_prices.append(prices)
-    with localcontext() as ctx:
-        ctx.prec=34
+    with localcontext(_SHADOW_DECIMAL_CONTEXT):
         rows=[]
         for p in sorted(expected):
             values=sorted(v[p] for v in member_prices)

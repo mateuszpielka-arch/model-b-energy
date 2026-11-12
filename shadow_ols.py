@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import datetime, time, timedelta
 from decimal import Decimal, localcontext
 from shadow_asof import select_snapshot
-from shadow_scoring import WARSAW, _utc, _prices, expected_periods
+from shadow_scoring import WARSAW, _SHADOW_DECIMAL_CONTEXT, _utc, _prices, expected_periods
 
 
 def predict_ols(*, target_day, target_snapshots, history, window_days):
@@ -29,8 +29,7 @@ def predict_ols(*, target_day, target_snapshots, history, window_days):
         for period,jwcd in jwcd_rows:
             buckets[period.astimezone(WARSAW).hour].append((jwcd,actual[period]))
     coefficients={}
-    with localcontext() as ctx:
-        ctx.prec=34
+    with localcontext(_SHADOW_DECIMAL_CONTEXT):
         for hour in range(24):
             values=buckets[hour]; n=len(values)
             if n<2: raise ValueError('Insufficient observations in hourly bucket')

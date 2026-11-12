@@ -1,6 +1,6 @@
 from copy import deepcopy
 from datetime import date,timedelta
-from decimal import Decimal
+from decimal import Decimal, Inexact, ROUND_UP, localcontext
 import unittest
 import test_shadow_ols as fixtures
 from shadow_similar_consensus import predict_similar,median_consensus,MEDIAN_MEMBERS
@@ -72,6 +72,36 @@ class MedianTests(unittest.TestCase):
         out=median_consensus(target_day=kw['target_day'],models=models)
         self.assertEqual(len(out['prices']),24)
         self.assertEqual(len(out['members']),4)
+
+    def test_standalone_models_use_fixed_decimal_context_on_dst_day(self):
+        from shadow_ols import predict_ols
+
+        day = date(2026, 10, 25)
+        args = fixtures.OLSTests().data(90, target=day)
+        latest = args['history'][-1]
+        period, _ = latest['actual'][0]
+        latest['actual'][0] = (period, '2040.123456789012345678901234567890123456789')
+        calls = {
+            f'ols{window}': (predict_ols, {**args, 'window_days': window})
+            for window in (30, 60, 90)
+        }
+        calls.update({
+            f'similar_{mode}': (predict_similar, {**args, 'mode': mode})
+            for mode in ('shape', 'level')
+        })
+        models = {name: predict(**kwargs) for name, (predict, kwargs) in calls.items()}
+        calls['median4'] = (median_consensus, {
+            'target_day': day, 'models': {name: models[name] for name in MEDIAN_MEMBERS},
+        })
+        models['median4'] = median_consensus(**calls['median4'][1])
+        for name, (predict, kwargs) in calls.items():
+            with self.subTest(model=name), localcontext() as context:
+                context.prec = 6
+                context.rounding = ROUND_UP
+                context.traps[Inexact] = True
+                result = predict(**kwargs)
+                self.assertEqual(len(result['prices']), 25)
+                self.assertEqual(result, models[name])
 
     def test_four_member_median_rejects_outlier(self):
         day,models=self.models();out=median_consensus(target_day=day,models=models)

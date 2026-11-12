@@ -1435,3 +1435,9 @@ transakcyjnej co inicjalizacja archiwum SHADOW. Test PostgreSQL
 na 24 cenach TGE z 02.11.2026 potwierdza, że przy zajętej blokadzie
 tabela nie powstaje. Po jej zwolnieniu cztery równoległe wywołania
 dają jeden INSERT i trzy REPLAY, zachowując 24 ceny i jeden wynik.
+
+Bezpośrednie wywołania OLS 30/60/90D, dni podobnych i mediany
+korzystają z tych samych ustawień Decimal co walk-forward.
+Test syntetyczny dla doby 25h potwierdza identyczne wyniki wszystkich
+sześciu wariantów po zmianie trybu zaokrąglania i włączeniu wyjątku
+dla wyniku niedokładnego u wywołującego.
