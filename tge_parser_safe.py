@@ -167,6 +167,9 @@ def _validated_rdn_rows(html: str):
 def parse_verified_layout(html: str, day: str) -> dict[int, float]:
     """Parse integer-hour map only from the verified RDN Fixing I layout."""
     rows = _validated_rdn_rows(html)
+    for row in rows:
+        if row and row[0].startswith(day + "_H") and (len(row) < 2 or row[1] != "60"):
+            raise ValueError(f"Hourly RDN row has wrong instrument type: {row[0]}")
     # Reuse the strict numeric/duplicate validator only for this selected table.
     from html import escape
     selected = "".join("<tr>" + "".join("<td>" + escape(c) + "</td>" for c in row) + "</tr>"

@@ -76,6 +76,23 @@ class LayoutTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, error):
                     parse_complete_standard_day(self.html[:start] + moved, '2026-11-02')
 
+    def test_wrong_instrument_for_duplicate_hour_is_rejected_on_official_capture(self):
+        from copy import deepcopy
+        from lxml import html
+
+        path = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-12/tge_delivery_2026-11-12.html.gz'
+        source = gzip.decompress(path.read_bytes())
+        day = '2026-11-12'
+        self.assertEqual(len(parse_complete_standard_day(source.decode('utf-8'), day)), 24)
+        document = html.fromstring(source)
+        row, = document.xpath('//table[@id="rdn"]/tbody/tr[normalize-space(td[1])=$period]',
+                              period=day + '_H10')
+        duplicate = deepcopy(row)
+        duplicate.xpath('./td')[1].text = '15'
+        row.addnext(duplicate)
+        with self.assertRaisesRegex(ValueError, 'wrong instrument type: 2026-11-12_H10'):
+            parse_complete_standard_day(html.tostring(document, encoding='unicode'), day)
+
     def test_duplicate_fixing_i_group_rejected(self):
         html = self.html.replace('>Notowania ciągłe</th>', '>Fixing I</th>', 1)
         self.assertNotEqual(html, self.html)

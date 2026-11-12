@@ -1384,3 +1384,9 @@ dla pobrania, tak jak import manifestu. Testy na HTML TGE dla dostawy
 Znacznik poza zakresem UTC jest odrzucany przed blokadą doby.
 Test PostgreSQL potwierdza zachowanie 24 cen, jednej paczki i pustej
 kwarantanny oraz poprawne ponowienie.
+
+Walidowany parser RDN odrzuca wiersz godzinowy dla wybranej dostawy,
+jeśli typ instrumentu różni się od 60 minut. Test na oficjalnym HTML
+dla 12.11.2026 potwierdza komplet 24 cen i odrzucenie doby po dodaniu
+drugiego wiersza H10 z typem 15 minut. Wiersze kwadransowe z własnymi
+etykietami pozostają poza odczytem Fix1.
