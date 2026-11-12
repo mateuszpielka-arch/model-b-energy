@@ -323,7 +323,7 @@ class ReadonlyAuditTests(unittest.TestCase):
                 self.assertEqual(report['archive_hourly_candidate_selection'], {})
                 self.assertEqual(report['actual_days'][0]['day'], '2026-10-25')
 
-    def test_nonfinite_pk5_timestamps_do_not_abort_readonly_audit(self):
+    def test_unrepresentable_pk5_timestamps_do_not_abort_readonly_audit(self):
         from psycopg.types.json import Jsonb
 
         self.seed_dst()
@@ -342,7 +342,12 @@ class ReadonlyAuditTests(unittest.TestCase):
             (Jsonb({'pk5l-wp': rows}), valid_archive),
         )
         self.assertTrue(audit_connection(self.conn)['snapshots'][0]['archive_hourly_candidate'])
-        for retrieved, archived in (('infinity', valid_archive), (valid_retrieval, '-infinity')):
+        for retrieved, archived in (
+            ('infinity', valid_archive),
+            ('0001-12-31 23:59:59+00 BC', valid_archive),
+            (valid_retrieval, '-infinity'),
+            (valid_retrieval, '10000-01-01 00:00:00+00'),
+        ):
             with self.subTest(retrieved=retrieved, archived=archived):
                 self.conn.execute(
                     "UPDATE raw.snapshots SET retrieved_at_utc=%s, created_at=%s, "
@@ -356,7 +361,7 @@ class ReadonlyAuditTests(unittest.TestCase):
                 self.assertEqual(snapshot['rows'], 25)
                 self.assertFalse(snapshot['archive_timing_candidate'])
                 self.assertEqual(report['archive_hourly_candidate_selection'], {})
-                if retrieved == 'infinity':
+                if archived == valid_archive:
                     self.assertIsNone(snapshot['retrieved_at_utc'])
                     self.assertEqual(snapshot['availability_status'], 'UNPROVEN_NO_VALID_RETRIEVAL_START')
                 else:
@@ -869,6 +874,38 @@ class ReadonlyAuditTests(unittest.TestCase):
                 self.assertFalse(actual['structurally_complete'])
                 self.assertEqual(report['fix1_reference']['compared_periods'], 0)
                 self.assertEqual(report['fix1_reference']['missing_or_invalid_history_days'], [day.isoformat()])
+
+    def test_out_of_range_fix1_timestamps_preserve_readonly_report(self):
+        day = date(2026, 11, 2)
+        self.conn.execute(
+            'ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz, '
+            'ADD COLUMN first_seen_at_utc timestamptz, ADD COLUMN retrieved_at_utc timestamptz'
+        )
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,100,%s,%s,%s)',
+                [(day, hour, period, '2026-11-01T09:05:00Z', '2026-11-01T09:05:00Z')
+                 for hour, period in enumerate(expected_periods(day), 1)],
+            )
+        self.conn.execute("SET TIME ZONE 'Europe/Warsaw'")
+        self.conn.execute(
+            "UPDATE actual.tge_fix1 SET retrieved_at_utc='10000-01-01 00:00:00+00' WHERE hour=1"
+        )
+        timed, = audit_connection(self.conn)['actual_days']
+        self.assertTrue(timed['complete_finite_prices'])
+        self.assertEqual(timed['rows_missing_price_timing'], 1)
+        self.assertEqual(timed['next_delivery_training_timing'], 'UNPROVEN')
+
+        self.conn.execute(
+            "UPDATE actual.tge_fix1 SET period_start_utc='0001-12-31 23:59:59+00 BC' WHERE hour=2"
+        )
+        report = audit_connection(self.conn)
+        actual, = report['actual_days']
+        self.assertTrue(report['transaction_read_only'])
+        self.assertEqual(actual['period_basis'], 'EXPLICIT_UTC')
+        self.assertEqual(actual['rows_with_invalid_utc_period'], 1)
+        self.assertFalse(actual['structurally_complete'])
+        self.assertEqual(self.conn.execute('SHOW TimeZone').fetchone()[0], 'Europe/Warsaw')
 
     def test_fix1_audit_identifies_swapped_hours_even_with_complete_utc_periods(self):
         from decimal import Decimal

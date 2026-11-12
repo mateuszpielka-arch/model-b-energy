@@ -1422,3 +1422,10 @@ scoring dobowy. Test syntetyczny dla dób 24h i 25h potwierdza te same
 prognozy sześciu modeli, cztery metryki i ranking na 49 wspólnych
 okresach po zmianie ustawień wywołującego. Porównanie offline
 z syntetyczną prognozą oznaczoną FROZEN zachowuje 25 okresów.
+
+Audyt SQL read-only pomija przy odczycie znaczniki PostgreSQL spoza
+zakresu dat Pythona w UTC. Błędne czasy PK5 wykluczają kandydata,
+błędne czasy dostępności Fix1 trafiają do braków, a jawny wadliwy okres
+Fix1 blokuje uznanie doby za kompletną. Testy izolowanego PostgreSQL
+obejmują daty p.n.e. i rok 10000 oraz potwierdzają zachowanie strefy
+sesji po zakończeniu audytu.

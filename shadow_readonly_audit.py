@@ -109,10 +109,13 @@ def table_columns(conn, table):
     ))
 
 
-def _finite_timestamptz(columns, column):
-    """Build an expression for a fixed timestamp column used by this audit."""
+def _python_utc_timestamptz(columns, column):
+    """Filter SQL timestamps that Python cannot decode in UTC."""
     if columns.get(column):
-        return f'CASE WHEN isfinite({column}) THEN {column} END'
+        return (
+            f"CASE WHEN {column} >= TIMESTAMPTZ '0001-01-01 00:00:00+00' "
+            f"AND {column} < TIMESTAMPTZ '10000-01-01 00:00:00+00' THEN {column} END"
+        )
     return 'NULL::timestamptz'
 
 
@@ -189,6 +192,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
     if not conn.autocommit: raise ValueError('Dedicated autocommit connection required')
     with conn.transaction():
         conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY')
+        conn.execute("SET LOCAL TIME ZONE 'UTC'")
         if conn.execute('SHOW transaction_read_only').fetchone()[0]!='on':
             raise ValueError('Database did not enforce READ ONLY')
         present={name:conn.execute('SELECT to_regclass(%s)',(name,)).fetchone()[0] is not None
@@ -198,8 +202,8 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
         if present['raw.snapshots']:
             columns = table_columns(conn, 'raw.snapshots')
             # These expressions are fixed identifiers or NULL for older schemas.
-            retrieval_column = _finite_timestamptz(columns, 'retrieved_at_utc')
-            archived_column = _finite_timestamptz(columns, 'created_at')
+            retrieval_column = _python_utc_timestamptz(columns, 'retrieved_at_utc')
+            archived_column = _python_utc_timestamptz(columns, 'created_at')
             source_column = 'source_version' if 'source_version' in columns else 'NULL'
             rows = conn.execute(
                 f'SELECT id,business_date,{retrieval_column} AS retrieval_time,'
@@ -295,13 +299,13 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
         if present['actual.tge_fix1']:
             columns = table_columns(conn, 'actual.tge_fix1')
             # Only finite, timezone-aware values can establish a UTC cutoff.
-            first_seen = _finite_timestamptz(columns, 'first_seen_at_utc')
-            retrieved = _finite_timestamptz(columns, 'retrieved_at_utc')
+            first_seen = _python_utc_timestamptz(columns, 'first_seen_at_utc')
+            retrieved = _python_utc_timestamptz(columns, 'retrieved_at_utc')
             source_url = 'source_url' if 'source_url' in columns else 'NULL::text'
             raw_hash = 'raw_hash' if 'raw_hash' in columns else 'NULL::text'
             hour_column = 'hour' if 'hour' in columns else 'NULL::int'
             stored_period = 'period_start_utc' if 'period_start_utc' in columns else 'NULL::timestamptz'
-            period_column = _finite_timestamptz(columns, 'period_start_utc')
+            period_column = _python_utc_timestamptz(columns, 'period_start_utc')
             source_present = f"(btrim({source_url}) <> '' AND {raw_hash} ~ '^[0-9A-Fa-f]{{64}}$')"
             rows=conn.execute(f'''SELECT delivery_date,count(*),
                 array_agg(DISTINCT {hour_column}) FILTER (WHERE {hour_column} IS NOT NULL),
