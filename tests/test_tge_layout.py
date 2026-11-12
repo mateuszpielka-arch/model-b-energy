@@ -93,6 +93,30 @@ class LayoutTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'wrong instrument type: 2026-11-12_H10'):
             parse_complete_standard_day(html.tostring(document, encoding='unicode'), day)
 
+    def test_hourly_price_must_be_a_data_cell_in_official_captures(self):
+        from tge_period_labels import parse_fix1_labels
+
+        fixtures = Path(__file__).parent / 'fixtures'
+        cases = (
+            (self.html, '2026-11-02', 'H01', 24, parse_complete_standard_day),
+            ((fixtures / 'tge_rdn_session_2026-10-24_captured_2026-11-02.html').read_text(),
+             '2026-10-25', 'H02a', 25, parse_fix1_labels),
+        )
+        for source, day, label, period_count, parse in cases:
+            self.assertEqual(len(parse(source, day)), period_count)
+            row_start = source.index(f'{day}_{label}</td>')
+            price_start = source.index('<td align="right">', row_start)
+            price_end = source.index('</td>', price_start)
+            for start_tag, end_tag, error in (
+                ('<th', '</th>', 'Expected td in RDN tbody'),
+                ('<td', '</th>', 'Mismatched RDN cell closing tag'),
+            ):
+                with self.subTest(day=day, end_tag=end_tag, start_tag=start_tag):
+                    changed = (source[:price_start] + start_tag + source[price_start + 3:price_end]
+                               + end_tag + source[price_end + 5:])
+                    with self.assertRaisesRegex(ValueError, error):
+                        parse(changed, day)
+
     def test_duplicate_fixing_i_group_rejected(self):
         html = self.html.replace('>Notowania ciągłe</th>', '>Fixing I</th>', 1)
         self.assertNotEqual(html, self.html)

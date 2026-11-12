@@ -75,6 +75,7 @@ class _FixingTable(_Rows):
         self.header_spans = []
         self.span = 1
         self.section = None
+        self.cell_tag = None
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
@@ -98,6 +99,9 @@ class _FixingTable(_Rows):
         if tag in ("td", "th"):
             if self.cell is not None:
                 raise ValueError("Unclosed RDN cell")
+            if self.section == "tbody" and tag != "td":
+                raise ValueError("Expected td in RDN tbody")
+            self.cell_tag = tag
             self.span = int(attrs.get("colspan", "1"))
             if not 1 <= self.span <= 30 or attrs.get("rowspan", "1") != "1":
                 raise ValueError("Unsupported RDN header span")
@@ -132,6 +136,10 @@ class _FixingTable(_Rows):
                 self.rows.append(self.row)
             self.row = None
             return
+        if tag in ("td", "th"):
+            if self.cell is None or self.cell_tag != tag:
+                raise ValueError("Mismatched RDN cell closing tag")
+            self.cell_tag = None
         super().handle_endtag(tag)
         if tag == "th" and self.row is not None:
             self.header_spans.append(self.span)

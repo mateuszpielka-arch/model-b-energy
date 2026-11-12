@@ -1390,3 +1390,9 @@ jeśli typ instrumentu różni się od 60 minut. Test na oficjalnym HTML
 dla 12.11.2026 potwierdza komplet 24 cen i odrzucenie doby po dodaniu
 drugiego wiersza H10 z typem 15 minut. Wiersze kwadransowe z własnymi
 etykietami pozostają poza odczytem Fix1.
+
+Parser RDN wymaga komórek td w tbody oraz zgodnych znaczników
+otwarcia i zamknięcia komórek. Test na oficjalnym HTML dla dostaw
+02.11.2026 i 25.10.2026 potwierdza odczyt odpowiednio 24 i 25 cen.
+Zamiana komórki ceny na th lub domknięcie td znacznikiem </th>
+powoduje odrzucenie tabeli, także dla powtórzonego okresu H02a.
