@@ -1025,7 +1025,36 @@ class WalkforwardTests(unittest.TestCase):
                     self.assertEqual(skipped['stage'], 'packet')
                     self.assertIn(field, skipped['reason'])
                 else:
-                    self.assertIn(f'first missing day {packet["day"]}', skipped['reason'])
+                    self.assertEqual(skipped['unreadable_training_days'], {packet['day'].isoformat(): field})
+                    self.assertNotIn('missing_training_days', skipped)
+                    self.assertIn(f'{packet["day"]} ({field})', skipped['reason'])
+
+    def test_training_window_distinguishes_absent_and_unreadable_packets(self):
+        target = date(2026, 10, 25)
+        history = fixtures.OLSTests().data(91, target=target + timedelta(days=1))['history']
+        absent = target - timedelta(days=66)
+        unreadable = target - timedelta(days=87)
+
+        def broken_actual(rows):
+            yield rows[0]
+            raise OSError('Broken actual input')
+
+        for packet in history:
+            if packet['day'] == unreadable:
+                packet['actual'] = broken_actual(packet['actual'])
+        result = run_walkforward(
+            history=[packet for packet in reversed(history) if packet['day'] != absent],
+            target_days=[target],
+            evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
+        )
+
+        skipped, = result['skipped']
+        self.assertEqual(skipped['stage'], 'ols90')
+        self.assertEqual(skipped['missing_training_days'], [absent.isoformat()])
+        self.assertEqual(skipped['unreadable_training_days'], {unreadable.isoformat(): 'actual'})
+        self.assertIn(f'First missing day: {absent}', skipped['reason'])
+        self.assertEqual(result['common_periods'], 0)
+        self.assertEqual(result['ranking'], [])
 
     def test_scoring_reuses_validated_target_prices(self):
         args = self.args()

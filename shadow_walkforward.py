@@ -220,7 +220,19 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
             except ValueError as exc:
                 rejection = dict(day=day.isoformat(), stage=stage, reason=str(exc))
                 if isinstance(exc, IncompleteTrainingWindow):
-                    rejection['missing_training_days'] = [missing.isoformat() for missing in exc.missing_days]
+                    missing_days = [missing for missing in exc.missing_days
+                                    if missing not in unreadable_packets]
+                    unreadable_days = {missing.isoformat(): unreadable_packets[missing]
+                                       for missing in exc.missing_days if missing in unreadable_packets}
+                    if missing_days:
+                        rejection['missing_training_days'] = [missing.isoformat() for missing in missing_days]
+                    if unreadable_days:
+                        rejection['unreadable_training_days'] = unreadable_days
+                        details = ', '.join(f'{date_label} ({field})'
+                                            for date_label, field in unreadable_days.items())
+                        rejection['reason'] = f'Unreadable training packet fields: {details}'
+                        if missing_days:
+                            rejection['reason'] += f'. First missing day: {missing_days[0]}'
                 if scoring_model is not None:
                     rejection['model'] = scoring_model
                 skipped.append(rejection)
