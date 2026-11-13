@@ -4,10 +4,12 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import Mock, patch
 from shadow_postgres_archive import connect_test_database, initialize, archive_batch
 import test_shadow_archive_batch as fixtures
 from shadow_archive_batch import prepare_batch
+from shadow_ingest_manifest import load_batches
 
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
@@ -109,6 +111,35 @@ class PostgresArchiveTests(unittest.TestCase):
         self.assertEqual(self.conn.execute(
             'SELECT reason FROM fix1_shadow_test.quarantine'
         ).fetchall(), [('Existing price batch raw HTML hash mismatch',)])
+
+    def test_other_batch_quarantine_blocks_replay_of_matching_prices(self):
+        manifest = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-13/manifest.json'
+        (batch, raw), = load_batches(manifest)
+        self.assertEqual(archive_batch(self.conn, batch, raw), 'INSERT')
+        with self.conn.transaction():
+            other_id, = self.conn.execute('''
+                INSERT INTO fix1_shadow_test.batches
+                    (delivery_date, raw_sha256, reference_sha256, parser_version,
+                     source_url, retrieved_at, raw_html)
+                SELECT delivery_date, raw_sha256, %s, parser_version,
+                       source_url, retrieved_at, raw_html
+                FROM fix1_shadow_test.batches RETURNING id
+            ''', ('a' * 64,)).fetchone()
+            self.conn.execute(
+                'INSERT INTO fix1_shadow_test.quarantine(batch_id, reason) VALUES (%s, %s)',
+                (other_id, 'Previously detected conflict'),
+            )
+        prices_query = 'SELECT * FROM fix1_shadow_test.prices ORDER BY period_start_utc'
+        before = self.conn.execute(prices_query).fetchall()
+
+        for _ in range(2):
+            self.assertEqual(archive_batch(self.conn, batch, raw), 'QUARANTINE')
+        self.assertEqual(len(before), 24)
+        self.assertEqual(self.conn.execute(prices_query).fetchall(), before)
+        self.assertEqual(self.count('batches'), 2)
+        self.assertCountEqual(self.conn.execute(
+            'SELECT reason FROM fix1_shadow_test.quarantine'
+        ).fetchall(), [('Previously detected conflict',), ('Delivery day is already quarantined',)])
 
     def test_mid_insert_failure_rolls_back_evidence_and_rows(self):
         import psycopg

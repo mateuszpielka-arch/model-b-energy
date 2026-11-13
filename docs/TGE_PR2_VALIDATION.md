@@ -1534,3 +1534,8 @@ testowe sprawdza SHA-256 zapisanego HTML paczki, z której pochodzą ceny.
 Test PostgreSQL na paczce TGE z 02.11.2026 potwierdza, że zmieniony HTML
 skutkuje jedną kwarantanną także przy powtórzeniu importu. Zachowane
 zostają ceny i zastane bajty HTML.
+
+Ponowny import zgodnych cen zwraca QUARANTINE, gdy inna paczka
+dla tej samej doby jest już w kwarantannie. Test na cenach TGE
+z 13.11.2026 potwierdza zachowanie 24 zapisanych cen i brak duplikatu
+wpisu kwarantanny po dwóch powtórzeniach importu.
