@@ -1560,3 +1560,9 @@ je z cenami z zapisanego HTML, jeśli jego SHA-256 różni się od SHA-256
 importowanej paczki. Test na danych TGE z 13.11.2026 zmienia cenę H01
 w zapisanym HTML i przelicza jego hash. Dwie próby importu pozostawiają
 24 ceny i zmienione bajty HTML oraz zapisują jeden wpis kwarantanny.
+
+Ponowny import zgodnych cen Fix1 sprawdza czas pobrania zapisanej
+paczki. W izolowanym PostgreSQL test z cenami TGE dla 13.11.2026
+obejmuje czas sekundę przed D-1 09:50 Europe/Warsaw, dokładnie o 09:50
+oraz nieskończony znacznik PostgreSQL. Każdy przypadek daje jeden
+wpis kwarantanny po dwóch próbach i zachowuje ceny, HTML oraz metadane.

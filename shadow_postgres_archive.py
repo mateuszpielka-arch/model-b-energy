@@ -6,6 +6,7 @@ from decimal import Decimal
 from hashlib import sha256
 
 from shadow_archive_batch import classify_existing, revalidate_batch
+from shadow_asof import cutoff_for_day
 from tge_parser_safe import parse_complete_standard_day
 
 LOOPBACK_ADDRESSES = ('127.0.0.1', '::1')
@@ -128,11 +129,16 @@ def archive_batch(conn, batch, raw):
             if _has_delivery_quarantine(conn, batch.delivery_date):
                 return 'QUARANTINE'
             (source_id, _), = source_batches
-            stored_hash, stored_raw = conn.execute(
-                'SELECT raw_sha256, raw_html FROM fix1_shadow_test.batches WHERE id = %s',
-                (source_id,),
+            stored_hash, stored_raw, capture_valid = conn.execute(
+                '''SELECT raw_sha256, raw_html,
+                          retrieved_at > %s AND retrieved_at < TIMESTAMPTZ '10000-01-01 00:00:00+00'
+                   FROM fix1_shadow_test.batches WHERE id = %s''',
+                (cutoff_for_day(batch.delivery_date), source_id),
             ).fetchone()
-            if sha256(stored_raw).hexdigest() != stored_hash:
+            if not capture_valid:
+                decision = 'QUARANTINE'
+                reason = 'Existing price batch has invalid Fix1 retrieval time'
+            elif sha256(stored_raw).hexdigest() != stored_hash:
                 decision = 'QUARANTINE'
                 reason = 'Existing price batch raw HTML hash mismatch'
             elif stored_hash != batch.raw_sha256:
