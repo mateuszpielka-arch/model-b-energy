@@ -354,6 +354,32 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(snapshot['availability_status'], 'PUBLICATION_AFTER_CUTOFF')
         self.assertFalse(snapshot['model_ready'])
 
+    def test_audit_locates_missing_and_invalid_publications_on_autumn_day(self):
+        from psycopg.types.json import Jsonb
+
+        self.seed_dst()
+        day = date(2026, 10, 25)
+        periods = expected_periods(day)
+        _, second = [period for period in periods if period.astimezone(WARSAW).hour == 2]
+        missing, absent = periods[0], periods[-1]
+        rows = [
+            {'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': 1000,
+             'publication_ts': '2026-10-24T09:50:00+02:00'}
+            for period in periods if period != absent
+        ]
+        del rows[0]['publication_ts']
+        rows[periods.index(second)]['publication_ts'] = False
+        self.conn.execute('UPDATE raw.snapshots SET payload=%s', (Jsonb({'pk5l-wp': rows}),))
+
+        snapshot, = audit_connection(self.conn)['snapshots']
+        hours = snapshot['utc_hour_audit']
+        self.assertEqual(hours['missing_periods_utc'], [absent.isoformat()])
+        self.assertEqual(hours['observed_periods_with_missing_or_invalid_publication_utc'],
+                         [missing.isoformat(), second.isoformat()])
+        self.assertEqual(snapshot['publication_missing'], 1)
+        self.assertEqual(snapshot['publication_unverified'], 1)
+        self.assertIn('INCOMPLETE_PUBLICATION_TIMESTAMPS', snapshot['archive_timing_rejections'])
+
     def test_audit_counts_publications_after_archive_and_cutoff_independently(self):
         from psycopg.types.json import Jsonb
 

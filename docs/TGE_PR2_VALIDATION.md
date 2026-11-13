@@ -1651,3 +1651,9 @@ Audyt PK5 w PostgreSQL wskazuje jawne okresy UTC z publikacją po
 D-1 09:50 Europe/Warsaw. Test doby 25h ustawia publikację dokładnie
 o 09:50 dla pierwszego wystąpienia 02:00 i sekundę później dla
 drugiego. Raport wskazuje tylko drugi okres UTC.
+
+Audyt PK5 w PostgreSQL wskazuje okresy UTC z istniejącym wierszem
+i brakującym lub błędnym znacznikiem publikacji. Test doby 25h
+rozróżnia brak całego wiersza, brak znacznika i błędny typ JSON.
+Dwa wystąpienia 02:00 mają osobne klucze, a prawidłowa publikacja
+dokładnie o D-1 09:50 Europe/Warsaw nie trafia na listę błędów.
