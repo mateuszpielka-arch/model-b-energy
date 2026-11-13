@@ -2,9 +2,11 @@
 
 Only accepts a dedicated local test database. Not a production integration.
 """
+from decimal import Decimal
 from hashlib import sha256
 
 from shadow_archive_batch import classify_existing, revalidate_batch
+from tge_parser_safe import parse_complete_standard_day
 
 LOOPBACK_ADDRESSES = ('127.0.0.1', '::1')
 LOCAL_HOSTS = (*LOOPBACK_ADDRESSES, 'localhost')
@@ -133,6 +135,19 @@ def archive_batch(conn, batch, raw):
             if sha256(stored_raw).hexdigest() != stored_hash:
                 decision = 'QUARANTINE'
                 reason = 'Existing price batch raw HTML hash mismatch'
+            elif stored_hash != batch.raw_sha256:
+                try:
+                    archived_prices = parse_complete_standard_day(
+                        bytes(stored_raw).decode('utf-8'), batch.delivery_date.isoformat(),
+                    )
+                except ValueError:
+                    decision = 'QUARANTINE'
+                    reason = 'Existing price batch raw HTML cannot be parsed'
+                else:
+                    expected = tuple(Decimal(str(archived_prices[hour])) for hour in range(1, 25))
+                    if expected != tuple(price for _, price in batch.rows):
+                        decision = 'QUARANTINE'
+                        reason = 'Existing price batch raw HTML disagrees with stored prices'
         if decision == 'INSERT':
             if _has_delivery_quarantine(conn, batch.delivery_date):
                 decision = 'QUARANTINE'

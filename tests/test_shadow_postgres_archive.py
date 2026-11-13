@@ -4,6 +4,8 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import datetime
+from decimal import Decimal
+from hashlib import sha256
 from pathlib import Path
 from unittest.mock import Mock, patch
 from shadow_postgres_archive import connect_test_database, initialize, archive_batch
@@ -111,6 +113,36 @@ class PostgresArchiveTests(unittest.TestCase):
         self.assertEqual(self.conn.execute(
             'SELECT reason FROM fix1_shadow_test.quarantine'
         ).fetchall(), [('Existing price batch raw HTML hash mismatch',)])
+
+    def test_replay_checks_prices_in_different_archived_html_with_valid_hash(self):
+        from lxml import html
+
+        manifest = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-13/manifest.json'
+        (batch, raw), = load_batches(manifest)
+        self.assertEqual(archive_batch(self.conn, batch, raw), 'INSERT')
+        page = html.fromstring(raw)
+        first_price, = page.xpath(
+            '//table[@id="rdn"]/tbody/tr[normalize-space(td[1])=$period]/td[3]',
+            period=f'{batch.delivery_date}_H01',
+        )
+        first_price.text = format(batch.rows[0][1] + Decimal('0.01'), 'f').replace('.', ',')
+        changed_raw = html.tostring(page, encoding='utf-8')
+        changed_hash = sha256(changed_raw).hexdigest()
+        self.conn.execute(
+            'UPDATE fix1_shadow_test.batches SET raw_html = %s, raw_sha256 = %s',
+            (changed_raw, changed_hash),
+        )
+        for _ in range(2):
+            self.assertEqual(archive_batch(self.conn, batch, raw), 'QUARANTINE')
+        self.assertEqual(self.conn.execute(
+            'SELECT period_start_utc, price FROM fix1_shadow_test.prices ORDER BY period_start_utc'
+        ).fetchall(), list(batch.rows))
+        self.assertEqual(self.conn.execute(
+            'SELECT raw_html FROM fix1_shadow_test.batches WHERE raw_sha256 = %s', (changed_hash,)
+        ).fetchall(), [(changed_raw,)])
+        self.assertEqual(self.conn.execute(
+            'SELECT reason FROM fix1_shadow_test.quarantine'
+        ).fetchall(), [('Existing price batch raw HTML disagrees with stored prices',)])
 
     def test_other_batch_quarantine_blocks_replay_of_matching_prices(self):
         manifest = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-13/manifest.json'

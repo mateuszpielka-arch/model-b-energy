@@ -1554,3 +1554,9 @@ Audyt PostgreSQL zachowuje informację o obecności doby z błędnymi
 okresami UTC, również gdy pomija odczyt jej cen do porównania z TGE.
 Test integracyjny sprawdza, że taka doba trafia do listy nieprawidłowych
 cen i nie jest liczona jako brak całej doby.
+
+Przy ponownym imporcie zgodnych cen Fix1 archiwum testowe porównuje
+je z cenami z zapisanego HTML, jeśli jego SHA-256 różni się od SHA-256
+importowanej paczki. Test na danych TGE z 13.11.2026 zmienia cenę H01
+w zapisanym HTML i przelicza jego hash. Dwie próby importu pozostawiają
+24 ceny i zmienione bajty HTML oraz zapisują jeden wpis kwarantanny.
