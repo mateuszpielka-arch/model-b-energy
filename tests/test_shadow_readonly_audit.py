@@ -970,6 +970,38 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertFalse(actual['structurally_complete'])
         self.assertEqual(self.conn.execute('SHOW TimeZone').fetchone()[0], 'Europe/Warsaw')
 
+    def test_fix1_audit_separates_missing_and_nonfinite_prices_from_utc_gaps(self):
+        from decimal import Decimal
+        from pathlib import Path
+        from shadow_history_audit import read_csv
+
+        stem = 'tge_delivery_2026-11-14'
+        reference = read_csv(Path(__file__).parent / 'fixtures' / stem / f'{stem}.csv')
+        day = date(2026, 11, 14)
+        periods = expected_periods(day)
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz')
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s,%s)',
+                [(day, hour, Decimal(row['price_pln_mwh']), period)
+                 for hour, (row, period) in enumerate(zip(reference, periods, strict=True), 1)],
+            )
+        self.conn.execute('UPDATE actual.tge_fix1 SET price_pln_mwh = NULL WHERE hour = 1')
+        self.conn.execute("UPDATE actual.tge_fix1 SET price_pln_mwh = 'NaN' WHERE hour = 2")
+        actual, = audit_connection(self.conn)['actual_days']
+        self.assertTrue(actual['structurally_complete'])
+        self.assertFalse(actual['complete_finite_prices'])
+        self.assertEqual(actual['observed_periods_without_valid_fix1_utc'],
+                         [period.isoformat() for period in periods[:2]])
+        self.assertEqual(actual['utc_period_audit']['missing_periods_utc'], [])
+
+        self.conn.execute('DELETE FROM actual.tge_fix1 WHERE hour = 3')
+        actual, = audit_connection(self.conn)['actual_days']
+        self.assertFalse(actual['structurally_complete'])
+        self.assertEqual(actual['observed_periods_without_valid_fix1_utc'],
+                         [period.isoformat() for period in periods[:2]])
+        self.assertEqual(actual['utc_period_audit']['missing_periods_utc'], [periods[2].isoformat()])
+
     def test_fix1_audit_identifies_swapped_hours_even_with_complete_utc_periods(self):
         from decimal import Decimal
         from pathlib import Path

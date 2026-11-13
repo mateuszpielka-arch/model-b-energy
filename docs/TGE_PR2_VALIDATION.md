@@ -1631,3 +1631,8 @@ okresy UTC bez prawidłowej wartości JWCD. Test doby 25h rozróżnia
 dwa wystąpienia lokalnej godziny 02:00: brak wiersza w pierwszym
 i wartość NaN w drugim. Test integracyjny potwierdza, że snapshot
 z kompletem okresów i brakującym JWCD nie przechodzi wyboru.
+
+Audyt Fix1 w PostgreSQL wskazuje okresy z jawnym UTC, dla których
+istnieje wiersz bez skończonej ceny. Test na cenach TGE z 14.11.2026
+rozróżnia NULL, NaN oraz brak całego wiersza. Ocena kompletności
+okresów i ocena kompletności cen pozostają odrębnymi wynikami.

@@ -348,22 +348,32 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 array_agg({period_column} ORDER BY {period_column}, {hour_column})
                     FILTER (WHERE {period_column} IS NOT NULL),
                 array_agg({hour_column} ORDER BY {period_column}, {hour_column})
-                    FILTER (WHERE {period_column} IS NOT NULL)
+                    FILTER (WHERE {period_column} IS NOT NULL),
+                array_agg(DISTINCT {period_column}) FILTER (
+                    WHERE {period_column} IS NOT NULL
+                      AND price_pln_mwh::text NOT IN ('NaN','Infinity','-Infinity')
+                )
                 FROM actual.tge_fix1 WHERE delivery_date BETWEEN %s AND %s
                 GROUP BY delivery_date ORDER BY delivery_date''', bounds).fetchall()
             for (day,n,hours,suspect,missing_prices,nonfinite_prices,latest_first_seen,
                  earliest_retrieved,latest_retrieved,missing_timing,invalid_timing,refetched,
                  missing_source,source_count,
-                 invalid_periods,explicit_periods,explicit_hours) in rows:
+                 invalid_periods,explicit_periods,explicit_hours,valid_price_periods) in rows:
                 periods = expected_periods(day)
                 expected = len(periods)
                 observed = set(hours or [])
                 required = set(range(1, expected + 1))
                 utc_period_audit = None
+                invalid_price_periods = None
                 hour_utc_mismatches = []
                 if explicit_periods or invalid_periods:
                     explicit_utc = [period.astimezone(timezone.utc) for period in explicit_periods or ()]
                     utc_period_audit = _utc_period_gaps(set(periods), Counter(explicit_utc))
+                    invalid_price_periods = [
+                        period.isoformat() for period in sorted(
+                            (set(periods) & set(explicit_utc)) - set(valid_price_periods or ())
+                        )
+                    ]
                     if expected == 24:
                         expected_hours = {period: hour for hour, period in enumerate(periods, 1)}
                         for period, hour in zip(explicit_utc, explicit_hours or (), strict=True):
@@ -399,6 +409,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     period_basis='EXPLICIT_UTC' if explicit_periods or invalid_periods else 'LEGACY_HOUR',
                     rows_with_invalid_utc_period=invalid_periods,
                     utc_period_audit=utc_period_audit,
+                    observed_periods_without_valid_fix1_utc=invalid_price_periods,
                     hour_utc_mismatches=hour_utc_mismatches,
                     missing_price_rows=missing_prices,
                     nonfinite_price_rows=nonfinite_prices,
