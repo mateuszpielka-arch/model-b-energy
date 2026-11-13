@@ -26,6 +26,21 @@ class PK5UtcHoursTests(unittest.TestCase):
                 self.assertEqual(result['duplicate_periods_utc'], [rows[0]['period_start_utc']])
                 self.assertEqual(result['missing_periods_utc'], [rows[-1]['period_start_utc']])
 
+    def test_jwcd_value_gaps_use_distinct_utc_periods_on_autumn_day(self):
+        day = date(2026, 10, 25)
+        periods = expected_periods(day)
+        first, second = [period for period in periods if period.astimezone(WARSAW).hour == 2]
+        rows = [
+            {'period_start_utc': period.isoformat(),
+             'fcst_gen_unit_stor_prov': 'NaN' if period == second else '1000'}
+            for period in periods if period != first
+        ]
+        result = audit_pk5_utc_hours(day, rows)
+        self.assertEqual(result['missing_periods_utc'], [first.isoformat()])
+        self.assertEqual(result['observed_periods_without_valid_jwcd_utc'], [second.isoformat()])
+        self.assertEqual(result['valid_jwcd_rows'], 23)
+        self.assertFalse(result['complete_utc_hours'])
+
     def test_legacy_and_naive_periods_do_not_pass_as_utc(self):
         result = audit_pk5_utc_hours(date(2026, 10, 25), [
             {'period': '02a', 'fcst_gen_unit_stor_prov': 'NaN'},
@@ -464,6 +479,17 @@ class ReadonlyAuditTests(unittest.TestCase):
         result = audit_connection(self.conn)
         self.assertEqual(result['archive_timing_candidate_days'], [day.isoformat()])
         self.assertEqual(result['archive_hourly_candidate_days'], [])
+
+        rows[-1]['fcst_gen_unit_stor_prov'] = None
+        self.conn.execute('UPDATE raw.snapshots SET payload=%s', (Jsonb({'pk5l-wp': rows}),))
+        result = audit_connection(self.conn)
+        snapshot, = result['snapshots']
+        self.assertTrue(snapshot['utc_hour_audit']['complete_utc_hours'])
+        self.assertEqual(snapshot['utc_hour_audit']['observed_periods_without_valid_jwcd_utc'],
+                         [rows[-1]['period_start_utc']])
+        self.assertTrue(snapshot['archive_timing_candidate'])
+        self.assertFalse(snapshot['archive_hourly_candidate'])
+        self.assertEqual(result['archive_hourly_candidate_selection'], {})
 
     def test_hourly_candidate_selection_flags_conflicting_latest_versions(self):
         from psycopg.types.json import Jsonb

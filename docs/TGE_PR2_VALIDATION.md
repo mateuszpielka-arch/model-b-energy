@@ -1625,3 +1625,9 @@ Audyt CSV wskazuje osobno brakujące wiersze godzinowe i obecne okresy
 UTC bez prawidłowej ceny Fix1 lub wartości JWCD. Test na cenach TGE
 z 14.11.2026 i syntetycznym JWCD wykazuje trzy różne okresy dla
 brakującego wiersza, pustej ceny oraz wartości JWCD NaN.
+
+Audyt PK5 PostgreSQL w trybie tylko do odczytu wskazuje obecne
+okresy UTC bez prawidłowej wartości JWCD. Test doby 25h rozróżnia
+dwa wystąpienia lokalnej godziny 02:00: brak wiersza w pierwszym
+i wartość NaN w drugim. Test integracyjny potwierdza, że snapshot
+z kompletem okresów i brakującym JWCD nie przechodzi wyboru.

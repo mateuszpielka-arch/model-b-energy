@@ -30,12 +30,14 @@ def audit_pk5_utc_hours(day, rows):
     """Check explicit canonical period starts; legacy labels cannot disambiguate DST."""
     expected = set(expected_periods(day))
     periods = Counter()
+    valid_jwcd_periods = set()
     missing_utc = invalid_utc = valid_jwcd = 0
     for row in rows:
         if not isinstance(row, dict):
             invalid_utc += 1
             continue
-        valid_jwcd += _number(row.get('fcst_gen_unit_stor_prov'))
+        has_valid_jwcd = _number(row.get('fcst_gen_unit_stor_prov'))
+        valid_jwcd += has_valid_jwcd
         raw_period = row.get('period_start_utc')
         if raw_period in (None, ''):
             missing_utc += 1
@@ -46,6 +48,8 @@ def audit_pk5_utc_hours(day, rows):
             invalid_utc += 1
             continue
         periods[period] += 1
+        if has_valid_jwcd:
+            valid_jwcd_periods.add(period)
     gaps = _utc_period_gaps(expected, periods)
     return {
         'complete_utc_hours': not (any(gaps.values()) or missing_utc or invalid_utc),
@@ -53,6 +57,9 @@ def audit_pk5_utc_hours(day, rows):
         'rows_with_invalid_utc_period': invalid_utc,
         **gaps,
         'valid_jwcd_rows': valid_jwcd,
+        'observed_periods_without_valid_jwcd_utc': [
+            period.isoformat() for period in sorted(expected & (periods.keys() - valid_jwcd_periods))
+        ],
     }
 
 
