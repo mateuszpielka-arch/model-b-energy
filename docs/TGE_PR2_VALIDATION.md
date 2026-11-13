@@ -1549,3 +1549,8 @@ Audyt porównujący historię z cenami referencyjnymi Fix1 rozróżnia
 nieobecną dobę od doby z niekompletnymi lub nieprawidłowymi cenami.
 Test na cenach TGE z 11–13.11.2026 potwierdza porównanie 24 cen
 z pełnej doby i osobne wykazanie luki oraz doby bez jednej godziny.
+
+Audyt PostgreSQL zachowuje informację o obecności doby z błędnymi
+okresami UTC, również gdy pomija odczyt jej cen do porównania z TGE.
+Test integracyjny sprawdza, że taka doba trafia do listy nieprawidłowych
+cen i nie jest liczona jako brak całej doby.

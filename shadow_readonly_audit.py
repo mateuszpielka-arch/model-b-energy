@@ -464,10 +464,10 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
         excluded_days = set()
         if reference_rows is not None:
             history = []
+            invalid_period_days = {
+                actual['day'] for actual in actuals if actual['rows_with_invalid_utc_period']
+            }
             if present['actual.tge_fix1']:
-                invalid_period_days = {
-                    actual['day'] for actual in actuals if actual['rows_with_invalid_utc_period']
-                }
                 comparable_days = [
                     day for day in reference_days if day.isoformat() not in invalid_period_days
                 ]
@@ -484,6 +484,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
             history_range = (actuals[0]['day'], actuals[-1]['day']) if actuals else None
             comparison = compare_fix1_reference(
                 history, audit_rows(history), reference_rows, history_range=history_range,
+                invalid_period_days=invalid_period_days,
             )
             report['fix1_reference'] = comparison
             excluded_days.update(comparison['missing_or_invalid_history_days'])

@@ -908,6 +908,9 @@ class ReadonlyAuditTests(unittest.TestCase):
                 self.assertFalse(actual['structurally_complete'])
                 self.assertEqual(report['fix1_reference']['compared_periods'], 0)
                 self.assertEqual(report['fix1_reference']['missing_or_invalid_history_days'], [day.isoformat()])
+                self.assertEqual(report['fix1_reference']['incomplete_or_invalid_price_days'],
+                                 [day.isoformat()])
+                self.assertEqual(report['fix1_reference']['absent_history_days'], [])
 
     def test_out_of_range_fix1_timestamps_preserve_readonly_report(self):
         day = date(2026, 11, 2)

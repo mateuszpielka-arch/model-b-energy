@@ -176,11 +176,12 @@ def audit_bundle(path, *, reference_paths=(), verify_workbook=False):
     return report
 
 
-def compare_fix1_reference(rows, audit, reference_rows, *, history_range=None):
+def compare_fix1_reference(rows, audit, reference_rows, *, history_range=None, invalid_period_days=()):
     """Compare complete price days by UTC period without assigning provenance.
 
     When rows are filtered to the reference dates, history_range can supply
     the first and last observed Fix1 dates as ISO strings.
+    invalid_period_days identifies observed dates excluded before reading prices.
     """
     reference_rows = list(reference_rows)
 
@@ -214,7 +215,8 @@ def compare_fix1_reference(rows, audit, reference_rows, *, history_range=None):
     if not reference_days or reference_audit["invalid_date_rows"] or reference_days != price_days(reference_audit):
         raise ValueError("Reference CSV must contain complete, unambiguous Fix1 price days")
 
-    history = prices_by_day(rows, price_days(audit) & reference_days)
+    invalid_period_days = set(invalid_period_days)
+    history = prices_by_day(rows, (price_days(audit) & reference_days) - invalid_period_days)
     reference = prices_by_day(reference_rows, reference_days)
     compared = []
     for day in sorted(history):
@@ -225,7 +227,7 @@ def compare_fix1_reference(rows, audit, reference_rows, *, history_range=None):
         compared.append({"day": day, "periods": len(reference[day]),
                          "different_periods_utc": different})
     unmatched = reference_days - history.keys()
-    observed_history_days = {day['day'] for day in audit['days']}
+    observed_history_days = {day['day'] for day in audit['days']} | invalid_period_days
     invalid_history_days = unmatched & observed_history_days
     if history_range is None and audit["days"]:
         history_range = (audit["days"][0]["day"], audit["days"][-1]["day"])
