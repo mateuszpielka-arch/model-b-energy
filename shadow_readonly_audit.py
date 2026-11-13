@@ -26,13 +26,14 @@ def _utc_period_gaps(expected, observed):
     }
 
 
-def audit_pk5_utc_hours(day, rows):
+def audit_pk5_utc_hours(day, rows, *, late_publication_rows=()):
     """Check explicit canonical period starts; legacy labels cannot disambiguate DST."""
     expected = set(expected_periods(day))
     periods = Counter()
     valid_jwcd_periods = set()
+    periods_with_late_publication = set()
     missing_utc = invalid_utc = valid_jwcd = 0
-    for row in rows:
+    for index, row in enumerate(rows):
         if not isinstance(row, dict):
             invalid_utc += 1
             continue
@@ -48,6 +49,8 @@ def audit_pk5_utc_hours(day, rows):
             invalid_utc += 1
             continue
         periods[period] += 1
+        if index in late_publication_rows and period in expected:
+            periods_with_late_publication.add(period)
         if has_valid_jwcd:
             valid_jwcd_periods.add(period)
     gaps = _utc_period_gaps(expected, periods)
@@ -57,6 +60,9 @@ def audit_pk5_utc_hours(day, rows):
         'rows_with_invalid_utc_period': invalid_utc,
         **gaps,
         'valid_jwcd_rows': valid_jwcd,
+        'observed_periods_with_publication_after_cutoff_utc': [
+            period.isoformat() for period in sorted(periods_with_late_publication)
+        ],
         'observed_periods_without_valid_jwcd_utc': [
             period.isoformat() for period in sorted(expected & (periods.keys() - valid_jwcd_periods))
         ],
@@ -245,18 +251,22 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 counts=Counter(labels)
                 cutoff = cutoff_for_day(day)
                 publication_values = [
-                    row['publication_ts'] for row in values
+                    (index, row['publication_ts']) for index, row in enumerate(values)
                     if isinstance(row, dict) and row.get('publication_ts') not in (None, '')
                 ]
                 publications = []
-                for value in publication_values:
+                late_publication_rows = set()
+                for index, value in publication_values:
                     if not isinstance(value, str):
                         continue
                     try:
-                        publications.append(_stamp(value))
+                        stamp = _stamp(value)
                     except (ValueError, OverflowError):
                         continue
-                late_publications = sum(stamp > cutoff for stamp in publications)
+                    publications.append(stamp)
+                    if stamp > cutoff:
+                        late_publication_rows.add(index)
+                late_publications = len(late_publication_rows)
                 try:
                     retrieved_utc = _stamp(retrieved)
                 except (ValueError, TypeError):
@@ -295,7 +305,9 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     ) if rejected
                 ]
                 archive_timing_candidate = not archive_timing_rejections
-                utc_hours = audit_pk5_utc_hours(day, values)
+                utc_hours = audit_pk5_utc_hours(
+                    day, values, late_publication_rows=late_publication_rows,
+                )
                 hourly_candidate = (archive_timing_candidate and utc_hours['complete_utc_hours']
                                     and utc_hours['valid_jwcd_rows'] == len(values))
                 if hourly_candidate:

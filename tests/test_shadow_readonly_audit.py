@@ -362,14 +362,16 @@ class ReadonlyAuditTests(unittest.TestCase):
             'ALTER TABLE raw.snapshots ADD COLUMN created_at timestamptz, ADD COLUMN source_version text'
         )
         day = date(2026, 10, 25)
-        publications = ['2026-10-24T07:40:00Z'] * 23 + [
-            '2026-10-24T09:50:00+02:00',
-            '2026-10-24T07:50:01Z',
-        ]
+        periods = expected_periods(day)
+        first, second = [period for period in periods if period.astimezone(WARSAW).hour == 2]
+        publications = {
+            first: '2026-10-24T09:50:00+02:00',
+            second: '2026-10-24T07:50:01Z',
+        }
         rows = [
             {'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': 1000,
-             'publication_ts': publication}
-            for period, publication in zip(expected_periods(day), publications, strict=True)
+             'publication_ts': publications.get(period, '2026-10-24T07:40:00Z')}
+            for period in periods
         ]
         self.conn.execute(
             'UPDATE raw.snapshots SET payload=%s, retrieved_at_utc=%s, created_at=%s, source_version=%s',
@@ -381,6 +383,8 @@ class ReadonlyAuditTests(unittest.TestCase):
         snapshot, = result['snapshots']
         self.assertEqual(snapshot['publication_after_archive'], 2)
         self.assertEqual(snapshot['publication_after_cutoff'], 1)
+        self.assertEqual(snapshot['utc_hour_audit']['observed_periods_with_publication_after_cutoff_utc'],
+                         [second.isoformat()])
         self.assertEqual(snapshot['archive_timing_rejections'], [
             'PUBLICATION_AFTER_CUTOFF', 'PUBLICATION_AFTER_ARCHIVE',
         ])

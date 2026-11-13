@@ -1646,3 +1646,8 @@ Audyt PK5 w PostgreSQL zlicza publikacje po zapisaniu snapshotu
 osobno od publikacji po D-1 09:50 Europe/Warsaw. Brak czasu zapisu
 daje wartość nieustaloną. Test doby 25h sprawdza oba liczniki,
 równość na obu granicach oraz odrzucenie snapshotu.
+
+Audyt PK5 w PostgreSQL wskazuje jawne okresy UTC z publikacją po
+D-1 09:50 Europe/Warsaw. Test doby 25h ustawia publikację dokładnie
+o 09:50 dla pierwszego wystąpienia 02:00 i sekundę później dla
+drugiego. Raport wskazuje tylko drugi okres UTC.
