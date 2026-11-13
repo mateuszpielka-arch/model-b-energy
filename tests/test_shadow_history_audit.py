@@ -182,6 +182,22 @@ class HistoryAuditTests(unittest.TestCase):
             self.assertEqual(summary['retrieval_start_after_completion_rows'], 2)
             self.assertEqual(summary['publication_after_completion_rows'], 2)
 
+    def test_reports_periods_with_missing_values_separately_from_missing_rows(self):
+        fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-14/tge_delivery_2026-11-14.csv'
+        rows = read_csv(fixture)
+        for row in rows:
+            row['jwcd_mw'] = '10000'
+        missing_row = rows.pop()
+        rows[0]['price_pln_mwh'] = ''
+        rows[1]['jwcd_mw'] = 'NaN'
+        day, = audit_rows(rows)['days']
+
+        self.assertEqual(day['missing_periods_utc'], [missing_row['period_start_utc']])
+        self.assertEqual(day['observed_periods_without_valid_fix1_utc'], [rows[0]['period_start_utc']])
+        self.assertEqual(day['observed_periods_without_valid_jwcd_utc'], [rows[1]['period_start_utc']])
+        self.assertEqual((day['valid_fix1_rows'], day['valid_jwcd_rows']), (22, 22))
+        self.assertFalse(day['model_ready'])
+
     def test_accepts_canonical_retrieved_at_and_rejects_conflicting_legacy_alias(self):
         rows = self.rows()
         for row in rows:

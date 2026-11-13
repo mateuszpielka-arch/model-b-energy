@@ -57,6 +57,8 @@ def audit_rows(rows):
         late_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
         cutoff = cutoff_for_day(d)
         conflicting_price_periods = set()
+        valid_fix1_periods = set()
+        valid_jwcd_periods = set()
         uses_explicit_utc = any(r.get('period_start_utc') not in (None, '') for r in records)
         for r in records:
             p = None
@@ -82,11 +84,14 @@ def audit_rows(rows):
             if price_fields and all(_number(value) for value in price_fields):
                 if len({Decimal(str(value)) for value in price_fields}) == 1:
                     good_prices += 1
+                    valid_fix1_periods.add(p)
                 else:
                     issues.add('CONFLICTING_FIX1_COLUMNS')
                     if p is not None:
                         conflicting_price_periods.add(p)
-            if _number(r.get('jwcd_mw')): good_jwcd+=1
+            if _number(r.get('jwcd_mw')):
+                good_jwcd += 1
+                valid_jwcd_periods.add(p)
             verification = r.get('actual_verified')
             if verification is True or (isinstance(verification, str) and verification in ('true', 'True')):
                 verified += 1
@@ -168,6 +173,12 @@ def audit_rows(rows):
             missing_periods_utc=[p.isoformat() for p in sorted(missing)],
             unexpected_periods_utc=[p.isoformat() for p in sorted(unexpected)],
             duplicate_periods_utc=[p.isoformat() for p in sorted(duplicates)],
+            observed_periods_without_valid_fix1_utc=[
+                p.isoformat() for p in sorted(expected & (period_counts.keys() - valid_fix1_periods))
+            ],
+            observed_periods_without_valid_jwcd_utc=[
+                p.isoformat() for p in sorted(expected & (period_counts.keys() - valid_jwcd_periods))
+            ],
             conflicting_fix1_periods_utc=[p.isoformat() for p in sorted(conflicting_price_periods)],
             complete_pairs=(complete and "HOUR_UTC_MISMATCH" not in issues
                             and good_prices == good_jwcd == len(periods)),

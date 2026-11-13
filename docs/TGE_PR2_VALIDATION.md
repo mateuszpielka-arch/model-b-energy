@@ -1620,3 +1620,8 @@ po zakończeniu pobrania. Liczniki mogą się nakładać. Test na 24
 cenach TGE z 14.11.2026 i syntetycznych znacznikach JWCD potwierdza
 dopuszczenie danych na granicy 09:50 i odrzucenie doby z trzema
 wierszami o nieprawidłowej chronologii.
+
+Audyt CSV wskazuje osobno brakujące wiersze godzinowe i obecne okresy
+UTC bez prawidłowej ceny Fix1 lub wartości JWCD. Test na cenach TGE
+z 14.11.2026 i syntetycznym JWCD wykazuje trzy różne okresy dla
+brakującego wiersza, pustej ceny oraz wartości JWCD NaN.
