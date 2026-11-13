@@ -1602,3 +1602,9 @@ jeszcze przed blokadą doby. Test na cenach TGE z 14.11.2026 używa
 syntetycznej prognozy o 09:50 Europe/Warsaw i potwierdza, że próba
 sekundę wcześniej nie zapisuje wyniku. Ocena w chwili pobrania
 cen daje INSERT, a powtórzenie REPLAY bez duplikatu.
+
+Walk-forward podaje wszystkie daty treningowe bez dopuszczonego
+snapshotu JWCD oraz przyczyny odrzucenia poszczególnych snapshotów.
+Test syntetycznej doby 25h sprawdza dwie daty w oknie OLS 90D.
+Obejmuje publikację po zakończeniu pobrania i pobranie po D-1 09:50
+Europe/Warsaw. Zawartość spóźnionego snapshotu nie jest odczytywana.

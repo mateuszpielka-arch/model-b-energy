@@ -15,6 +15,17 @@ class LateTrainingActuals(ValueError):
         super().__init__(f'Historical actual unavailable at target cutoff: {self.days[0]}')
 
 
+class UnavailableTrainingJWCD(ValueError):
+    def __init__(self, rejected_by_day):
+        self.rejected_by_day = rejected_by_day
+        first_day = next(iter(rejected_by_day))
+        reason = f'Historical JWCD availability not proven: {first_day}'
+        if rejected_by_day[first_day]:
+            codes = ', '.join(sorted({code for _, code in rejected_by_day[first_day]}))
+            reason += f' ({codes})'
+        super().__init__(reason)
+
+
 def has_verified_actual(packet):
     version = packet.get('actual_version')
     return packet.get('actual_verified') is True and isinstance(version, str) and bool(version.strip())
@@ -50,16 +61,21 @@ def prepare_training(*,target_day,target_snapshots,history,window_days):
     if late_days:
         raise LateTrainingActuals(late_days)
 
+    selections = {}
+    rejected_by_day = {}
+    for day in available_at:
+        packet = packets[day]
+        selection = select_snapshot(day, packet.get('snapshots', ()))
+        if selection.snapshot_id is None:
+            rejected_by_day[day] = selection.rejected
+        selections[day] = selection
+    if rejected_by_day:
+        raise UnavailableTrainingJWCD(rejected_by_day)
+
     prepared=[]; evidence=[]; timing=[]
     for day, actual_available in available_at.items():
         p = packets[day]
-        selection=select_snapshot(day, p.get('snapshots', ()))
-        if selection.snapshot_id is None:
-            reason = f'Historical JWCD availability not proven: {day}'
-            if selection.rejected:
-                details = ', '.join(sorted({code for _, code in selection.rejected}))
-                reason += f' ({details})'
-            raise ValueError(reason)
+        selection = selections[day]
         actual=_prices(p.get('actual', ()))
         if set(actual)!=set(expected_periods(day)):
             raise ValueError(f'Historical actual incomplete or invalid periods: {day}')

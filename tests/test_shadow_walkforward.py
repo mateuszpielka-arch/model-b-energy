@@ -858,6 +858,36 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(skipped['reason'],
                          f"Historical JWCD availability not proven: {args['history'][-2]['day']}")
 
+    def test_training_reports_publication_and_retrieval_rejections_for_all_affected_days(self):
+        target = date(2026, 10, 25)
+        history = fixtures.OLSTests().data(91, target=target + timedelta(days=1))['history']
+        early, late = history[:2]
+        publication = early['snapshots'][0]
+        publication['rows'][0]['publication_ts'] = cutoff_for_day(early['day']) + timedelta(seconds=1)
+        retrieval = late['snapshots'][0]
+        retrieval['retrieved_at'] = cutoff_for_day(late['day']) + timedelta(seconds=1)
+        retrieval['retrieval_completed_at'] = retrieval['retrieved_at']
+
+        def unavailable():
+            self.fail('Rows retrieved after D-1 09:50 were read')
+            yield
+
+        retrieval['rows'] = unavailable()
+        report = run_walkforward(
+            history=reversed(history), target_days=[target],
+            evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
+        )
+
+        skipped, = report['skipped']
+        self.assertEqual(skipped['stage'], 'ols90')
+        self.assertEqual(list(skipped['training_jwcd_rejections']), [early['day'].isoformat(), late['day'].isoformat()])
+        self.assertEqual(skipped['training_jwcd_rejections'], {
+            early['day'].isoformat(): ((publication['id'], 'PUBLICATION_AFTER_RETRIEVAL'),),
+            late['day'].isoformat(): ((retrieval['id'], 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER'),),
+        })
+        self.assertEqual(report['common_periods'], 0)
+        self.assertEqual(report['ranking'], [])
+
     def test_invalid_snapshot_collection_does_not_abort_backtest(self):
         args = self.args()
         target = args['history'][-1]
