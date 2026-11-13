@@ -1657,3 +1657,9 @@ i brakującym lub błędnym znacznikiem publikacji. Test doby 25h
 rozróżnia brak całego wiersza, brak znacznika i błędny typ JSON.
 Dwa wystąpienia 02:00 mają osobne klucze, a prawidłowa publikacja
 dokładnie o D-1 09:50 Europe/Warsaw nie trafia na listę błędów.
+
+Audyt Fix1 w PostgreSQL wskazuje jawne okresy UTC z pobraniem po
+09:50 Europe/Warsaw w dniu dostawy, czyli po granicy wydania
+prognozy na następną dobę. Test doby 25h odróżnia dwa wystąpienia
+02:00 i potwierdza, że lista wykrytych spóźnień pozostaje dostępna,
+gdy inny wiersz nie ma czasu pobrania.
