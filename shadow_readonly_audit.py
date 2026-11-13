@@ -276,6 +276,10 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     if isinstance(archived, datetime) and archived.utcoffset() is not None else None
                 )
                 latest_publication = max(publications, default=None)
+                publications_after_archive = (
+                    sum(stamp > archived_utc for stamp in publications)
+                    if archived_utc is not None else None
+                )
                 archive_timing_rejections = [
                     reason for rejected, reason in (
                         (source_version != 'energy-collector-v3', 'UNSUPPORTED_ARCHIVE_SOURCE'),
@@ -287,8 +291,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                          and archived_utc < retrieved_utc, 'ARCHIVE_BEFORE_RETRIEVAL'),
                         (not publications or len(publications) != len(values), 'INCOMPLETE_PUBLICATION_TIMESTAMPS'),
                         (bool(late_publications), 'PUBLICATION_AFTER_CUTOFF'),
-                        (latest_publication is not None and archived_utc is not None
-                         and latest_publication > archived_utc, 'PUBLICATION_AFTER_ARCHIVE'),
+                        (bool(publications_after_archive), 'PUBLICATION_AFTER_ARCHIVE'),
                     ) if rejected
                 ]
                 archive_timing_candidate = not archive_timing_rejections
@@ -310,6 +313,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     publication_missing=len(values)-len(publication_values),
                     publication_unverified=len(publication_values)-len(publications),
                     publication_after_cutoff=late_publications,
+                    publication_after_archive=publications_after_archive,
                     retrieved_at_utc=retrieved_utc.isoformat() if retrieved_utc is not None else None,
                     cutoff_utc=cutoff.isoformat(),
                     archived_at_utc=archived_utc.isoformat() if archived_utc is not None else None,

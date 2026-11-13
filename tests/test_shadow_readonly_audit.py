@@ -354,6 +354,43 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(snapshot['availability_status'], 'PUBLICATION_AFTER_CUTOFF')
         self.assertFalse(snapshot['model_ready'])
 
+    def test_audit_counts_publications_after_archive_and_cutoff_independently(self):
+        from psycopg.types.json import Jsonb
+
+        self.seed_dst()
+        self.conn.execute(
+            'ALTER TABLE raw.snapshots ADD COLUMN created_at timestamptz, ADD COLUMN source_version text'
+        )
+        day = date(2026, 10, 25)
+        publications = ['2026-10-24T07:40:00Z'] * 23 + [
+            '2026-10-24T09:50:00+02:00',
+            '2026-10-24T07:50:01Z',
+        ]
+        rows = [
+            {'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': 1000,
+             'publication_ts': publication}
+            for period, publication in zip(expected_periods(day), publications, strict=True)
+        ]
+        self.conn.execute(
+            'UPDATE raw.snapshots SET payload=%s, retrieved_at_utc=%s, created_at=%s, source_version=%s',
+            (Jsonb({'pk5l-wp': rows}), '2026-10-24T07:35:00Z', '2026-10-24T07:40:00Z',
+             'energy-collector-v3'),
+        )
+
+        result = audit_connection(self.conn)
+        snapshot, = result['snapshots']
+        self.assertEqual(snapshot['publication_after_archive'], 2)
+        self.assertEqual(snapshot['publication_after_cutoff'], 1)
+        self.assertEqual(snapshot['archive_timing_rejections'], [
+            'PUBLICATION_AFTER_CUTOFF', 'PUBLICATION_AFTER_ARCHIVE',
+        ])
+        self.assertEqual(result['archive_hourly_candidate_days'], [])
+
+        self.conn.execute('UPDATE raw.snapshots SET created_at=NULL')
+        snapshot, = audit_connection(self.conn)['snapshots']
+        self.assertIsNone(snapshot['publication_after_archive'])
+        self.assertEqual(snapshot['publication_after_cutoff'], 1)
+
     def test_missing_legacy_retrieval_evidence_does_not_abort_audit(self):
         from psycopg.types.json import Jsonb
 

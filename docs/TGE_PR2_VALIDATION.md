@@ -1641,3 +1641,8 @@ Audyt PK5 w PostgreSQL zlicza osobno brakujące i błędne znaczniki
 publikacji. Test obejmuje brak pola, NULL, pusty tekst, błędne typy
 JSON oraz publikację dokładnie o D-1 09:50 Europe/Warsaw i minutę
 później. Niepełne znaczniki nadal wykluczają snapshot z wyboru.
+
+Audyt PK5 w PostgreSQL zlicza publikacje po zapisaniu snapshotu
+osobno od publikacji po D-1 09:50 Europe/Warsaw. Brak czasu zapisu
+daje wartość nieustaloną. Test doby 25h sprawdza oba liczniki,
+równość na obu granicach oraz odrzucenie snapshotu.
