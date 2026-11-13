@@ -1582,3 +1582,10 @@ Scoring archiwalny sprawdza okresy dostawy Fix1 w UTC. Odrzuca
 zapisane okresy poza dobą, nieskończone i przesunięte o minutę.
 Test na cenach TGE z 02.11.2026 sprawdza zachowanie wyniku oraz
 poprawny REPLAY w sesji Europe/Warsaw po wycofaniu wadliwych danych.
+
+Ponowny import paczki Fix1 kwalifikuje okresy poza granicami doby
+do kwarantanny przed przekazaniem znaczników do Pythona. Test na
+paczce TGE z 13.11.2026 potwierdza jeden wpis po dwóch próbach dla
+czterech błędnych znaczników, w tym wartości nieskończonych. Zapisane
+wiersze są zachowane. Po wycofaniu zmian testowych import daje REPLAY
+w sesji Europe/Warsaw.

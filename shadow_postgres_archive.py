@@ -2,6 +2,7 @@
 
 Only accepts a dedicated local test database. Not a production integration.
 """
+from datetime import timezone
 from decimal import Decimal
 from hashlib import sha256
 
@@ -113,17 +114,24 @@ def archive_batch(conn, batch, raw):
     with conn.transaction():
         _lock_delivery_day(conn, batch.delivery_date)
         existing = conn.execute('''
-            SELECT price.period_start_utc, price.price, price.batch_id, source.delivery_date
+            SELECT CASE WHEN price.period_start_utc BETWEEN %s AND %s
+                        THEN price.period_start_utc AT TIME ZONE 'UTC' END,
+                   price.price, price.batch_id, source.delivery_date
             FROM fix1_shadow_test.prices AS price
             JOIN fix1_shadow_test.batches AS source ON source.id = price.batch_id
             WHERE price.delivery_date = %s ORDER BY price.period_start_utc
-        ''', (batch.delivery_date,)).fetchall()
+        ''', (batch.rows[0][0], batch.rows[-1][0], batch.delivery_date)).fetchall()
         source_batches = {(batch_id, day) for _, _, batch_id, day in existing}
         if len(source_batches) > 1 or any(day != batch.delivery_date for _, day in source_batches):
             decision = 'QUARANTINE'
             reason = 'Existing prices do not point to one batch for the delivery day'
+        elif any(period is None for period, _, _, _ in existing):
+            decision = 'QUARANTINE'
+            reason = 'Existing delivery period is outside the Fix1 day'
         else:
-            decision = classify_existing(batch, [(period, price) for period, price, _, _ in existing])
+            existing_rows = [(period.replace(tzinfo=timezone.utc), price)
+                             for period, price, _, _ in existing]
+            decision = classify_existing(batch, existing_rows)
             reason = 'Existing prices differ or day is partial'
         if decision == 'REPLAY':
             if _has_delivery_quarantine(conn, batch.delivery_date):

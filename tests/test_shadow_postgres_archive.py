@@ -168,6 +168,32 @@ class PostgresArchiveTests(unittest.TestCase):
                         'SELECT reason FROM fix1_shadow_test.quarantine',
                     ).fetchall(), [('Existing price batch has invalid Fix1 retrieval time',)])
 
+    def test_replay_quarantines_out_of_day_periods_without_decoding_them(self):
+        manifest = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-13/manifest.json'
+        (batch, raw), = load_batches(manifest)
+        first = batch.rows[0][0]
+        query = ('SELECT period_start_utc::text, price, batch_id '
+                 'FROM fix1_shadow_test.prices ORDER BY period_start_utc')
+        self.conn.execute("SET TIME ZONE 'Europe/Warsaw'")
+        self.assertEqual(archive_batch(self.conn, batch, raw), 'INSERT')
+        for stamp in ('infinity', '-infinity', '10000-01-01 00:00:00+00', first - timedelta(hours=1)):
+            with self.subTest(period_start_utc=stamp), self.conn.transaction(force_rollback=True):
+                self.conn.execute(
+                    'UPDATE fix1_shadow_test.prices SET period_start_utc = %s WHERE period_start_utc = %s',
+                    (stamp, first),
+                )
+                before = self.conn.execute(query).fetchall()
+                for _ in range(2):
+                    self.assertEqual(archive_batch(self.conn, batch, raw), 'QUARANTINE')
+                self.assertEqual(len(before), 24)
+                self.assertEqual(self.conn.execute(query).fetchall(), before)
+                self.assertEqual(self.count('batches'), 1)
+                self.assertEqual(self.conn.execute(
+                    'SELECT reason FROM fix1_shadow_test.quarantine'
+                ).fetchall(), [('Existing delivery period is outside the Fix1 day',)])
+
+        self.assertEqual(archive_batch(self.conn, batch, raw), 'REPLAY')
+
     def test_other_batch_quarantine_blocks_replay_of_matching_prices(self):
         manifest = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-13/manifest.json'
         (batch, raw), = load_batches(manifest)
