@@ -882,8 +882,8 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(skipped['stage'], 'ols90')
         self.assertEqual(list(skipped['training_jwcd_rejections']), [early['day'].isoformat(), late['day'].isoformat()])
         self.assertEqual(skipped['training_jwcd_rejections'], {
-            early['day'].isoformat(): ((publication['id'], 'PUBLICATION_AFTER_RETRIEVAL'),),
-            late['day'].isoformat(): ((retrieval['id'], 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER'),),
+            early['day'].isoformat(): ((publication['id'], 'PUBLICATION_AFTER_CUTOFF'),),
+            late['day'].isoformat(): ((retrieval['id'], 'RETRIEVAL_STARTED_AFTER_CUTOFF'),),
         })
         self.assertEqual(report['common_periods'], 0)
         self.assertEqual(report['ranking'], [])
@@ -936,7 +936,7 @@ class WalkforwardTests(unittest.TestCase):
         training['snapshots'][0]['retrieval_completed_at'] += timedelta(days=1)
         skipped, = run_walkforward(**args)['skipped']
         self.assertIn(training['day'].isoformat(), skipped['reason'])
-        self.assertIn('RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER', skipped['reason'])
+        self.assertIn('RETRIEVAL_COMPLETED_AFTER_CUTOFF', skipped['reason'])
 
     def test_snapshot_iterators_match_lists_for_training_and_targets(self):
         args = self.args()
@@ -1031,7 +1031,7 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(result['accepted'][-1]['predictions'], expected['accepted'][-1]['predictions'])
         self.assertEqual(dict(result['accepted'][-1]['rejected_snapshots']), {
             'broken': 'UNREADABLE_SNAPSHOT_ROWS',
-            'late': 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER',
+            'late': 'RETRIEVAL_COMPLETED_AFTER_CUTOFF',
         })
 
     def test_actual_iterators_match_lists_for_training_and_targets(self):

@@ -1608,3 +1608,9 @@ snapshotu JWCD oraz przyczyny odrzucenia poszczególnych snapshotów.
 Test syntetycznej doby 25h sprawdza dwie daty w oknie OLS 90D.
 Obejmuje publikację po zakończeniu pobrania i pobranie po D-1 09:50
 Europe/Warsaw. Zawartość spóźnionego snapshotu nie jest odczytywana.
+
+Raport JWCD wskazuje osobno publikację po D-1 09:50 Europe/Warsaw,
+spóźnione rozpoczęcie lub zakończenie pobrania oraz odwróconą
+kolejność znaczników pobrania. Testy syntetyczne dla dób 23h i 25h
+potwierdzają te przyczyny oraz dopuszczenie kompletu danych
+dostępnego dokładnie o 09:50.

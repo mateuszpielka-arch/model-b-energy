@@ -1,7 +1,7 @@
 from copy import deepcopy
 from datetime import date,datetime,timedelta,timezone
 import unittest
-from shadow_asof import select_snapshot
+from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_scoring import expected_periods, WARSAW
 
 UTC=timezone.utc
@@ -22,7 +22,7 @@ class AvailabilityTests(unittest.TestCase):
         out=select_snapshot(a['delivery_date'],[b,a,c])
         self.assertEqual(out.snapshot_id,'latest-eligible'); self.assertEqual(out.rows[0][1],11000)
         self.assertEqual(dict(out.rejected), {
-            'late': 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER',
+            'late': 'RETRIEVAL_COMPLETED_AFTER_CUTOFF',
             'early': 'SUPERSEDED_JWCD_PUBLICATIONS',
         })
 
@@ -119,7 +119,7 @@ class AvailabilityTests(unittest.TestCase):
         result = select_snapshot(late['delivery_date'], [late])
 
         self.assertIsNone(result.snapshot_id)
-        self.assertEqual(result.rejected, (('late', 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER'),))
+        self.assertEqual(result.rejected, (('late', 'RETRIEVAL_COMPLETED_AFTER_CUTOFF'),))
 
     def test_missing_completion_is_unverifiable(self):
         s=self.snapshot(); del s['retrieval_completed_at']
@@ -128,6 +128,32 @@ class AvailabilityTests(unittest.TestCase):
     def test_one_late_publication_rejects_whole_snapshot(self):
         s=self.snapshot(); s['rows'][10]['publication_ts']=datetime(2026,11,2,9,tzinfo=UTC)
         self.assertIsNone(select_snapshot(s['delivery_date'],[s]).snapshot_id)
+
+    def test_timing_rejections_distinguish_cutoff_and_invalid_order_on_dst_days(self):
+        for day in (date(2026, 3, 29), date(2026, 10, 25)):
+            cutoff = cutoff_for_day(day)
+            after = cutoff + timedelta(seconds=1)
+            eligible = self.snapshot(day, sid='eligible')
+            eligible.update(retrieved_at=cutoff, retrieval_completed_at=cutoff)
+            for row in eligible['rows']:
+                row['publication_ts'] = cutoff
+            published_late = deepcopy(eligible)
+            published_late['id'] = 'late-publication'
+            published_late['rows'][0]['publication_ts'] = after
+            cases = [
+                (published_late, 'PUBLICATION_AFTER_CUTOFF'),
+                ({**eligible, 'id': 'late-start', 'retrieved_at': after,
+                  'retrieval_completed_at': after}, 'RETRIEVAL_STARTED_AFTER_CUTOFF'),
+                ({**eligible, 'id': 'late-completion', 'retrieval_completed_at': after},
+                 'RETRIEVAL_COMPLETED_AFTER_CUTOFF'),
+                ({**eligible, 'id': 'wrong-order', 'retrieval_completed_at': cutoff - timedelta(seconds=1)},
+                 'INVALID_RETRIEVAL_ORDER'),
+            ]
+            with self.subTest(day=day):
+                selected = select_snapshot(day, [item for item, _ in cases] + [eligible])
+                self.assertEqual(selected.snapshot_id, 'eligible')
+                self.assertEqual(len(selected.rows), len(expected_periods(day)))
+                self.assertEqual(dict(selected.rejected), {item['id']: code for item, code in cases})
 
     def test_missing_and_duplicate_periods_rejected(self):
         for mode in ('missing','duplicate'):
@@ -167,7 +193,7 @@ class AvailabilityTests(unittest.TestCase):
                 duplicate['retrieval_completed_at'] = baseline.cutoff_utc + timedelta(seconds=1)
                 result = select_snapshot(day, [duplicate, good])
                 self.assertEqual((result.snapshot_id, result.rows), (baseline.snapshot_id, baseline.rows))
-                self.assertEqual(result.rejected, (('17', 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER'),))
+                self.assertEqual(result.rejected, (('17', 'RETRIEVAL_COMPLETED_AFTER_CUTOFF'),))
 
     def test_late_copy_with_same_id_cannot_change_asof_selection(self):
         def unreadable_rows():
@@ -190,7 +216,7 @@ class AvailabilityTests(unittest.TestCase):
                 self.assertEqual((out.snapshot_id, out.rows), (baseline.snapshot_id, baseline.rows))
                 self.assertEqual(len(out.rows), periods)
                 self.assertEqual(out.rejected, (
-                    ('early', 'RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER'),
+                    ('early', 'RETRIEVAL_COMPLETED_AFTER_CUTOFF'),
                     ('early', 'WRONG_DELIVERY_DATE'),
                 ))
 

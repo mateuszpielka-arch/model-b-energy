@@ -100,8 +100,12 @@ def select_snapshot(day, snapshots):
                 raise ValueError('WRONG_DELIVERY_DATE')
             retrieved = _utc(snapshot.get('retrieved_at'))
             completed = _utc(snapshot.get('retrieval_completed_at'))
-            if not retrieved <= completed <= cutoff:
-                raise ValueError('RETRIEVAL_AFTER_CUTOFF_OR_INVALID_ORDER')
+            if retrieved > completed:
+                raise ValueError('INVALID_RETRIEVAL_ORDER')
+            if retrieved > cutoff:
+                raise ValueError('RETRIEVAL_STARTED_AFTER_CUTOFF')
+            if completed > cutoff:
+                raise ValueError('RETRIEVAL_COMPLETED_AFTER_CUTOFF')
         except (ValueError, TypeError) as exc:
             metadata.append((snapshot, sid, None, None, str(exc)))
         else:
@@ -132,6 +136,8 @@ def select_snapshot(day, snapshots):
                     raise ValueError('INVALID_SNAPSHOT_ROW')
                 p = _utc(row.get('period_start_utc'))
                 pub = _utc(row.get('publication_ts'))
+                if pub > cutoff:
+                    raise ValueError('PUBLICATION_AFTER_CUTOFF')
                 if pub > completed:
                     raise ValueError('PUBLICATION_AFTER_RETRIEVAL')
                 if p in clean:
