@@ -78,8 +78,10 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
     validate_forecast_identity(forecast_id, model_version, forecast_status)
     validate_forecast_timing(day, issued_at, publication_ts, retrieved_at)
     evaluation_time = _utc(evaluated_at) if evaluated_at is not None else None
-    forecast_prices = _prices(forecast)
     periods = expected_periods(day)
+    if len(periods) != 24:
+        raise ValueError('Archived Fix1 scoring requires a standard 24-hour delivery day')
+    forecast_prices = _prices(forecast)
     if set(forecast_prices) != set(periods):
         raise ValueError('Incomplete or mismatched delivery periods')
     with conn.transaction():

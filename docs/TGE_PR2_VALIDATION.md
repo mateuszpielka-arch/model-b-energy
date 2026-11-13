@@ -1566,3 +1566,9 @@ paczki. W izolowanym PostgreSQL test z cenami TGE dla 13.11.2026
 obejmuje czas sekundę przed D-1 09:50 Europe/Warsaw, dokładnie o 09:50
 oraz nieskończony znacznik PostgreSQL. Każdy przypadek daje jeden
 wpis kwarantanny po dwóch próbach i zachowuje ceny, HTML oraz metadane.
+
+Scoring z archiwum PostgreSQL sygnalizuje brak obsługi dób 23h i 25h
+przed blokadą doby. Test integracyjny podaje komplet prognoz dla obu
+zmian czasu i potwierdza, że zachowany wynik doby 24h nadal daje REPLAY.
+Obsługa 23h i 25h przez scoring walk-forward na jawnych okresach UTC
+pozostaje dostępna.

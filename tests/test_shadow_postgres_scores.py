@@ -2,11 +2,12 @@ import os
 import unittest
 from unittest.mock import patch
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from decimal import Decimal, Inexact, ROUND_UP, localcontext
 import test_shadow_archive_batch as fixtures
 from shadow_archive_batch import prepare_batch
 from shadow_asof import cutoff_for_day
+from shadow_scoring import expected_periods
 from shadow_postgres_archive import connect_test_database, initialize, archive_batch
 from shadow_postgres_scores import initialize_scores, input_fingerprint, score_archived_day
 
@@ -306,6 +307,22 @@ class ScorePersistenceTests(unittest.TestCase):
                                             evaluated_at=captured + timedelta(seconds=1))[0], 'REPLAY')
         with self.assertRaisesRegex(ValueError, 'not yet available at evaluation time'):
             score_archived_day(self.conn, **self.kw, evaluated_at=too_early)
+        self.assertEqual(self.count(), 1)
+
+    def test_dst_scoring_rejects_before_locking_even_with_complete_forecast(self):
+        initial = score_archived_day(self.conn, **self.kw)
+        for day, hours in ((date(2026, 3, 29), 23), (date(2026, 10, 25), 25)):
+            cutoff = cutoff_for_day(day)
+            forecast = [(period, Decimal('500')) for period in expected_periods(day)]
+            self.assertEqual(len(forecast), hours)
+            inputs = dict(self.kw, day=day, forecast=forecast, issued_at=cutoff,
+                          publication_ts=cutoff - timedelta(minutes=10), retrieved_at=cutoff)
+            with self.subTest(hours=hours), patch('shadow_postgres_scores._lock_delivery_day') as lock:
+                with self.assertRaisesRegex(ValueError, 'standard 24-hour delivery day'):
+                    score_archived_day(self.conn, **inputs)
+                lock.assert_not_called()
+
+        self.assertEqual(score_archived_day(self.conn, **self.kw), ('REPLAY', initial[1]))
         self.assertEqual(self.count(), 1)
 
     def test_invalid_forecast_identity_is_rejected_before_delivery_lock(self):
