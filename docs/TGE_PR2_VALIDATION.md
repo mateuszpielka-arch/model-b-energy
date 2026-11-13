@@ -1539,3 +1539,8 @@ Ponowny import zgodnych cen zwraca QUARANTINE, gdy inna paczka
 dla tej samej doby jest już w kwarantannie. Test na cenach TGE
 z 13.11.2026 potwierdza zachowanie 24 zapisanych cen i brak duplikatu
 wpisu kwarantanny po dwóch powtórzeniach importu.
+
+Import manifestu wymaga daty dostawy w zapisie YYYY-MM-DD oraz
+obsługiwanych granic doby. Test na manifeście TGE z 13.11.2026
+potwierdza odczyt 24 cen z oryginału i odrzucenie m.in. daty
+tygodniowej ISO i dat skrajnych przed odczytem plików dowodowych.

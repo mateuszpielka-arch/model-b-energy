@@ -68,13 +68,18 @@ def load_batches(manifest_path):
     root = path.parent
     batches=[];dates=set()
     for e in entries:
-        day=e['delivery_date']
+        day = e.get('delivery_date')
+        try:
+            delivery = date.fromisoformat(day)
+        except (TypeError, ValueError) as exc:
+            raise ValueError('Manifest delivery date must use YYYY-MM-DD') from exc
+        if day != delivery.isoformat() or delivery in (date.min, date.max):
+            raise ValueError('Manifest delivery date must use YYYY-MM-DD within supported day boundaries')
         period_basis = e.get('period_basis')
         if period_basis == 'TGE_LABEL_ONLY':
             raise ValueError(f'TGE label-only evidence has no verified UTC mapping for {day}')
         if 'period_basis' in e and period_basis != 'EXPLICIT_UTC':
             raise ValueError(f'Unsupported Fix1 manifest period basis for {day}')
-        delivery = date.fromisoformat(day)
         session = (delivery - timedelta(days=1)).isoformat()
         if e.get('session_date') != session:
             raise ValueError(f'TGE session date must be {session} for delivery {day}')

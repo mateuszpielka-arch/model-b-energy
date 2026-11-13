@@ -298,6 +298,25 @@ class ManifestTests(unittest.TestCase):
                             ingest_manifest(manifest, conn=object())
                 read_evidence.assert_not_called()
 
+    def test_manifest_rejects_noncanonical_and_boundary_dates_before_evidence_io(self):
+        source = FIX.with_name('tge_delivery_2026-11-13')
+        original = source / 'manifest.json'
+        self.assertEqual(ingest_manifest(original)['periods'], 24)
+        data = json.loads(original.read_text())
+        entry, = data['entries']
+
+        with TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / 'manifest.json'
+            with patch('shadow_ingest_manifest._inside') as locate_evidence:
+                for invalid in ('20261113', '2026-W46-5', '0001-01-01', '9999-12-31', None, 20261113):
+                    with self.subTest(delivery_date=invalid):
+                        manifest.write_text(json.dumps({
+                            **data, 'entries': [{**entry, 'delivery_date': invalid}],
+                        }))
+                        with self.assertRaisesRegex(ValueError, 'Manifest delivery date must use YYYY-MM-DD'):
+                            ingest_manifest(manifest, conn=object())
+                locate_evidence.assert_not_called()
+
     def test_manifest_rejects_duplicate_retrieval_time_before_database_initialization(self):
         source = FIX.with_name('tge_delivery_2026-11-09')
         with TemporaryDirectory() as tmp:
