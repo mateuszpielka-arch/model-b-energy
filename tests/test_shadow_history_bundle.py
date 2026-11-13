@@ -30,6 +30,24 @@ class HistoryBundleTests(unittest.TestCase):
         self.assertEqual(mismatch['compared_days'][0]['different_periods_utc'],
                          ['2026-11-09T22:00:00+00:00'])
 
+    def test_reference_distinguishes_absent_and_incomplete_history_days(self):
+        fixtures = Path(__file__).parent / 'fixtures'
+        references = [
+            read_csv(fixtures / f'tge_delivery_2026-11-{day}/tge_delivery_2026-11-{day}.csv')
+            for day in (11, 12, 13)
+        ]
+        history = references[0] + references[2][:-1]
+        report = compare_fix1_reference(
+            history, audit_rows(history), (row for rows in references for row in rows),
+        )
+
+        self.assertEqual(report['matched_days'], 1)
+        self.assertEqual(report['compared_periods'], 24)
+        self.assertEqual(report['absent_history_days'], ['2026-11-12'])
+        self.assertEqual(report['incomplete_or_invalid_price_days'], ['2026-11-13'])
+        self.assertEqual(report['missing_or_invalid_within_history_range_days'],
+                         ['2026-11-12', '2026-11-13'])
+
     def make_bundle(self, path, *, manifest_changes=None, corrupt_csv=False,
                     days=("2026-10-24", "2026-10-26"), duplicate_manifest_field=None):
         workbook = b"opaque workbook bytes"

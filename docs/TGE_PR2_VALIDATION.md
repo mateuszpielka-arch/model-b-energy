@@ -1544,3 +1544,8 @@ Import manifestu wymaga daty dostawy w zapisie YYYY-MM-DD oraz
 obsługiwanych granic doby. Test na manifeście TGE z 13.11.2026
 potwierdza odczyt 24 cen z oryginału i odrzucenie m.in. daty
 tygodniowej ISO i dat skrajnych przed odczytem plików dowodowych.
+
+Audyt porównujący historię z cenami referencyjnymi Fix1 rozróżnia
+nieobecną dobę od doby z niekompletnymi lub nieprawidłowymi cenami.
+Test na cenach TGE z 11–13.11.2026 potwierdza porównanie 24 cen
+z pełnej doby i osobne wykazanie luki oraz doby bez jednej godziny.
