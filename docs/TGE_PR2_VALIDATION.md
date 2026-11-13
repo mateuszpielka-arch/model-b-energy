@@ -1572,3 +1572,8 @@ przed blokadą doby. Test integracyjny podaje komplet prognoz dla obu
 zmian czasu i potwierdza, że zachowany wynik doby 24h nadal daje REPLAY.
 Obsługa 23h i 25h przez scoring walk-forward na jawnych okresach UTC
 pozostaje dostępna.
+
+Scoring archiwalny odrzuca nieskończone czasy pobrania Fix1 i daty
+spoza zakresu UTC obsługiwanego przez Pythona. Test na cenach TGE
+z 02.11.2026 sprawdza zachowanie zapisanego wyniku przy czterech
+błędnych znacznikach i poprawny REPLAY w sesji Europe/Warsaw.

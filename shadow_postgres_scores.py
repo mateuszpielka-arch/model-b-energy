@@ -1,5 +1,6 @@
 """Append-only scoring in isolated PostgreSQL staging; no production connection."""
 from dataclasses import asdict
+from datetime import timezone
 from decimal import Decimal
 from hashlib import sha256
 import json
@@ -96,12 +97,17 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         if _has_delivery_quarantine(conn, day):
             raise ValueError('Quarantined delivery day cannot be scored')
         raw_hash,ref_hash,parser,raw,delivery,source_url,captured_at = conn.execute('''SELECT raw_sha256,
-            reference_sha256,parser_version,raw_html,delivery_date,source_url,retrieved_at
+            reference_sha256,parser_version,raw_html,delivery_date,source_url,
+            CASE WHEN retrieved_at >= TIMESTAMPTZ '0001-01-01 00:00:00+00'
+                   AND retrieved_at < TIMESTAMPTZ '10000-01-01 00:00:00+00'
+                 THEN retrieved_at AT TIME ZONE 'UTC' END
             FROM fix1_shadow_test.batches WHERE id=%s''',(bid,)).fetchone()
         raw = bytes(raw)
         if delivery != day or sha256(raw).hexdigest() != raw_hash:
             raise ValueError('Archived evidence hash/date mismatch')
-        capture_time = _utc(captured_at)
+        if captured_at is None:
+            raise ValueError('Archived Fix1 capture timestamp is outside the supported UTC range')
+        capture_time = captured_at.replace(tzinfo=timezone.utc)
         if capture_time <= _utc(issued_at):
             raise ValueError('Archived Fix1 capture must be after forecast issuance')
         if capture_time <= cutoff_for_day(day):
@@ -121,7 +127,7 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
             if not isinstance(reference_csv, bytes) or sha256(reference_csv).hexdigest() != ref_hash:
                 raise ValueError('Archived reference CSV hash mismatch')
             verified_batch = prepare_batch(
-                raw=raw, day=day.isoformat(), source_url=source_url, retrieved_at=captured_at,
+                raw=raw, day=day.isoformat(), source_url=source_url, retrieved_at=capture_time,
                 reference_rows=read_reference_csv(reference_csv, day.isoformat()),
                 reference_sha256=ref_hash,
             )

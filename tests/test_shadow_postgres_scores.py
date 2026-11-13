@@ -208,6 +208,22 @@ class ScorePersistenceTests(unittest.TestCase):
 
         self.assertEqual(score_archived_day(self.conn, **self.kw)[0], 'REPLAY')
 
+    def test_unsupported_archived_capture_timestamps_preserve_saved_score(self):
+        initial = score_archived_day(self.conn, **self.kw)
+        query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+        before = self.conn.execute(query).fetchall()
+
+        for stamp in ('infinity', '-infinity', '10000-01-01 00:00:00+00',
+                      '0001-12-31 23:59:59+00 BC'):
+            with self.subTest(retrieved_at=stamp), self.conn.transaction(force_rollback=True):
+                self.conn.execute('UPDATE fix1_shadow_test.batches SET retrieved_at = %s', (stamp,))
+                with self.assertRaisesRegex(ValueError, 'capture timestamp is outside the supported UTC range'):
+                    score_archived_day(self.conn, **self.kw)
+                self.assertEqual(self.conn.execute(query).fetchall(), before)
+
+        self.conn.execute("SET TIME ZONE 'Europe/Warsaw'")
+        self.assertEqual(score_archived_day(self.conn, **self.kw), ('REPLAY', initial[1]))
+
     def test_quarantined_batch_blocks_scoring(self):
         bid=self.conn.execute('SELECT id FROM fix1_shadow_test.batches').fetchone()[0]
         self.conn.execute('INSERT INTO fix1_shadow_test.quarantine(batch_id,reason) VALUES (%s,%s)',(bid,'test'))
