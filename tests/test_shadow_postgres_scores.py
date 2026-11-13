@@ -208,6 +208,27 @@ class ScorePersistenceTests(unittest.TestCase):
 
         self.assertEqual(score_archived_day(self.conn, **self.kw)[0], 'REPLAY')
 
+    def test_invalid_archived_period_timestamps_preserve_saved_score(self):
+        decision, initial = score_archived_day(self.conn, **self.kw)
+        self.assertEqual(decision, 'INSERT')
+        first_period = self.batch.rows[0][0]
+        query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+        before = self.conn.execute(query).fetchall()
+
+        self.conn.execute("SET TIME ZONE 'Europe/Warsaw'")
+        for stamp in ('infinity', '-infinity', '10000-01-01 00:00:00+00',
+                      first_period + timedelta(minutes=1)):
+            with self.subTest(period_start_utc=stamp), self.conn.transaction(force_rollback=True):
+                self.conn.execute(
+                    'UPDATE fix1_shadow_test.prices SET period_start_utc = %s WHERE period_start_utc = %s',
+                    (stamp, first_period),
+                )
+                with self.assertRaisesRegex(ValueError, 'Stored actual prices/periods differ from archived raw'):
+                    score_archived_day(self.conn, **self.kw)
+                self.assertEqual(self.conn.execute(query).fetchall(), before)
+
+        self.assertEqual(score_archived_day(self.conn, **self.kw), ('REPLAY', initial))
+
     def test_unsupported_archived_capture_timestamps_preserve_saved_score(self):
         initial = score_archived_day(self.conn, **self.kw)
         query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'

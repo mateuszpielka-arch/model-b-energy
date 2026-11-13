@@ -1577,3 +1577,8 @@ Scoring archiwalny odrzuca nieskończone czasy pobrania Fix1 i daty
 spoza zakresu UTC obsługiwanego przez Pythona. Test na cenach TGE
 z 02.11.2026 sprawdza zachowanie zapisanego wyniku przy czterech
 błędnych znacznikach i poprawny REPLAY w sesji Europe/Warsaw.
+
+Scoring archiwalny sprawdza okresy dostawy Fix1 w UTC. Odrzuca
+zapisane okresy poza dobą, nieskończone i przesunięte o minutę.
+Test na cenach TGE z 02.11.2026 sprawdza zachowanie wyniku oraz
+poprawny REPLAY w sesji Europe/Warsaw po wycofaniu wadliwych danych.

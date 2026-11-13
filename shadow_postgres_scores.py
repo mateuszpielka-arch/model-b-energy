@@ -87,9 +87,12 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         raise ValueError('Incomplete or mismatched delivery periods')
     with conn.transaction():
         _lock_delivery_day(conn, day)
-        actual = conn.execute('''SELECT period_start_utc,price,batch_id
-            FROM fix1_shadow_test.prices WHERE delivery_date=%s ORDER BY period_start_utc''',
-            (day,)).fetchall()
+        actual = conn.execute('''
+            SELECT CASE WHEN period_start_utc BETWEEN %s AND %s
+                        THEN period_start_utc AT TIME ZONE 'UTC' END,
+                   price, batch_id
+            FROM fix1_shadow_test.prices WHERE delivery_date=%s ORDER BY period_start_utc
+        ''', (periods[0], periods[-1], day)).fetchall()
         bids = {r[2] for r in actual}
         if len(actual) != 24 or len(bids) != 1:
             raise ValueError('One complete accepted actual batch required')
@@ -132,7 +135,8 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
                 reference_sha256=ref_hash,
             )
             parsed_rows = list(verified_batch.rows)
-        actual_rows = [(p,v) for p,v,_ in actual]
+        actual_rows = [(period.replace(tzinfo=timezone.utc), price)
+                       for period, price, _ in actual if period is not None]
         if actual_rows != parsed_rows:
             raise ValueError('Stored actual prices/periods differ from archived raw')
         version = ':'.join((day.isoformat(),raw_hash,ref_hash,parser))
