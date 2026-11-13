@@ -1596,3 +1596,9 @@ UTC i manifest SHA-256. Wszystkie ceny Fixing I zgadzają się
 z niezależną ekstrakcją XPath z tej samej odpowiedzi, w tym H17
 z ceną 1105,60 PLN/MWh. Test PostgreSQL sprawdza INSERT i REPLAY
 bez powielenia cen.
+
+Scoring archiwalny odrzuca próbę oceny przed czasem wydania prognozy
+jeszcze przed blokadą doby. Test na cenach TGE z 14.11.2026 używa
+syntetycznej prognozy o 09:50 Europe/Warsaw i potwierdza, że próba
+sekundę wcześniej nie zapisuje wyniku. Ocena w chwili pobrania
+cen daje INSERT, a powtórzenie REPLAY bez duplikatu.

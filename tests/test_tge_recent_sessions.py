@@ -210,6 +210,39 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
     def test_november_14_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_14_FIXTURES)
 
+    def test_november_14_scoring_rejects_evaluation_before_issuance_without_a_lock(self):
+        manifest = NOV_14_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        _, reference, _ = load_session(entry, NOV_14_FIXTURES)
+        day = date.fromisoformat(entry['delivery_date'])
+        cutoff = cutoff_for_day(day)
+        captured = datetime.fromisoformat(entry['retrieved_at_utc'])
+        forecast = [(period, Decimal('600')) for period in expected_periods(day)]
+        inputs = dict(
+            day=day, forecast_id='november-14-constant-600-test', model_version='synthetic-test',
+            forecast_status='SHADOW', issued_at=cutoff,
+            publication_ts=cutoff - timedelta(minutes=10), retrieved_at=cutoff,
+            reference_csv=reference,
+        )
+
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            with patch('shadow_postgres_scores._lock_delivery_day') as lock:
+                with self.assertRaisesRegex(ValueError, 'Evaluation time is before forecast issuance'):
+                    score_archived_day(conn, **inputs, forecast=forecast,
+                                       evaluated_at=cutoff - timedelta(seconds=1))
+                lock.assert_not_called()
+            count = 'SELECT count(*) FROM fix1_shadow_test.scores'
+            self.assertEqual(conn.execute(count).fetchone(), (0,))
+            decision, score = score_archived_day(conn, **inputs, forecast=forecast, evaluated_at=captured)
+            self.assertEqual((decision, score.periods), ('INSERT', 24))
+            self.assertEqual(
+                score_archived_day(conn, **inputs, forecast=reversed(forecast), evaluated_at=captured),
+                ('REPLAY', score),
+            )
+            self.assertEqual(conn.execute(count).fetchone(), (1,))
+
     def test_november_12_score_rejects_late_inputs_before_reading_prices_or_locking(self):
         day = date(2026, 11, 12)
         cutoff = cutoff_for_day(day)
