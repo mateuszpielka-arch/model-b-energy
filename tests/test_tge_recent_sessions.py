@@ -450,7 +450,7 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                     pending.result(timeout=5)
             self.assertEqual(conn.execute(score_query).fetchall(), original_score)
             self.assertEqual(archive_batch(conn, revised, revised_raw), 'QUARANTINE')
-            self.assertEqual(archive_batch(conn, original, raw), 'REPLAY')
+            self.assertEqual(archive_batch(conn, original, raw), 'QUARANTINE')
 
             stored = conn.execute('''
                 SELECT p.period_start_utc, p.price, b.raw_sha256

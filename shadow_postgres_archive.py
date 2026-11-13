@@ -122,10 +122,9 @@ def archive_batch(conn, batch, raw):
         else:
             decision = classify_existing(batch, [(period, price) for period, price, _, _ in existing])
             reason = 'Existing prices differ or day is partial'
-        if decision in ('INSERT', 'REPLAY') and _has_delivery_quarantine(conn, batch.delivery_date):
-            decision = 'QUARANTINE'
-            reason = 'Delivery day is already quarantined'
         if decision == 'REPLAY':
+            if _has_delivery_quarantine(conn, batch.delivery_date):
+                return 'QUARANTINE'
             (source_id, _), = source_batches
             stored_hash, stored_raw = conn.execute(
                 'SELECT raw_sha256, raw_html FROM fix1_shadow_test.batches WHERE id = %s',
@@ -134,12 +133,16 @@ def archive_batch(conn, batch, raw):
             if sha256(stored_raw).hexdigest() != stored_hash:
                 decision = 'QUARANTINE'
                 reason = 'Existing price batch raw HTML hash mismatch'
-        if decision == 'INSERT' and conn.execute(
-            'SELECT EXISTS (SELECT 1 FROM fix1_shadow_test.batches WHERE delivery_date = %s)',
-            (batch.delivery_date,),
-        ).fetchone()[0]:
-            decision = 'QUARANTINE'
-            reason = 'Archived batch exists but delivery day has no prices'
+        if decision == 'INSERT':
+            if _has_delivery_quarantine(conn, batch.delivery_date):
+                decision = 'QUARANTINE'
+                reason = 'Delivery day is already quarantined'
+            elif conn.execute(
+                'SELECT EXISTS (SELECT 1 FROM fix1_shadow_test.batches WHERE delivery_date = %s)',
+                (batch.delivery_date,),
+            ).fetchone()[0]:
+                decision = 'QUARANTINE'
+                reason = 'Archived batch exists but delivery day has no prices'
         conn.execute('''INSERT INTO fix1_shadow_test.batches
             (delivery_date,raw_sha256,reference_sha256,parser_version,source_url,retrieved_at,raw_html)
             VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING''',

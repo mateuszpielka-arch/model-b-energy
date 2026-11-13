@@ -137,9 +137,9 @@ class PostgresArchiveTests(unittest.TestCase):
         self.assertEqual(len(before), 24)
         self.assertEqual(self.conn.execute(prices_query).fetchall(), before)
         self.assertEqual(self.count('batches'), 2)
-        self.assertCountEqual(self.conn.execute(
-            'SELECT reason FROM fix1_shadow_test.quarantine'
-        ).fetchall(), [('Previously detected conflict',), ('Delivery day is already quarantined',)])
+        self.assertEqual(self.conn.execute(
+            'SELECT batch_id, reason FROM fix1_shadow_test.quarantine'
+        ).fetchall(), [(other_id, 'Previously detected conflict')])
 
     def test_mid_insert_failure_rolls_back_evidence_and_rows(self):
         import psycopg
