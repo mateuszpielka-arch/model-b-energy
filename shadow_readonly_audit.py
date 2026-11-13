@@ -246,7 +246,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 cutoff = cutoff_for_day(day)
                 publication_values = [
                     row['publication_ts'] for row in values
-                    if isinstance(row, dict) and row.get('publication_ts')
+                    if isinstance(row, dict) and row.get('publication_ts') not in (None, '')
                 ]
                 publications = []
                 for value in publication_values:
@@ -307,6 +307,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     rows=len(values),distinct_raw_labels=len(counts),repeated_raw_labels=sum(v-1 for v in counts.values()),
                     jwcd_nonnull=sum(isinstance(r,dict) and r.get('fcst_gen_unit_stor_prov') is not None for r in values),
                     publication_nonnull=len(publication_values),
+                    publication_missing=len(values)-len(publication_values),
                     publication_unverified=len(publication_values)-len(publications),
                     publication_after_cutoff=late_publications,
                     retrieved_at_utc=retrieved_utc.isoformat() if retrieved_utc is not None else None,

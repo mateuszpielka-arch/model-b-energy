@@ -1636,3 +1636,8 @@ Audyt Fix1 w PostgreSQL wskazuje okresy z jawnym UTC, dla których
 istnieje wiersz bez skończonej ceny. Test na cenach TGE z 14.11.2026
 rozróżnia NULL, NaN oraz brak całego wiersza. Ocena kompletności
 okresów i ocena kompletności cen pozostają odrębnymi wynikami.
+
+Audyt PK5 w PostgreSQL zlicza osobno brakujące i błędne znaczniki
+publikacji. Test obejmuje brak pola, NULL, pusty tekst, błędne typy
+JSON oraz publikację dokładnie o D-1 09:50 Europe/Warsaw i minutę
+później. Niepełne znaczniki nadal wykluczają snapshot z wyboru.
