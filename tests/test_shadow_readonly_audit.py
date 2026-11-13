@@ -849,12 +849,14 @@ class ReadonlyAuditTests(unittest.TestCase):
                  for hour, period in enumerate(expected_periods(day), 1)],
             )
 
-        def timing(late_periods=()):
+        def timing(late_periods=(), unproven_periods=()):
             actual, = audit_connection(self.conn)['actual_days']
             self.assertEqual(actual['next_delivery_issue_cutoff_utc'], '2026-10-25T08:50:00+00:00')
             self.assertEqual(actual['quality_status'], 'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')
             self.assertEqual(actual['observed_periods_retrieved_after_next_issue_cutoff_utc'],
                              [period.isoformat() for period in late_periods])
+            self.assertEqual(actual['observed_periods_with_unproven_price_timing_utc'],
+                             [period.isoformat() for period in unproven_periods])
             return actual['next_delivery_training_timing']
 
         self.assertEqual(timing(), 'TIMING_CANDIDATE')
@@ -869,14 +871,18 @@ class ReadonlyAuditTests(unittest.TestCase):
             'UPDATE actual.tge_fix1 SET retrieved_at_utc=%s, first_seen_at_utc=%s WHERE hour=1',
             ('2026-10-25T08:50:00Z', '2026-10-24T08:00:00Z'),
         )
-        _, second_0200 = [p for p in expected_periods(day) if p.astimezone(WARSAW).hour == 2]
+        first_0200, second_0200 = [p for p in expected_periods(day) if p.astimezone(WARSAW).hour == 2]
         self.conn.execute(
             'UPDATE actual.tge_fix1 SET retrieved_at_utc=%s WHERE period_start_utc=%s',
             ('2026-10-25T08:50:01Z', second_0200),
         )
         self.assertEqual(timing((second_0200,)), 'AFTER_NEXT_ISSUE_CUTOFF')
         self.conn.execute('UPDATE actual.tge_fix1 SET retrieved_at_utc=NULL WHERE hour=25')
-        self.assertEqual(timing((second_0200,)), 'UNPROVEN')
+        self.conn.execute(
+            'UPDATE actual.tge_fix1 SET first_seen_at_utc=%s WHERE period_start_utc=%s',
+            ('2026-10-25T08:50:01Z', first_0200),
+        )
+        self.assertEqual(timing((second_0200,), (first_0200, expected_periods(day)[-1])), 'UNPROVEN')
 
         self.conn.execute(
             'UPDATE actual.tge_fix1 SET retrieved_at_utc=%s, first_seen_at_utc=%s',

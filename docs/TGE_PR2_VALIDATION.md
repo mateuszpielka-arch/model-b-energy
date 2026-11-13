@@ -1663,3 +1663,9 @@ Audyt Fix1 w PostgreSQL wskazuje jawne okresy UTC z pobraniem po
 prognozy na następną dobę. Test doby 25h odróżnia dwa wystąpienia
 02:00 i potwierdza, że lista wykrytych spóźnień pozostaje dostępna,
 gdy inny wiersz nie ma czasu pobrania.
+
+Audyt Fix1 w PostgreSQL wskazuje okresy UTC, dla których brakuje
+wiarygodnego czasu pierwszej obserwacji lub pobrania albo zapisano
+pobranie przed pierwszą obserwacją. Test doby 25h rozróżnia
+odwróconą chronologię pierwszego 02:00, spóźnione pobranie drugiego
+02:00 i brak czasu pobrania w ostatnim okresie.
