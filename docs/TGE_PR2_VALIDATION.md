@@ -1614,3 +1614,9 @@ spóźnione rozpoczęcie lub zakończenie pobrania oraz odwróconą
 kolejność znaczników pobrania. Testy syntetyczne dla dób 23h i 25h
 potwierdzają te przyczyny oraz dopuszczenie kompletu danych
 dostępnego dokładnie o 09:50.
+
+Audyt CSV zlicza osobno rozpoczęcie pobrania i publikację JWCD
+po zakończeniu pobrania. Liczniki mogą się nakładać. Test na 24
+cenach TGE z 14.11.2026 i syntetycznych znacznikach JWCD potwierdza
+dopuszczenie danych na granicy 09:50 i odrzucenie doby z trzema
+wierszami o nieprawidłowej chronologii.

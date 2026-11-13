@@ -158,6 +158,30 @@ class HistoryAuditTests(unittest.TestCase):
             'publication_ts': 3, 'retrieved_at': 6, 'retrieval_completed_at': 9,
         })
 
+    def test_reports_overlapping_jwcd_chronology_errors_on_real_fix1_prices(self):
+        fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-14/tge_delivery_2026-11-14.csv'
+        rows = self.rows('2026-11-14')
+        cutoff = '2026-11-13T08:50:00Z'
+        after = '2026-11-13T08:50:01Z'
+        for row, price in zip(rows, read_csv(fixture), strict=True):
+            row.update(fix1=price['price_pln_mwh'], period_start_utc=price['period_start_utc'],
+                       publication_ts=cutoff, retrieved_at_utc=cutoff, retrieval_completed_at=cutoff)
+        self.assertTrue(audit_rows(rows)['days'][0]['model_ready'])
+        rows[0]['retrieved_at_utc'] = after
+        rows[1]['publication_ts'] = after
+        rows[2].update(retrieved_at_utc=after, publication_ts=after)
+
+        report = audit_rows(rows)
+        day, = report['days']
+        self.assertTrue(day['complete_pairs'])
+        self.assertEqual(day['valid_fix1_rows'], 24)
+        self.assertEqual(day['availability_invalid_timestamp_rows'], 3)
+        self.assertEqual(day['availability_after_cutoff_rows'], 0)
+        self.assertFalse(day['model_ready'])
+        for summary in (day, report):
+            self.assertEqual(summary['retrieval_start_after_completion_rows'], 2)
+            self.assertEqual(summary['publication_after_completion_rows'], 2)
+
     def test_accepts_canonical_retrieved_at_and_rejects_conflicting_legacy_alias(self):
         rows = self.rows()
         for row in rows:

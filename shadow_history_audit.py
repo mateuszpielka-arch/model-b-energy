@@ -52,6 +52,7 @@ def audit_rows(rows):
         retrieval_windows = set()
         snapshot_ids = set()
         missing_timing = invalid_timing = late_timing = 0
+        invalid_retrieval_order = publication_after_completion = 0
         missing_timestamps = Counter(dict.fromkeys(missing_timestamp_totals, 0))
         late_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
         cutoff = cutoff_for_day(d)
@@ -127,6 +128,8 @@ def audit_rows(rows):
                 continue
             if start > end or pub > end:
                 invalid_timing += 1
+                invalid_retrieval_order += start > end
+                publication_after_completion += pub > end
             elif end > cutoff:
                 late_timing += 1
                 late_timestamps.update(
@@ -176,6 +179,8 @@ def audit_rows(rows):
             availability_missing_timestamp_rows=missing_timing,
             missing_timestamp_rows_by_field=dict(missing_timestamps),
             availability_invalid_timestamp_rows=invalid_timing,
+            retrieval_start_after_completion_rows=invalid_retrieval_order,
+            publication_after_completion_rows=publication_after_completion,
             availability_after_cutoff_rows=late_timing,
             after_cutoff_rows_by_field=dict(late_timestamps),
             model_ready=not issues,issues=sorted(issues)))
@@ -189,6 +194,10 @@ def audit_rows(rows):
     return dict(days=days, invalid_date_rows=invalid_dates,
                 missing_timestamp_rows_by_field=dict(missing_timestamp_totals),
                 after_cutoff_rows_by_field=dict(late_timestamp_totals),
+                retrieval_start_after_completion_rows=sum(
+                    day["retrieval_start_after_completion_rows"] for day in days),
+                publication_after_completion_rows=sum(
+                    day["publication_after_completion_rows"] for day in days),
                 actual_availability_invalid_timestamp_rows=sum(
                     d['actual_availability_invalid_timestamp_rows'] for d in days),
                 actual_availability_at_or_before_cutoff_rows=sum(
