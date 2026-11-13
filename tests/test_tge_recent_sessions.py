@@ -30,6 +30,7 @@ NOV_10_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-10')
 NOV_11_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-11')
 NOV_12_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-12')
 NOV_13_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-13')
+NOV_14_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-14')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
@@ -139,6 +140,20 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         self.assertEqual(report['days_by_status'], {'VALIDATED_DRY_RUN': 1})
         self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
 
+    def test_november_14_fixing_i_matches_reference_and_admits_utc_periods(self):
+        day = date(2026, 11, 14)
+        self.check_sessions(NOV_14_FIXTURES, [day.isoformat()])
+        manifest = NOV_14_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        raw, _, rows = load_session(entry, NOV_14_FIXTURES)
+        self.assertEqual([row['period_start_utc'] for row in rows],
+                         [period.isoformat() for period in expected_periods(day)])
+        prices = parse_complete_standard_day(raw.decode('utf-8'), day.isoformat())
+        self.assertEqual(Decimal(str(prices[17])), Decimal('1105.60'))
+        report = ingest_manifest(manifest)
+        self.assertEqual(report['days_by_status'], {'VALIDATED_DRY_RUN': 1})
+        self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
+
     def check_sessions(self, directory, days):
         manifest = json.loads((directory / 'manifest.json').read_text())
         self.assertEqual(manifest['errors'], [])
@@ -191,6 +206,9 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
     def test_november_13_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_13_FIXTURES)
+
+    def test_november_14_manifest_is_archived_and_replayed_without_duplicate_rows(self):
+        self.check_manifest_archive_and_replay(NOV_14_FIXTURES)
 
     def test_november_12_score_rejects_late_inputs_before_reading_prices_or_locking(self):
         day = date(2026, 11, 12)

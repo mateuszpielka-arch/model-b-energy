@@ -1589,3 +1589,10 @@ paczce TGE z 13.11.2026 potwierdza jeden wpis po dwóch próbach dla
 czterech błędnych znaczników, w tym wartości nieskończonych. Zapisane
 wiersze są zachowane. Po wycofaniu zmian testowych import daje REPLAY
 w sesji Europe/Warsaw.
+
+Sesję TGE z 13.11.2026 dla dostawy 14.11.2026 pobrano o 11:15
+Europe/Warsaw. Zapisano oryginalny HTML w gzip, CSV z 24 okresami
+UTC i manifest SHA-256. Wszystkie ceny Fixing I zgadzają się
+z niezależną ekstrakcją XPath z tej samej odpowiedzi, w tym H17
+z ceną 1105,60 PLN/MWh. Test PostgreSQL sprawdza INSERT i REPLAY
+bez powielenia cen.
