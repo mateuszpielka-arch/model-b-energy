@@ -469,9 +469,9 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (2,))
 
             report = ingest_manifest(FIXTURES / 'manifest.json', conn=conn)
-            replay, *new_days = report['results']
-            self.assertEqual((replay['day'], replay['status'], replay['scoring_blocked_by_quarantine']),
-                             (day, 'REPLAY', True))
+            blocked, *new_days = report['results']
+            self.assertEqual((blocked['day'], blocked['status'], blocked['scoring_blocked_by_quarantine']),
+                             (day, 'QUARANTINE', True))
             self.assertEqual([(row['status'], row['scoring_blocked_by_quarantine']) for row in new_days],
                              [('INSERT', False), ('INSERT', False)])
             self.assertEqual(report['inserted_periods'], 48)
