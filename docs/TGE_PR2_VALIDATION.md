@@ -1715,3 +1715,9 @@ Audyt PK5 podaje powody odrzucenia godzinowego kandydata JWCD.
 Raport uwzględnia chronologię, kompletność okresów UTC i poprawność
 wartości JWCD. Test doby 25h sprawdza osobno brak kluczy UTC
 i brak wartości JWCD oraz pustą listę powodów dla pełnej doby.
+
+Audyt CSV uwzględnia w licznikach znaczników po D-1 09:50
+Europe/Warsaw także wiersze z odwróconą chronologią JWCD.
+Klasyfikacja wierszy nadal rozróżnia złą chronologię i spóźnioną
+kompletną sekwencję. Test na cenach TGE z 14.11.2026 sprawdza
+oba liczniki przy syntetycznych znacznikach JWCD.

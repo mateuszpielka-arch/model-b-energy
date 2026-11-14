@@ -131,16 +131,16 @@ def audit_rows(rows):
             except (ValueError, TypeError):
                 invalid_timing += 1
                 continue
+            late_timestamps.update(
+                field for field, stamp in zip(JWCD_TIMESTAMPS, (pub, start, end))
+                if stamp > cutoff
+            )
             if start > end or pub > end:
                 invalid_timing += 1
                 invalid_retrieval_order += start > end
                 publication_after_completion += pub > end
             elif end > cutoff:
                 late_timing += 1
-                late_timestamps.update(
-                    field for field, stamp in zip(JWCD_TIMESTAMPS, (pub, start, end))
-                    if stamp > cutoff
-                )
             else:
                 available += 1
                 retrieval_windows.add((start, end))

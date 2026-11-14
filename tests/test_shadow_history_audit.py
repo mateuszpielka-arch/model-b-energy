@@ -152,10 +152,10 @@ class HistoryAuditTests(unittest.TestCase):
             self.assertEqual(day['availability_invalid_timestamp_rows'], 1)
             self.assertEqual(day['availability_after_cutoff_rows'], 3)
             self.assertEqual(day['after_cutoff_rows_by_field'], {
-                'publication_ts': 1, 'retrieved_at': 2, 'retrieval_completed_at': 3,
+                'publication_ts': 2, 'retrieved_at': 2, 'retrieval_completed_at': 3,
             })
         self.assertEqual(report['after_cutoff_rows_by_field'], {
-            'publication_ts': 3, 'retrieved_at': 6, 'retrieval_completed_at': 9,
+            'publication_ts': 6, 'retrieved_at': 6, 'retrieval_completed_at': 9,
         })
 
     def test_reports_overlapping_jwcd_chronology_errors_on_real_fix1_prices(self):
@@ -181,6 +181,9 @@ class HistoryAuditTests(unittest.TestCase):
         for summary in (day, report):
             self.assertEqual(summary['retrieval_start_after_completion_rows'], 2)
             self.assertEqual(summary['publication_after_completion_rows'], 2)
+            self.assertEqual(summary['after_cutoff_rows_by_field'], {
+                'publication_ts': 2, 'retrieved_at': 2, 'retrieval_completed_at': 0,
+            })
 
     def test_reports_periods_with_missing_values_separately_from_missing_rows(self):
         fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-14/tge_delivery_2026-11-14.csv'
