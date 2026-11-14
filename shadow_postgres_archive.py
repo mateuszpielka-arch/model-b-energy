@@ -129,6 +129,9 @@ def archive_batch(conn, batch, raw):
         elif any(period is None for period, _, _, _ in existing):
             decision = 'QUARANTINE'
             reason = 'Existing delivery period is outside the Fix1 day'
+        elif any(not price.is_finite() for _, price, _, _ in existing):
+            decision = 'QUARANTINE'
+            reason = 'Existing delivery day has nonfinite Fix1 prices'
         else:
             existing_rows = [(period.replace(tzinfo=timezone.utc), price)
                              for period, price, _, _ in existing]

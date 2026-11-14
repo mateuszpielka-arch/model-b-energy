@@ -1744,3 +1744,8 @@ parsera zapisanej paczki z wersją zweryfikowanej paczki wejściowej.
 Test na cenach TGE dla 15.11.2026 potwierdza REPLAY przy zgodnej
 wersji i jeden wpis kwarantanny po dwóch próbach z obcą wersją.
 Zapisane ceny i ich powiązania są zachowane.
+
+Ponowny import w izolowanym archiwum zapisuje osobny powód
+kwarantanny dla nieskończonych cen lub NaN. Test na cenach TGE dla
+15.11.2026 sprawdza NaN, +Infinity i -Infinity, dwie próby bez
+powielenia kwarantanny oraz REPLAY po wycofaniu zmian testowych.
