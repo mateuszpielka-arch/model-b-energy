@@ -355,8 +355,12 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     day, values, late_publication_rows=late_publication_rows,
                     invalid_publication_rows=invalid_publication_rows,
                 )
-                hourly_candidate = (archive_timing_candidate and utc_hours['complete_utc_hours']
-                                    and utc_hours['valid_jwcd_rows'] == len(values))
+                hourly_rejections = list(archive_timing_rejections)
+                if not utc_hours['complete_utc_hours']:
+                    hourly_rejections.append('INCOMPLETE_OR_INVALID_UTC_PERIODS')
+                if utc_hours['valid_jwcd_rows'] != len(values):
+                    hourly_rejections.append('MISSING_OR_INVALID_JWCD_VALUES')
+                hourly_candidate = not hourly_rejections
                 if hourly_candidate:
                     hourly_candidates[day].append(dict(
                         id=sid, delivery_date=day, retrieved_at=retrieved_utc,
@@ -383,6 +387,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     archive_timing_rejections=archive_timing_rejections,
                     utc_hour_audit=utc_hours,
                     archive_hourly_candidate=hourly_candidate,
+                    archive_hourly_rejections=hourly_rejections,
                     availability_status=availability,
                     model_ready=False))
         if present['actual.tge_fix1']:

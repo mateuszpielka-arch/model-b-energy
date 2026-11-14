@@ -574,6 +574,8 @@ class ReadonlyAuditTests(unittest.TestCase):
                 snapshot, = result['snapshots']
                 self.assertEqual(snapshot['archive_timing_candidate'], eligible)
                 self.assertEqual(snapshot['archive_timing_rejections'], rejections)
+                if eligible:
+                    self.assertEqual(snapshot['archive_hourly_rejections'], [])
                 expected_publication = ('2026-10-24T07:45:00+00:00' if 'PUBLICATION_AFTER_ARCHIVE' in rejections
                                         else '2026-10-24T07:20:00+00:00')
                 self.assertEqual(snapshot['latest_publication_ts_utc'], expected_publication)
@@ -598,6 +600,8 @@ class ReadonlyAuditTests(unittest.TestCase):
         result = audit_connection(self.conn)
         self.assertEqual(result['archive_timing_candidate_days'], [day.isoformat()])
         self.assertEqual(result['archive_hourly_candidate_days'], [])
+        self.assertEqual(result['snapshots'][0]['archive_hourly_rejections'],
+                         ['INCOMPLETE_OR_INVALID_UTC_PERIODS'])
 
         rows[-1]['fcst_gen_unit_stor_prov'] = None
         self.conn.execute('UPDATE raw.snapshots SET payload=%s', (Jsonb({'pk5l-wp': rows}),))
@@ -608,6 +612,7 @@ class ReadonlyAuditTests(unittest.TestCase):
                          [rows[-1]['period_start_utc']])
         self.assertTrue(snapshot['archive_timing_candidate'])
         self.assertFalse(snapshot['archive_hourly_candidate'])
+        self.assertEqual(snapshot['archive_hourly_rejections'], ['MISSING_OR_INVALID_JWCD_VALUES'])
         self.assertEqual(result['archive_hourly_candidate_selection'], {})
 
     def test_hourly_candidate_selection_flags_conflicting_latest_versions(self):

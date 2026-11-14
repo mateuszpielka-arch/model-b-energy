@@ -1710,3 +1710,8 @@ Audyt PK5 wskazuje okresy UTC z różnymi skończonymi wartościami
 JWCD w jednym snapshotcie. Test doby 25h wykrywa konflikt w drugim
 wystąpieniu 02:00. Pierwsze zawiera równoważne zapisy liczbowe
 i NaN, a raport wskazuje je jako duplikat bez konfliktu wartości.
+
+Audyt PK5 podaje powody odrzucenia godzinowego kandydata JWCD.
+Raport uwzględnia chronologię, kompletność okresów UTC i poprawność
+wartości JWCD. Test doby 25h sprawdza osobno brak kluczy UTC
+i brak wartości JWCD oraz pustą listę powodów dla pełnej doby.
