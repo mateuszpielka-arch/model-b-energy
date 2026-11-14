@@ -1701,3 +1701,7 @@ Audyt Fix1 wskazuje okresy UTC, dla których zapisano pobranie
 w chwili wydania prognozy na tę samą dobę (D-1 09:50 Europe/Warsaw)
 lub wcześniej. Test doby 25h sprawdza pojedynczy okres na granicy
 oraz przypadek z pobraniem wszystkich okresów o 09:50.
+
+Audyt Fix1 w PostgreSQL wskazuje okresy UTC z różnymi skończonymi
+cenami. Test na cenach TGE dla 14.11.2026 rozróżnia zgodne
+powtórzenie od konfliktu ceny dla tego samego okresu UTC.

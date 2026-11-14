@@ -390,6 +390,18 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
             stored_period = 'period_start_utc' if 'period_start_utc' in columns else 'NULL::timestamptz'
             period_column = _python_utc_timestamptz(columns, 'period_start_utc')
             source_present = f"(btrim({source_url}) <> '' AND {raw_hash} ~ '^[0-9A-Fa-f]{{64}}$')"
+            conflicting_price_periods = defaultdict(set)
+            if columns.get('period_start_utc'):
+                for day, period in conn.execute(f'''
+                    SELECT delivery_date, {period_column} AS period_utc
+                    FROM actual.tge_fix1
+                    WHERE delivery_date BETWEEN %s AND %s
+                      AND {period_column} IS NOT NULL
+                      AND price_pln_mwh::text NOT IN ('NaN','Infinity','-Infinity')
+                    GROUP BY delivery_date, period_utc
+                    HAVING count(DISTINCT price_pln_mwh) > 1
+                ''', bounds):
+                    conflicting_price_periods[day].add(period)
             rows=conn.execute(f'''SELECT delivery_date,count(*),
                 array_agg(DISTINCT {hour_column}) FILTER (WHERE {hour_column} IS NOT NULL),
                 count(*) FILTER (WHERE price_pln_mwh IN (60,2026)),
@@ -495,6 +507,10 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     rows_with_invalid_utc_period=invalid_periods,
                     utc_period_audit=utc_period_audit,
                     observed_periods_without_valid_fix1_utc=invalid_price_periods,
+                    observed_periods_with_conflicting_fix1_prices_utc=[
+                        period.isoformat()
+                        for period in sorted(set(periods) & conflicting_price_periods.get(day, set()))
+                    ] if utc_period_audit is not None else None,
                     hour_utc_mismatches=hour_utc_mismatches,
                     missing_price_rows=missing_prices,
                     nonfinite_price_rows=nonfinite_prices,

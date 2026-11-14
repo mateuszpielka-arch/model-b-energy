@@ -1149,6 +1149,18 @@ class ReadonlyAuditTests(unittest.TestCase):
                          [period.isoformat() for period in periods[:2]])
         self.assertEqual(actual['utc_period_audit']['missing_periods_utc'], [periods[2].isoformat()])
 
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,%s,%s)',
+                [(day, 4, Decimal(reference[3]['price_pln_mwh']), periods[3]),
+                 (day, 5, Decimal(reference[4]['price_pln_mwh']) + 1, periods[4])],
+            )
+        actual, = audit_connection(self.conn)['actual_days']
+        self.assertEqual(actual['utc_period_audit']['duplicate_periods_utc'],
+                         [period.isoformat() for period in periods[3:5]])
+        self.assertEqual(actual['observed_periods_with_conflicting_fix1_prices_utc'],
+                         [periods[4].isoformat()])
+
     def test_fix1_audit_identifies_swapped_hours_even_with_complete_utc_periods(self):
         from decimal import Decimal
         from pathlib import Path
