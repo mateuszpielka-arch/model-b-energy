@@ -1674,3 +1674,9 @@ Audyt history.hourly w PostgreSQL podaje powtórzone etykiety,
 etykiety poza zakresem liczby okresów danej doby oraz liczbę
 wierszy bez etykiety. Test doby 25h obejmuje powtórzoną etykietę
 2, etykiety 25 i 26 oraz NULL. Etykiety nie ustalają kluczy UTC.
+
+Audyt history.hourly liczy odrębne etykiety oraz etykiety z parą
+skończonych wartości JWCD i Fix1 według długości doby. Na
+izolowanym PostgreSQL test sprawdza uwzględnienie etykiety 25
+jesienią oraz pominięcie etykiety 24 w dobie 23h. Obie doby
+pozostają bez potwierdzonego mapowania UTC.

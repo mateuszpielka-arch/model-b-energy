@@ -219,11 +219,20 @@ class ReadonlyAuditTests(unittest.TestCase):
             )
             legacy = audit_connection(self.conn)['legacy_hourly_history']['days']
             autumn_day = next(row for row in legacy if row['day'] == autumn.isoformat())
+            self.assertEqual(autumn_day['distinct_legacy_hours'], 25)
+            self.assertEqual(autumn_day['paired_legacy_hours'], 2)
             self.assertEqual(autumn_day['duplicate_legacy_hour_labels'], [2])
             self.assertEqual(autumn_day['out_of_range_legacy_hour_labels'], [26])
             self.assertEqual(autumn_day['rows_without_legacy_hour_label'], 1)
             self.assertFalse(autumn_day['complete_pairs'])
             self.assertFalse(autumn_day['model_ready'])
+
+            self.conn.execute('INSERT INTO history.hourly VALUES (%s,24,1000,100)', (spring,))
+            spring_day, = audit_connection(self.conn, start_day=spring, end_day=spring)['legacy_hourly_history']['days']
+            self.assertEqual(spring_day['distinct_legacy_hours'], 23)
+            self.assertEqual(spring_day['paired_legacy_hours'], 23)
+            self.assertEqual(spring_day['out_of_range_legacy_hour_labels'], [24])
+            self.assertFalse(spring_day['complete_pairs'])
         finally:
             self.conn.execute('DROP SCHEMA history CASCADE')
 
