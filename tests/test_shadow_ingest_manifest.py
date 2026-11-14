@@ -260,6 +260,8 @@ class ManifestTests(unittest.TestCase):
                 (url.split('?')[0], 'Historical TGE session URL required'),
                 (url.replace('07-11-2026', '08-11-2026'), 'session URL does not match'),
                 (url + '&dateShow=07-11-2026', 'session URL does not match'),
+                (url.replace('tge.pl', 'example.test'), 'Unexpected source URL'),
+                (url.replace('/energia-elektryczna-rdn', '/other'), 'Unexpected source URL'),
             ):
                 with self.subTest(source_url=source_url):
                     if source_url is None:
@@ -268,8 +270,10 @@ class ManifestTests(unittest.TestCase):
                         entry['url'] = source_url
                     manifest.write_text(json.dumps(data))
 
-                    with self.assertRaisesRegex(ValueError, error):
-                        ingest_manifest(manifest, conn=object())
+                    with patch('shadow_ingest_manifest._inside') as resolve_evidence:
+                        with self.assertRaisesRegex(ValueError, error):
+                            ingest_manifest(manifest, conn=object())
+                        resolve_evidence.assert_not_called()
 
     def test_manifest_requires_explicit_success_and_evidence_objects_before_io(self):
         source = FIX.with_name('tge_delivery_2026-11-11')

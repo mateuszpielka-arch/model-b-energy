@@ -1774,3 +1774,8 @@ Importer manifestu sprawdza format obu sum SHA-256 przed otwarciem
 plików HTML i CSV. Test na manifeście TGE dla 15.11.2026 obejmuje
 brak pola, zły typ, długość i alfabet zapisu. Oryginalny manifest
 przechodzi walidację 24 okresów z porównaniem obu sum do plików.
+
+Importer Fix1 sprawdza adres sesji TGE przed otwarciem plików
+dowodowych. Test na manifeście dostawy 08.11.2026 obejmuje
+inną domenę, błędną ścieżkę, datę innej sesji i powtórzony
+parametr daty. Oryginalny manifest przechodzi dry-run dla 24 okresów.

@@ -13,7 +13,9 @@ import re
 from time import sleep
 from urllib.parse import urlsplit
 from zlib import error as ZlibError
-from shadow_archive_batch import MAX_REFERENCE_BYTES, prepare_batch, read_reference_csv
+from shadow_archive_batch import (
+    MAX_REFERENCE_BYTES, prepare_batch, read_reference_csv, validate_source_url,
+)
 from shadow_asof import cutoff_for_day
 from shadow_scoring import _utc
 
@@ -87,6 +89,7 @@ def load_batches(manifest_path):
         source_url = e.get('url')
         if not isinstance(source_url, str) or not urlsplit(source_url).query:
             raise ValueError(f'Historical TGE session URL required for delivery {day}')
+        validate_source_url(source_url, day)
         if day in dates: raise ValueError('Duplicate delivery date in manifest')
         dates.add(day)
         http_status = e.get('http_status')
