@@ -26,6 +26,24 @@ class PK5UtcHoursTests(unittest.TestCase):
                 self.assertEqual(result['duplicate_periods_utc'], [rows[0]['period_start_utc']])
                 self.assertEqual(result['missing_periods_utc'], [rows[-1]['period_start_utc']])
 
+    def test_jwcd_conflicts_distinguish_repeated_local_hours(self):
+        day = date(2026, 10, 25)
+        periods = expected_periods(day)
+        first, second = [period for period in periods if period.astimezone(WARSAW).hour == 2]
+        rows = [
+            {'period_start_utc': period.isoformat(), 'fcst_gen_unit_stor_prov': value}
+            for period, value in (
+                (first, '1000'), (first, '1000.00'), (first, 'NaN'),
+                (second, '1100'), (second, '1200'),
+            )
+        ]
+
+        result = audit_pk5_utc_hours(day, rows)
+        self.assertEqual(result['duplicate_periods_utc'], [first.isoformat(), second.isoformat()])
+        self.assertEqual(result['observed_periods_with_conflicting_jwcd_values_utc'],
+                         [second.isoformat()])
+        self.assertFalse(result['complete_utc_hours'])
+
     def test_jwcd_value_gaps_use_distinct_utc_periods_on_autumn_day(self):
         day = date(2026, 10, 25)
         periods = expected_periods(day)

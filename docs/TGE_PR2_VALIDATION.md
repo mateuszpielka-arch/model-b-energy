@@ -1705,3 +1705,8 @@ oraz przypadek z pobraniem wszystkich okresów o 09:50.
 Audyt Fix1 w PostgreSQL wskazuje okresy UTC z różnymi skończonymi
 cenami. Test na cenach TGE dla 14.11.2026 rozróżnia zgodne
 powtórzenie od konfliktu ceny dla tego samego okresu UTC.
+
+Audyt PK5 wskazuje okresy UTC z różnymi skończonymi wartościami
+JWCD w jednym snapshotcie. Test doby 25h wykrywa konflikt w drugim
+wystąpieniu 02:00. Pierwsze zawiera równoważne zapisy liczbowe
+i NaN, a raport wskazuje je jako duplikat bez konfliktu wartości.

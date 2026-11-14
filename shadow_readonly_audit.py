@@ -4,6 +4,7 @@ No ambient DATABASE_URL. Never exports credentials or complete raw payloads.
 """
 from datetime import date, datetime, timedelta, timezone
 from collections import Counter, defaultdict
+from decimal import Decimal
 from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_history_audit import (
     _number, _stamp, audit_rows, comparison_coverage, missing_delivery_ranges, read_csv,
@@ -30,7 +31,7 @@ def audit_pk5_utc_hours(day, rows, *, late_publication_rows=(), invalid_publicat
     """Check explicit canonical period starts; legacy labels cannot disambiguate DST."""
     expected = set(expected_periods(day))
     periods = Counter()
-    valid_jwcd_periods = set()
+    jwcd_values_by_period = defaultdict(set)
     periods_with_late_publication = set()
     periods_with_invalid_publication = set()
     missing_utc = invalid_utc = valid_jwcd = 0
@@ -38,7 +39,8 @@ def audit_pk5_utc_hours(day, rows, *, late_publication_rows=(), invalid_publicat
         if not isinstance(row, dict):
             invalid_utc += 1
             continue
-        has_valid_jwcd = _number(row.get('fcst_gen_unit_stor_prov'))
+        raw_jwcd = row.get('fcst_gen_unit_stor_prov')
+        has_valid_jwcd = _number(raw_jwcd)
         valid_jwcd += has_valid_jwcd
         raw_period = row.get('period_start_utc')
         if raw_period in (None, ''):
@@ -55,7 +57,7 @@ def audit_pk5_utc_hours(day, rows, *, late_publication_rows=(), invalid_publicat
         if index in invalid_publication_rows:
             periods_with_invalid_publication.add(period)
         if has_valid_jwcd:
-            valid_jwcd_periods.add(period)
+            jwcd_values_by_period[period].add(Decimal(str(raw_jwcd)))
     gaps = _utc_period_gaps(expected, periods)
     return {
         'complete_utc_hours': not (any(gaps.values()) or missing_utc or invalid_utc),
@@ -69,8 +71,12 @@ def audit_pk5_utc_hours(day, rows, *, late_publication_rows=(), invalid_publicat
         'observed_periods_with_missing_or_invalid_publication_utc': [
             period.isoformat() for period in sorted(expected & periods_with_invalid_publication)
         ],
+        'observed_periods_with_conflicting_jwcd_values_utc': [
+            period.isoformat() for period in sorted(expected & jwcd_values_by_period.keys())
+            if len(jwcd_values_by_period[period]) > 1
+        ],
         'observed_periods_without_valid_jwcd_utc': [
-            period.isoformat() for period in sorted(expected & (periods.keys() - valid_jwcd_periods))
+            period.isoformat() for period in sorted(expected & (periods.keys() - jwcd_values_by_period.keys()))
         ],
     }
 
