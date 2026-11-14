@@ -1732,3 +1732,9 @@ Ponowny import w izolowanym archiwum waliduje URL źródłowy zapisanej
 paczki Fix1. Test na cenach TGE dla 15.11.2026 podmienia URL zapisanej
 paczki na adres innej sesji. Dwie próby importu dają jeden wpis
 kwarantanny i zachowują 24 zapisane ceny wraz z ich powiązaniami.
+
+Ponowny import w izolowanym archiwum sprawdza format SHA-256
+referencyjnego CSV zapisanej paczki Fix1. Test na cenach TGE dla
+15.11.2026 używa 64 znaków spoza alfabetu szesnastkowego. Dwa
+ponowienia tworzą jeden wpis kwarantanny i zachowują 24 ceny
+z pierwotnymi powiązaniami.

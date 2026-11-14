@@ -245,6 +245,26 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             self.assertEqual(conn.execute('SELECT reason FROM fix1_shadow_test.quarantine').fetchall(),
                              [('Existing price batch has invalid Fix1 source URL',)])
 
+    def test_november_15_replay_quarantines_a_malformed_archived_reference_hash(self):
+        manifest = NOV_15_FIXTURES / 'manifest.json'
+        with self.isolated_connection() as conn:
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            conn.execute('UPDATE fix1_shadow_test.batches SET reference_sha256 = %s', ('g' * 64,))
+            prices_query = ('SELECT period_start_utc, price, batch_id FROM fix1_shadow_test.prices '
+                            'ORDER BY period_start_utc')
+            stored_prices = conn.execute(prices_query).fetchall()
+
+            for _ in range(2):
+                report = ingest_manifest(manifest, conn=conn)
+                self.assertEqual(report['days_by_status'], {'QUARANTINE': 1})
+                self.assertEqual(report['inserted_periods'], 0)
+                self.assertEqual(conn.execute(prices_query).fetchall(), stored_prices)
+            self.assertEqual(
+                conn.execute('SELECT reason FROM fix1_shadow_test.quarantine').fetchall(),
+                [('Existing price batch has invalid Fix1 reference SHA-256',)],
+            )
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (2,))
+
     def test_november_14_scoring_rejects_evaluation_before_issuance_without_a_lock(self):
         manifest = NOV_14_FIXTURES / 'manifest.json'
         entry, = json.loads(manifest.read_text())['entries']
