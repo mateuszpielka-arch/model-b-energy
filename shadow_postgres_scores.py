@@ -101,6 +101,8 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
         bid = next(iter(bids))
         if _has_delivery_quarantine(conn, day):
             raise ValueError('Quarantined delivery day cannot be scored')
+        if any(not price.is_finite() for _, price, _ in actual):
+            raise ValueError('Stored actual batch has nonfinite Fix1 prices')
         raw_hash,ref_hash,parser,raw,delivery,source_url,captured_at = conn.execute('''SELECT raw_sha256,
             reference_sha256,parser_version,raw_html,delivery_date,source_url,
             CASE WHEN retrieved_at >= TIMESTAMPTZ '0001-01-01 00:00:00+00'

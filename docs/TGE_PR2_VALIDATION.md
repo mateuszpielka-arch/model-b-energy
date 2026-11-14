@@ -1749,3 +1749,8 @@ Ponowny import w izolowanym archiwum zapisuje osobny powód
 kwarantanny dla nieskończonych cen lub NaN. Test na cenach TGE dla
 15.11.2026 sprawdza NaN, +Infinity i -Infinity, dwie próby bez
 powielenia kwarantanny oraz REPLAY po wycofaniu zmian testowych.
+
+Scoring w izolowanym PostgreSQL odrzuca NaN i obie nieskończoności
+w zapisanych cenach Fix1 przed ponownym odczytem HTML. Test na cenach
+TGE dla 15.11.2026 i syntetycznej prognozie potwierdza zachowanie
+zapisanego wyniku i REPLAY po wycofaniu zmian testowych.

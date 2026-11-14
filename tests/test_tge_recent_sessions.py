@@ -309,6 +309,36 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                     )
             self.assertEqual(ingest_manifest(manifest, conn=conn)['days_by_status'], {'REPLAY': 1})
 
+    def test_november_15_nonfinite_archived_prices_block_score_replay(self):
+        manifest = NOV_15_FIXTURES / 'manifest.json'
+        day = date(2026, 11, 15)
+        cutoff = cutoff_for_day(day)
+        periods = expected_periods(day)
+        inputs = dict(day=day, forecast=[(period, Decimal('600')) for period in periods],
+                      forecast_id='november-15-constant-600-test', model_version='synthetic-test',
+                      forecast_status='SHADOW', issued_at=cutoff,
+                      publication_ts=cutoff - timedelta(minutes=1), retrieved_at=cutoff)
+
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            decision, score = score_archived_day(conn, **inputs)
+            self.assertEqual(decision, 'INSERT')
+            query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+            saved, = conn.execute(query).fetchall()
+
+            for price in ('NaN', 'Infinity', '-Infinity'):
+                with self.subTest(price=price), conn.transaction(force_rollback=True):
+                    conn.execute('UPDATE fix1_shadow_test.prices SET price = %s::numeric '
+                                 'WHERE period_start_utc = %s', (price, periods[0]))
+                    with patch('shadow_postgres_scores.parse_complete_standard_day') as parser:
+                        with self.assertRaisesRegex(ValueError, 'nonfinite Fix1 prices'):
+                            score_archived_day(conn, **inputs)
+                        parser.assert_not_called()
+                    self.assertEqual(conn.execute(query).fetchall(), [saved])
+
+            self.assertEqual(score_archived_day(conn, **inputs), ('REPLAY', score))
+
     def test_november_14_scoring_rejects_evaluation_before_issuance_without_a_lock(self):
         manifest = NOV_14_FIXTURES / 'manifest.json'
         entry, = json.loads(manifest.read_text())['entries']
