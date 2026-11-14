@@ -31,6 +31,7 @@ NOV_11_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-11')
 NOV_12_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-12')
 NOV_13_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-13')
 NOV_14_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-14')
+NOV_15_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-15')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
@@ -154,6 +155,19 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         self.assertEqual(report['days_by_status'], {'VALIDATED_DRY_RUN': 1})
         self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
 
+    def test_november_15_fixing_i_matches_official_reference(self):
+        day = date(2026, 11, 15)
+        self.check_sessions(NOV_15_FIXTURES, [day.isoformat()])
+        manifest = NOV_15_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        _, _, rows = load_session(entry, NOV_15_FIXTURES)
+        self.assertEqual([row['period_start_utc'] for row in rows],
+                         [period.isoformat() for period in expected_periods(day)])
+        self.assertEqual(rows[0]['price_pln_mwh'], '763.14')
+        report = ingest_manifest(manifest)
+        self.assertEqual(report['days_by_status'], {'VALIDATED_DRY_RUN': 1})
+        self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
+
     def check_sessions(self, directory, days):
         manifest = json.loads((directory / 'manifest.json').read_text())
         self.assertEqual(manifest['errors'], [])
@@ -209,6 +223,9 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
     def test_november_14_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_14_FIXTURES)
+
+    def test_november_15_manifest_is_archived_and_replayed_without_duplicate_rows(self):
+        self.check_manifest_archive_and_replay(NOV_15_FIXTURES)
 
     def test_november_14_scoring_rejects_evaluation_before_issuance_without_a_lock(self):
         manifest = NOV_14_FIXTURES / 'manifest.json'

@@ -1721,3 +1721,9 @@ Europe/Warsaw także wiersze z odwróconą chronologią JWCD.
 Klasyfikacja wierszy nadal rozróżnia złą chronologię i spóźnioną
 kompletną sekwencję. Test na cenach TGE z 14.11.2026 sprawdza
 oba liczniki przy syntetycznych znacznikach JWCD.
+
+Pobrano oficjalny HTML sesji TGE z 14.11.2026 dla dostawy
+15.11.2026 o 11:19 Europe/Warsaw. Zapisano HTML w gzip, CSV
+i manifest SHA-256. Parser Fixing I daje 24 ceny zgodne z niezależną
+ekstrakcją XPath z tej samej odpowiedzi, w tym H01 763,14 PLN/MWh.
+Test izolowanego PostgreSQL sprawdza INSERT i REPLAY bez duplikatów.
