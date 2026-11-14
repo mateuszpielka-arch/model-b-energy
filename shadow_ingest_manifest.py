@@ -101,6 +101,9 @@ def load_batches(manifest_path):
             raise ValueError(f'Manifest requires an aware Fix1 retrieval timestamp for {day}') from exc
         if retrieved_at <= cutoff_for_day(delivery):
             raise ValueError(f'Fix1 retrieval must be after D-1 09:50 Europe/Warsaw for {day}')
+        hours = e.get('hours')
+        if type(hours) is not int or hours != 24:
+            raise ValueError(f'Manifest hour count must be integer 24 for delivery {day}')
         for field in ('raw_sha256', 'reference_sha256'):
             digest = e.get(field)
             if not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest):
@@ -122,9 +125,6 @@ def load_batches(manifest_path):
             retrieved_at=retrieved_at,
             reference_rows=read_reference_csv(reference, day, require_utc=period_basis == 'EXPLICIT_UTC'),
             reference_sha256=e['reference_sha256'])
-        hours = e.get('hours')
-        if type(hours) is not int or hours != len(batch.rows):
-            raise ValueError(f'Manifest hour count does not match validated Fix1 prices for {day}')
         batches.append((batch,raw))
     return tuple(sorted(batches,key=lambda b:b[0].delivery_date))
 

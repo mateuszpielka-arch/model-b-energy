@@ -226,7 +226,7 @@ class ManifestTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'session date must be 2026-11-07'):
                     ingest_manifest(manifest, conn=object())
 
-    def test_manifest_requires_matching_hour_count_before_database_initialization(self):
+    def test_manifest_requires_standard_hour_count_before_evidence_io(self):
         source = FIX.with_name('tge_delivery_2026-11-08')
         for hours in (None, 23, 25, '24', 24.0, True):
             with self.subTest(hours=hours), TemporaryDirectory() as tmp:
@@ -241,8 +241,10 @@ class ManifestTests(unittest.TestCase):
                     entry['hours'] = hours
                 manifest.write_text(json.dumps(data))
 
-                with self.assertRaisesRegex(ValueError, 'hour count.*2026-11-08'):
-                    ingest_manifest(manifest, conn=object())
+                with patch('shadow_ingest_manifest._inside') as resolve_evidence:
+                    with self.assertRaisesRegex(ValueError, 'hour count.*2026-11-08'):
+                        ingest_manifest(manifest, conn=object())
+                    resolve_evidence.assert_not_called()
 
     def test_manifest_requires_explicit_historical_session_url(self):
         source = FIX.with_name('tge_delivery_2026-11-08')

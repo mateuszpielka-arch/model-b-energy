@@ -1779,3 +1779,8 @@ Importer Fix1 sprawdza adres sesji TGE przed otwarciem plików
 dowodowych. Test na manifeście dostawy 08.11.2026 obejmuje
 inną domenę, błędną ścieżkę, datę innej sesji i powtórzony
 parametr daty. Oryginalny manifest przechodzi dry-run dla 24 okresów.
+
+Importer manifestu dla standardowej doby sprawdza deklarację
+24 okresów przed otwarciem plików. Test na manifeście TGE dla
+08.11.2026 obejmuje brak pola, wartości 23 i 25 oraz błędne typy.
+Parser nadal niezależnie sprawdza pełny zestaw cen godzinowych.
