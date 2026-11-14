@@ -1764,3 +1764,8 @@ Importer manifestu Fix1 sprawdza nazwy obu plików dowodowych przed
 odczytem HTML lub inicjalizacją bazy. Test na kopii manifestu TGE
 dla 15.11.2026 obejmuje brak pola, błędne typy, pustą nazwę
 i niedozwolony znak. Oryginalny manifest daje 24 okresy w dry-run.
+
+Importer manifestu Fix1 wymaga kodu HTTP 200 jako liczby całkowitej
+przed otwarciem plików. Test na kopii manifestu TGE dla 15.11.2026
+obejmuje brak pola, błędne typy oraz kody 204, 429 i 503.
+Oryginalny manifest daje 24 okresy w dry-run.

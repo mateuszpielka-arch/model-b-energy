@@ -88,7 +88,9 @@ def load_batches(manifest_path):
             raise ValueError(f'Historical TGE session URL required for delivery {day}')
         if day in dates: raise ValueError('Duplicate delivery date in manifest')
         dates.add(day)
-        if e['http_status']!=200: raise ValueError('Unsuccessful source HTTP status')
+        http_status = e.get('http_status')
+        if type(http_status) is not int or http_status != 200:
+            raise ValueError(f'Unsuccessful source HTTP status: expected integer 200 for {day}')
         try:
             retrieved_at = _utc(datetime.fromisoformat(e.get('retrieved_at_utc')))
         except (TypeError, ValueError) as exc:

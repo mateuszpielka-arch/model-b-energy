@@ -358,6 +358,26 @@ class ManifestTests(unittest.TestCase):
             manifest.write_text(json.dumps(data))
             self.assertEqual(ingest_manifest(manifest)['periods'], 24)
 
+    def test_manifest_requires_integer_http_200_before_evidence_io(self):
+        source = FIX.with_name('tge_delivery_2026-11-15')
+        data = json.loads((source / 'manifest.json').read_text())
+        entry, = data['entries']
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'capture'
+            shutil.copytree(source, root)
+            manifest = root / 'manifest.json'
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+            with patch('shadow_ingest_manifest._inside') as resolve_evidence:
+                for status in (None, 200.0, '200', True, 204, 429, 503):
+                    with self.subTest(status=status):
+                        malformed = {**entry, 'http_status': status}
+                        if status is None:
+                            del malformed['http_status']
+                        manifest.write_text(json.dumps({**data, 'entries': [malformed]}))
+                        with self.assertRaisesRegex(ValueError, 'expected integer 200 for 2026-11-15'):
+                            ingest_manifest(manifest, conn=object())
+                resolve_evidence.assert_not_called()
+
     def test_invalid_evidence_filenames_fail_before_reading_html_or_initializing_database(self):
         source = FIX.with_name('tge_delivery_2026-11-15')
         data = json.loads((source / 'manifest.json').read_text())
