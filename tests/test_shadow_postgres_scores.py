@@ -223,8 +223,10 @@ class ScorePersistenceTests(unittest.TestCase):
                     'UPDATE fix1_shadow_test.prices SET period_start_utc = %s WHERE period_start_utc = %s',
                     (stamp, first_period),
                 )
-                with self.assertRaisesRegex(ValueError, 'Stored actual prices/periods differ from archived raw'):
-                    score_archived_day(self.conn, **self.kw)
+                with patch('shadow_postgres_scores.parse_complete_standard_day') as parser:
+                    with self.assertRaisesRegex(ValueError, 'Stored actual UTC periods do not match'):
+                        score_archived_day(self.conn, **self.kw)
+                    parser.assert_not_called()
                 self.assertEqual(self.conn.execute(query).fetchall(), before)
 
         self.assertEqual(score_archived_day(self.conn, **self.kw), ('REPLAY', initial))

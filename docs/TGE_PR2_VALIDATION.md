@@ -1754,3 +1754,8 @@ Scoring w izolowanym PostgreSQL odrzuca NaN i obie nieskończoności
 w zapisanych cenach Fix1 przed ponownym odczytem HTML. Test na cenach
 TGE dla 15.11.2026 i syntetycznej prognozie potwierdza zachowanie
 zapisanego wyniku i REPLAY po wycofaniu zmian testowych.
+
+Scoring w izolowanym PostgreSQL porównuje zapisane okresy UTC Fix1
+z pełnym kalendarzem dostawy przed odczytem HTML. Test potwierdza
+odrzucenie nieskończonych znaczników, daty spoza zakresu i przesunięcia
+o minutę oraz zachowanie wyniku i REPLAY po wycofaniu zmian testowych.

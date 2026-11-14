@@ -103,6 +103,10 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
             raise ValueError('Quarantined delivery day cannot be scored')
         if any(not price.is_finite() for _, price, _ in actual):
             raise ValueError('Stored actual batch has nonfinite Fix1 prices')
+        if tuple(period for period, _, _ in actual) != tuple(
+            period.replace(tzinfo=None) for period in periods
+        ):
+            raise ValueError('Stored actual UTC periods do not match the Fix1 delivery day')
         raw_hash,ref_hash,parser,raw,delivery,source_url,captured_at = conn.execute('''SELECT raw_sha256,
             reference_sha256,parser_version,raw_html,delivery_date,source_url,
             CASE WHEN retrieved_at >= TIMESTAMPTZ '0001-01-01 00:00:00+00'
@@ -140,7 +144,7 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
             )
             parsed_rows = list(verified_batch.rows)
         actual_rows = [(period.replace(tzinfo=timezone.utc), price)
-                       for period, price, _ in actual if period is not None]
+                       for period, price, _ in actual]
         if actual_rows != parsed_rows:
             raise ValueError('Stored actual prices/periods differ from archived raw')
         version = ':'.join((day.isoformat(),raw_hash,ref_hash,parser))
