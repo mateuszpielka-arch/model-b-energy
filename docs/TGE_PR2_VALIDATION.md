@@ -1691,3 +1691,8 @@ i Fix1 we wspólnym przedziale kalendarzowym. Test obejmuje daty
 obecne tylko w jednym źródle, odrzucone snapshoty PK5 oraz pusty
 przedział z podanymi granicami. Odrzucony snapshot liczy się jako
 obecny w inwentaryzacji.
+
+Audyt PostgreSQL rozróżnia brak klucza pk5l-wp, nieprawidłowy
+typ danych i zapisaną pustą tablicę PK5. Test doby 25h sprawdza
+wszystkie przypadki i potwierdza, że istniejące rekordy pozostają
+widoczne w inwentaryzacji, lecz nie tworzą kandydata JWCD.

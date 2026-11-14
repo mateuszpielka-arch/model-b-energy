@@ -646,6 +646,30 @@ class ReadonlyAuditTests(unittest.TestCase):
             (str(identifier), 'CONFLICTING_JWCD_PUBLICATION') for identifier in (2, 4, 6)
         ))
 
+    def test_pk5_audit_distinguishes_missing_malformed_and_empty_arrays(self):
+        from psycopg.types.json import Jsonb
+
+        day = date(2026, 10, 25)
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO raw.snapshots VALUES (%s,%s,%s,%s)',
+                [
+                    (identifier, day, '2026-10-24T07:35:00Z', Jsonb(payload))
+                    for identifier, payload in enumerate((
+                        {}, {'pk5l-wp': None}, {'pk5l-wp': {}}, [], {'pk5l-wp': []},
+                    ), 1)
+                ],
+            )
+        result = audit_connection(self.conn, start_day=day, end_day=day)
+        snapshots = result['snapshots']
+        self.assertEqual([snapshot.get('error') for snapshot in snapshots], [
+            'MISSING_PK5_ARRAY', 'INVALID_PK5_ARRAY', 'INVALID_PK5_ARRAY', 'INVALID_PK5_ARRAY', None,
+        ])
+        self.assertEqual(snapshots[-1]['rows'], 0)
+        self.assertEqual(snapshots[-1]['expected_periods'], 25)
+        self.assertEqual(result['archive_hourly_candidate_days'], [])
+        self.assertEqual(result['missing_delivery_ranges_by_source']['pk5'], [])
+
     def test_audit_bounds_both_tables_by_inclusive_delivery_dates(self):
         from psycopg.types.json import Jsonb
 

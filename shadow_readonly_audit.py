@@ -278,9 +278,13 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 'ORDER BY business_date,retrieval_time,id', bounds,
             ).fetchall()
             for sid,day,retrieved,payload,archived,source_version in rows:
-                values=payload.get('pk5l-wp',[]) if isinstance(payload,dict) else None
-                if not isinstance(values,list):
-                    snapshots.append(dict(snapshot_id=sid,day=day.isoformat(),error='INVALID_PK5_ARRAY'));continue
+                if isinstance(payload, dict) and 'pk5l-wp' not in payload:
+                    snapshots.append(dict(snapshot_id=sid, day=day.isoformat(), error='MISSING_PK5_ARRAY'))
+                    continue
+                values = payload.get('pk5l-wp') if isinstance(payload, dict) else None
+                if not isinstance(values, list):
+                    snapshots.append(dict(snapshot_id=sid, day=day.isoformat(), error='INVALID_PK5_ARRAY'))
+                    continue
                 labels=[str(r.get('period','')) for r in values if isinstance(r,dict)]
                 counts=Counter(labels)
                 cutoff = cutoff_for_day(day)
