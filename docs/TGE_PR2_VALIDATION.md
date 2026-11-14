@@ -1727,3 +1727,8 @@ Pobrano oficjalny HTML sesji TGE z 14.11.2026 dla dostawy
 i manifest SHA-256. Parser Fixing I daje 24 ceny zgodne z niezależną
 ekstrakcją XPath z tej samej odpowiedzi, w tym H01 763,14 PLN/MWh.
 Test izolowanego PostgreSQL sprawdza INSERT i REPLAY bez duplikatów.
+
+Ponowny import w izolowanym archiwum waliduje URL źródłowy zapisanej
+paczki Fix1. Test na cenach TGE dla 15.11.2026 podmienia URL zapisanej
+paczki na adres innej sesji. Dwie próby importu dają jeden wpis
+kwarantanny i zachowują 24 zapisane ceny wraz z ich powiązaniami.

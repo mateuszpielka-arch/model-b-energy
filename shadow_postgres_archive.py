@@ -6,7 +6,7 @@ from datetime import timezone
 from decimal import Decimal
 from hashlib import sha256
 
-from shadow_archive_batch import classify_existing, revalidate_batch
+from shadow_archive_batch import classify_existing, revalidate_batch, validate_source_url
 from shadow_asof import cutoff_for_day
 from tge_parser_safe import parse_complete_standard_day
 
@@ -137,8 +137,8 @@ def archive_batch(conn, batch, raw):
             if _has_delivery_quarantine(conn, batch.delivery_date):
                 return 'QUARANTINE'
             (source_id, _), = source_batches
-            stored_hash, stored_raw, capture_valid = conn.execute(
-                '''SELECT raw_sha256, raw_html,
+            stored_hash, stored_raw, stored_url, capture_valid = conn.execute(
+                '''SELECT raw_sha256, raw_html, source_url,
                           retrieved_at > %s AND retrieved_at < TIMESTAMPTZ '10000-01-01 00:00:00+00'
                    FROM fix1_shadow_test.batches WHERE id = %s''',
                 (cutoff_for_day(batch.delivery_date), source_id),
@@ -149,7 +149,13 @@ def archive_batch(conn, batch, raw):
             elif sha256(stored_raw).hexdigest() != stored_hash:
                 decision = 'QUARANTINE'
                 reason = 'Existing price batch raw HTML hash mismatch'
-            elif stored_hash != batch.raw_sha256:
+            else:
+                try:
+                    validate_source_url(stored_url, batch.delivery_date.isoformat())
+                except ValueError:
+                    decision = 'QUARANTINE'
+                    reason = 'Existing price batch has invalid Fix1 source URL'
+            if decision == 'REPLAY' and stored_hash != batch.raw_sha256:
                 try:
                     archived_prices = parse_complete_standard_day(
                         bytes(stored_raw).decode('utf-8'), batch.delivery_date.isoformat(),
