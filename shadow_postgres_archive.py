@@ -138,8 +138,9 @@ def archive_batch(conn, batch, raw):
             if _has_delivery_quarantine(conn, batch.delivery_date):
                 return 'QUARANTINE'
             (source_id, _), = source_batches
-            stored_hash, stored_raw, stored_url, stored_reference_hash, capture_valid = conn.execute(
-                '''SELECT raw_sha256, raw_html, source_url, reference_sha256,
+            (stored_hash, stored_raw, stored_url, stored_reference_hash,
+             stored_parser_version, capture_valid) = conn.execute(
+                '''SELECT raw_sha256, raw_html, source_url, reference_sha256, parser_version,
                           retrieved_at > %s AND retrieved_at < TIMESTAMPTZ '10000-01-01 00:00:00+00'
                    FROM fix1_shadow_test.batches WHERE id = %s''',
                 (cutoff_for_day(batch.delivery_date), source_id),
@@ -153,6 +154,9 @@ def archive_batch(conn, batch, raw):
             elif not re.fullmatch(r'[0-9a-f]{64}', stored_reference_hash):
                 decision = 'QUARANTINE'
                 reason = 'Existing price batch has invalid Fix1 reference SHA-256'
+            elif stored_parser_version != batch.parser_version:
+                decision = 'QUARANTINE'
+                reason = 'Existing price batch has unsupported Fix1 parser version'
             else:
                 try:
                     validate_source_url(stored_url, batch.delivery_date.isoformat())

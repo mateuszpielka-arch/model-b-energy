@@ -1738,3 +1738,9 @@ referencyjnego CSV zapisanej paczki Fix1. Test na cenach TGE dla
 15.11.2026 używa 64 znaków spoza alfabetu szesnastkowego. Dwa
 ponowienia tworzą jeden wpis kwarantanny i zachowują 24 ceny
 z pierwotnymi powiązaniami.
+
+Ponowny import w izolowanym archiwum sprawdza zgodność wersji
+parsera zapisanej paczki z wersją zweryfikowanej paczki wejściowej.
+Test na cenach TGE dla 15.11.2026 potwierdza REPLAY przy zgodnej
+wersji i jeden wpis kwarantanny po dwóch próbach z obcą wersją.
+Zapisane ceny i ich powiązania są zachowane.
