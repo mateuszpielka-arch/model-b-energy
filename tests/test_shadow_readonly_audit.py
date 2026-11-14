@@ -897,6 +897,7 @@ class ReadonlyAuditTests(unittest.TestCase):
 
     def test_fix1_training_timing_uses_latest_retrieval_and_warsaw_dst(self):
         day = date(2026, 10, 25)
+        periods = expected_periods(day)
         self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN first_seen_at_utc timestamptz')
         self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN retrieved_at_utc timestamptz')
         self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz')
@@ -904,10 +905,10 @@ class ReadonlyAuditTests(unittest.TestCase):
             cursor.executemany(
                 'INSERT INTO actual.tge_fix1 VALUES (%s,%s,100,%s,%s,%s)',
                 [(day, hour, '2026-10-24T08:00:00Z', '2026-10-25T08:50:00Z', period)
-                 for hour, period in enumerate(expected_periods(day), 1)],
+                 for hour, period in enumerate(periods, 1)],
             )
 
-        def timing(late_periods=(), unproven_periods=()):
+        def timing(late_periods=(), unproven_periods=(), early_periods=()):
             actual, = audit_connection(self.conn)['actual_days']
             self.assertEqual(actual['next_delivery_issue_cutoff_utc'], '2026-10-25T08:50:00+00:00')
             self.assertEqual(actual['quality_status'], 'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')
@@ -915,6 +916,8 @@ class ReadonlyAuditTests(unittest.TestCase):
                              [period.isoformat() for period in late_periods])
             self.assertEqual(actual['observed_periods_with_unproven_price_timing_utc'],
                              [period.isoformat() for period in unproven_periods])
+            self.assertEqual(actual['observed_periods_retrieved_at_or_before_own_issue_cutoff_utc'],
+                             [period.isoformat() for period in early_periods])
             return actual['next_delivery_training_timing']
 
         self.assertEqual(timing(), 'TIMING_CANDIDATE')
@@ -922,7 +925,7 @@ class ReadonlyAuditTests(unittest.TestCase):
             'UPDATE actual.tge_fix1 SET retrieved_at_utc=%s, first_seen_at_utc=%s WHERE hour=1',
             ('2026-10-24T07:50:00Z', '2026-10-24T07:50:00Z'),
         )
-        self.assertEqual(timing(), 'MIXED_OWN_ISSUE_CUTOFF')
+        self.assertEqual(timing(early_periods=periods[:1]), 'MIXED_OWN_ISSUE_CUTOFF')
         actual, = audit_connection(self.conn)['actual_days']
         self.assertEqual(actual['earliest_retrieved_at_utc'], '2026-10-24T07:50:00+00:00')
         self.conn.execute(
@@ -946,7 +949,7 @@ class ReadonlyAuditTests(unittest.TestCase):
             'UPDATE actual.tge_fix1 SET retrieved_at_utc=%s, first_seen_at_utc=%s',
             ('2026-10-24T07:50:00Z', '2026-10-24T07:50:00Z'),
         )
-        self.assertEqual(timing(), 'AT_OR_BEFORE_OWN_ISSUE_CUTOFF')
+        self.assertEqual(timing(early_periods=periods), 'AT_OR_BEFORE_OWN_ISSUE_CUTOFF')
 
     def test_reconcile_fix1_with_tge_reference_inside_readonly_audit(self):
         from decimal import Decimal

@@ -413,6 +413,10 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 ),
                 array_agg(DISTINCT {period_column}) FILTER (
                     WHERE {period_column} IS NOT NULL
+                      AND {retrieved} <= ((delivery_date - 1 + TIME '09:50') AT TIME ZONE 'Europe/Warsaw')
+                ),
+                array_agg(DISTINCT {period_column}) FILTER (
+                    WHERE {period_column} IS NOT NULL
                       AND ({first_seen} IS NULL OR {retrieved} IS NULL OR {retrieved} < {first_seen})
                 ),
                 array_agg(DISTINCT {period_column}) FILTER (
@@ -424,7 +428,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
             for (day,n,hours,suspect,missing_prices,nonfinite_prices,latest_first_seen,
                  earliest_retrieved,latest_retrieved,missing_timing,invalid_timing,refetched,
                  missing_source,source_count,
-                 invalid_periods,explicit_periods,explicit_hours,late_price_periods,
+                 invalid_periods,explicit_periods,explicit_hours,late_price_periods,early_price_periods,
                  unproven_price_timing_periods,valid_price_periods) in rows:
                 periods = expected_periods(day)
                 expected = len(periods)
@@ -433,12 +437,16 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 utc_period_audit = None
                 invalid_price_periods = None
                 late_retrieval_periods = None
+                early_retrieval_periods = None
                 unproven_timing_periods = None
                 hour_utc_mismatches = []
                 if explicit_periods or invalid_periods:
                     explicit_utc = [period.astimezone(timezone.utc) for period in explicit_periods or ()]
                     utc_period_audit = _utc_period_gaps(set(periods), Counter(explicit_utc))
                     if columns.get('retrieved_at_utc'):
+                        early_retrieval_periods = [
+                            period.isoformat() for period in sorted(set(periods) & set(early_price_periods or ()))
+                        ]
                         late_retrieval_periods = [
                             period.isoformat() for period in sorted(set(periods) & set(late_price_periods or ()))
                         ]
@@ -493,6 +501,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     complete_finite_prices=complete_prices,
                     next_delivery_issue_cutoff_utc=next_cutoff.isoformat(),
                     next_delivery_training_timing=training_timing,
+                    observed_periods_retrieved_at_or_before_own_issue_cutoff_utc=early_retrieval_periods,
                     observed_periods_retrieved_after_next_issue_cutoff_utc=late_retrieval_periods,
                     latest_first_seen_at_utc=latest_first_seen.astimezone(timezone.utc).isoformat()
                     if latest_first_seen is not None else None,

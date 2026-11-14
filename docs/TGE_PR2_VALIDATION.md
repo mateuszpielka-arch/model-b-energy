@@ -1696,3 +1696,8 @@ Audyt PostgreSQL rozróżnia brak klucza pk5l-wp, nieprawidłowy
 typ danych i zapisaną pustą tablicę PK5. Test doby 25h sprawdza
 wszystkie przypadki i potwierdza, że istniejące rekordy pozostają
 widoczne w inwentaryzacji, lecz nie tworzą kandydata JWCD.
+
+Audyt Fix1 wskazuje okresy UTC, dla których zapisano pobranie
+w chwili wydania prognozy na tę samą dobę (D-1 09:50 Europe/Warsaw)
+lub wcześniej. Test doby 25h sprawdza pojedynczy okres na granicy
+oraz przypadek z pobraniem wszystkich okresów o 09:50.
