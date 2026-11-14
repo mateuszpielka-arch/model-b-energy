@@ -9,6 +9,7 @@ import gzip
 from hashlib import sha256
 import json
 from pathlib import Path
+import re
 from time import sleep
 from urllib.parse import urlsplit
 from zlib import error as ZlibError
@@ -97,6 +98,10 @@ def load_batches(manifest_path):
             raise ValueError(f'Manifest requires an aware Fix1 retrieval timestamp for {day}') from exc
         if retrieved_at <= cutoff_for_day(delivery):
             raise ValueError(f'Fix1 retrieval must be after D-1 09:50 Europe/Warsaw for {day}')
+        for field in ('raw_sha256', 'reference_sha256'):
+            digest = e.get(field)
+            if not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest):
+                raise ValueError(f'Manifest requires lowercase SHA-256 in {field} for {day}')
         for field in ('raw_file', 'reference_file'):
             filename = e.get(field)
             if not isinstance(filename, str) or not filename.strip() or '\0' in filename:

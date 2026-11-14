@@ -378,6 +378,27 @@ class ManifestTests(unittest.TestCase):
                             ingest_manifest(manifest, conn=object())
                 resolve_evidence.assert_not_called()
 
+    def test_manifest_requires_both_sha256_digests_before_evidence_io(self):
+        source = FIX.with_name('tge_delivery_2026-11-15')
+        data = json.loads((source / 'manifest.json').read_text())
+        entry, = data['entries']
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'capture'
+            shutil.copytree(source, root)
+            manifest = root / 'manifest.json'
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+            with patch('shadow_ingest_manifest._inside') as resolve_evidence:
+                for field in ('raw_sha256', 'reference_sha256'):
+                    for digest in (None, 123, 'a' * 63, 'A' * 64, 'g' * 64):
+                        with self.subTest(field=field, digest=digest):
+                            malformed = {**entry, field: digest}
+                            if digest is None:
+                                del malformed[field]
+                            manifest.write_text(json.dumps({**data, 'entries': [malformed]}))
+                            with self.assertRaisesRegex(ValueError, f'lowercase SHA-256 in {field}'):
+                                ingest_manifest(manifest, conn=object())
+                resolve_evidence.assert_not_called()
+
     def test_invalid_evidence_filenames_fail_before_reading_html_or_initializing_database(self):
         source = FIX.with_name('tge_delivery_2026-11-15')
         data = json.loads((source / 'manifest.json').read_text())

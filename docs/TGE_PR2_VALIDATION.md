@@ -1769,3 +1769,8 @@ Importer manifestu Fix1 wymaga kodu HTTP 200 jako liczby całkowitej
 przed otwarciem plików. Test na kopii manifestu TGE dla 15.11.2026
 obejmuje brak pola, błędne typy oraz kody 204, 429 i 503.
 Oryginalny manifest daje 24 okresy w dry-run.
+
+Importer manifestu sprawdza format obu sum SHA-256 przed otwarciem
+plików HTML i CSV. Test na manifeście TGE dla 15.11.2026 obejmuje
+brak pola, zły typ, długość i alfabet zapisu. Oryginalny manifest
+przechodzi walidację 24 okresów z porównaniem obu sum do plików.
