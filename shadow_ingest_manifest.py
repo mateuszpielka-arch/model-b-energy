@@ -95,8 +95,14 @@ def load_batches(manifest_path):
             raise ValueError(f'Manifest requires an aware Fix1 retrieval timestamp for {day}') from exc
         if retrieved_at <= cutoff_for_day(delivery):
             raise ValueError(f'Fix1 retrieval must be after D-1 09:50 Europe/Warsaw for {day}')
-        raw=_read_raw_evidence(_inside(root,e['raw_file']), e)
-        with _inside(root, e['reference_file']).open('rb') as stream:
+        for field in ('raw_file', 'reference_file'):
+            filename = e.get(field)
+            if not isinstance(filename, str) or not filename.strip() or '\0' in filename:
+                raise ValueError(f'Manifest requires a valid {field} filename for {day}')
+        raw_path = _inside(root, e['raw_file'])
+        reference_path = _inside(root, e['reference_file'])
+        raw = _read_raw_evidence(raw_path, e)
+        with reference_path.open('rb') as stream:
             reference = stream.read(MAX_REFERENCE_BYTES + 1)
         if len(reference) > MAX_REFERENCE_BYTES:
             raise ValueError('Fix1 reference CSV exceeds 64 KiB')

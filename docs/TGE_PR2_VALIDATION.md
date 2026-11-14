@@ -1759,3 +1759,8 @@ Scoring w izolowanym PostgreSQL porównuje zapisane okresy UTC Fix1
 z pełnym kalendarzem dostawy przed odczytem HTML. Test potwierdza
 odrzucenie nieskończonych znaczników, daty spoza zakresu i przesunięcia
 o minutę oraz zachowanie wyniku i REPLAY po wycofaniu zmian testowych.
+
+Importer manifestu Fix1 sprawdza nazwy obu plików dowodowych przed
+odczytem HTML lub inicjalizacją bazy. Test na kopii manifestu TGE
+dla 15.11.2026 obejmuje brak pola, błędne typy, pustą nazwę
+i niedozwolony znak. Oryginalny manifest daje 24 okresy w dry-run.

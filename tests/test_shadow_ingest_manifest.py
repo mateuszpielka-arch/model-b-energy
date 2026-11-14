@@ -358,6 +358,30 @@ class ManifestTests(unittest.TestCase):
             manifest.write_text(json.dumps(data))
             self.assertEqual(ingest_manifest(manifest)['periods'], 24)
 
+    def test_invalid_evidence_filenames_fail_before_reading_html_or_initializing_database(self):
+        source = FIX.with_name('tge_delivery_2026-11-15')
+        data = json.loads((source / 'manifest.json').read_text())
+        entry, = data['entries']
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'capture'
+            shutil.copytree(source, root)
+            manifest = root / 'manifest.json'
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+
+            with patch('shadow_ingest_manifest._read_raw_evidence') as read_html:
+                with patch('shadow_ingest_manifest._ingest_batches') as ingest_batches:
+                    for field in ('raw_file', 'reference_file'):
+                        for filename in (None, 15, [], '', '   ', 'invalid\0name'):
+                            with self.subTest(field=field, filename=filename):
+                                invalid_entry = {**entry, field: filename}
+                                if filename is None:
+                                    del invalid_entry[field]
+                                manifest.write_text(json.dumps({**data, 'entries': [invalid_entry]}))
+                                with self.assertRaisesRegex(ValueError, f'valid {field} filename'):
+                                    ingest_manifest(manifest, conn=object())
+                    read_html.assert_not_called()
+                    ingest_batches.assert_not_called()
+
     def test_manifest_paths_cannot_escape_directory(self):
         with TemporaryDirectory() as tmp:
             data=json.loads(MANIFEST.read_text());data['entries'][0]['raw_file']=str((FIX/data['entries'][0]['raw_file']).resolve())
