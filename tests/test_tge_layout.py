@@ -11,6 +11,19 @@ class LayoutTests(unittest.TestCase):
     def test_real_layout(self):
         self.assertEqual(len(parse_verified_layout(self.html, '2026-11-02')), 24)
 
+    def test_numeric_overflow_in_official_layout_is_rejected(self):
+        day = '2026-11-02'
+        row_start = self.html.index(day + '_H01')
+        row_end = self.html.index('</tr>', row_start)
+        row = self.html[row_start:row_end]
+        self.assertIn('687,34', row)
+        self.assertEqual(parse_complete_standard_day(self.html, day)[1], 687.34)
+        for sign in ('', '−'):
+            with self.subTest(sign=sign):
+                modified = row.replace('687,34', sign + '9' * 310 + ',00', 1)
+                with self.assertRaisesRegex(ValueError, 'Nonfinite Fixing I price for H01'):
+                    parse_complete_standard_day(self.html[:row_start] + modified + self.html[row_end:], day)
+
     def test_wrong_table_rejected(self):
         with self.assertRaises(ValueError):
             parse_verified_layout(self.html.replace('id="rdn"', 'id="mc"'), '2026-11-02')

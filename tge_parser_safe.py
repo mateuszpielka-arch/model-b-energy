@@ -1,5 +1,6 @@
 """Strict hourly Fixing I parser. No database or network side effects."""
 import re
+from math import isfinite
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 from html.parser import HTMLParser
@@ -58,7 +59,10 @@ def parse_fix1(html: str, day: str) -> dict[int, float]:
             raise ValueError(f"Invalid Fixing I price for H{hour:02d}: {raw!r}")
         if hour in prices:
             raise ValueError(f"Duplicate hourly key H{hour:02d}; fail closed")
-        prices[hour] = float(raw.replace(" ", "").replace("−", "-").replace(",", "."))
+        price = float(raw.replace(" ", "").replace("−", "-").replace(",", "."))
+        if not isfinite(price):
+            raise ValueError(f"Nonfinite Fixing I price for H{hour:02d}")
+        prices[hour] = price
     return prices
 
 

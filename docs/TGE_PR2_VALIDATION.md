@@ -1789,3 +1789,8 @@ Importer manifestu wyznacza długość doby dostawy w Europe/Warsaw
 przed odczytem HTML i CSV. Dla ścieżki archiwizacji 24h odrzuca
 29.03.2026 (23 okresy) i 25.10.2026 (25 okresów), nawet gdy manifest
 deklaruje 24. Test potwierdza brak próby otwarcia obu plików.
+
+Parser Fixing I odrzuca cenę, której zapis liczbowy po konwersji
+daje nieskończoność. Test na kopii oficjalnego HTML dla 02.11.2026
+sprawdza oba znaki na zmodyfikowanej cenie H01. Oryginalna sesja
+nadal zwraca 24 okresy, z ceną H01 równą 687,34 PLN/MWh.
