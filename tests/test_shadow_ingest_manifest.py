@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from hashlib import sha256
 import json
 import os
@@ -225,6 +225,26 @@ class ManifestTests(unittest.TestCase):
 
                 with self.assertRaisesRegex(ValueError, 'session date must be 2026-11-07'):
                     ingest_manifest(manifest, conn=object())
+
+    def test_manifest_rejects_both_dst_days_before_evidence_io_even_with_24_declared_hours(self):
+        source = FIX.with_name('tge_delivery_2026-11-15')
+        data = json.loads((source / 'manifest.json').read_text())
+        entry, = data['entries']
+        with TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / 'manifest.json'
+            with patch('shadow_ingest_manifest._inside') as resolve_evidence:
+                for delivery, periods in ((date(2026, 3, 29), 23), (date(2026, 10, 25), 25)):
+                    with self.subTest(delivery=delivery):
+                        session = delivery - timedelta(days=1)
+                        declared = dict(
+                            entry, delivery_date=delivery.isoformat(), session_date=session.isoformat(),
+                            url=f'https://tge.pl/energia-elektryczna-rdn?dateShow={session:%d-%m-%Y}',
+                            retrieved_at_utc=f'{session}T12:00:00Z', hours=24,
+                        )
+                        manifest.write_text(json.dumps({**data, 'entries': [declared]}))
+                        with self.assertRaisesRegex(ValueError, f'{delivery} has {periods}'):
+                            ingest_manifest(manifest, conn=object())
+                resolve_evidence.assert_not_called()
 
     def test_manifest_requires_standard_hour_count_before_evidence_io(self):
         source = FIX.with_name('tge_delivery_2026-11-08')

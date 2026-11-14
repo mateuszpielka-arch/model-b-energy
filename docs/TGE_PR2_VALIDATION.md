@@ -1784,3 +1784,8 @@ Importer manifestu dla standardowej doby sprawdza deklarację
 24 okresów przed otwarciem plików. Test na manifeście TGE dla
 08.11.2026 obejmuje brak pola, wartości 23 i 25 oraz błędne typy.
 Parser nadal niezależnie sprawdza pełny zestaw cen godzinowych.
+
+Importer manifestu wyznacza długość doby dostawy w Europe/Warsaw
+przed odczytem HTML i CSV. Dla ścieżki archiwizacji 24h odrzuca
+29.03.2026 (23 okresy) i 25.10.2026 (25 okresów), nawet gdy manifest
+deklaruje 24. Test potwierdza brak próby otwarcia obu plików.

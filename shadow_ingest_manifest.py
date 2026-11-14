@@ -17,7 +17,7 @@ from shadow_archive_batch import (
     MAX_REFERENCE_BYTES, prepare_batch, read_reference_csv, validate_source_url,
 )
 from shadow_asof import cutoff_for_day
-from shadow_scoring import _utc
+from shadow_scoring import _utc, expected_periods
 
 MAX_HTML_BYTES = 8 * 1024 * 1024
 
@@ -101,6 +101,9 @@ def load_batches(manifest_path):
             raise ValueError(f'Manifest requires an aware Fix1 retrieval timestamp for {day}') from exc
         if retrieved_at <= cutoff_for_day(delivery):
             raise ValueError(f'Fix1 retrieval must be after D-1 09:50 Europe/Warsaw for {day}')
+        period_count = len(expected_periods(delivery))
+        if period_count != 24:
+            raise ValueError(f'Fix1 manifest archive supports only 24-hour delivery days: {day} has {period_count}')
         hours = e.get('hours')
         if type(hours) is not int or hours != 24:
             raise ValueError(f'Manifest hour count must be integer 24 for delivery {day}')
