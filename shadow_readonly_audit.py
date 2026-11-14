@@ -525,6 +525,19 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 'rejected_snapshots': selection.rejected,
             }
         coverage = summarize_delivery_coverage(snapshots, actuals, candidate_selection)
+        # Use the same calendar interval for both sources, even when only one is present.
+        coverage_start = start_day
+        coverage_end = end_day
+        if coverage:
+            coverage_start = coverage_start or date.fromisoformat(coverage[0]['day'])
+            coverage_end = coverage_end or date.fromisoformat(coverage[-1]['day'])
+        missing_ranges_by_source = {
+            source: missing_delivery_ranges(
+                (entry for entry in coverage if entry[status] != 'MISSING'),
+                coverage_start, coverage_end,
+            )
+            for source, status in (('pk5', 'pk5_status'), ('fix1', 'fix1_status'))
+        }
         report = dict(generated_at_utc=datetime.now(timezone.utc).isoformat(),transaction_read_only=True,
                     start_day=start_day.isoformat() if start_day else None,
                     end_day=end_day.isoformat() if end_day else None,
@@ -535,6 +548,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     archive_hourly_candidate_selection=candidate_selection,
                     delivery_coverage=coverage,
                     missing_delivery_ranges=missing_delivery_ranges(coverage, start_day, end_day),
+                    missing_delivery_ranges_by_source=missing_ranges_by_source,
                     archive_hourly_candidate_days=sorted({
                         s['day'] for s in snapshots if s.get('archive_hourly_candidate')
                     }),

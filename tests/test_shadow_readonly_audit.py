@@ -696,11 +696,18 @@ class ReadonlyAuditTests(unittest.TestCase):
                 (identifier, pk5_day, retrieved, Jsonb({'pk5l-wp': rows}),
                  retrieved, 'energy-collector-v3'),
             )
-            self.assertEqual(audit_connection(self.conn)['delivery_coverage'], [
+            report = audit_connection(self.conn)
+            self.assertEqual(report['delivery_coverage'], [
                 {'day': pk5_day.isoformat(), 'pk5_status': jwcd_status, 'fix1_status': 'MISSING'},
                 {'day': fix1_day.isoformat(), 'pk5_status': 'MISSING',
                  'fix1_status': 'COMPLETE_UNVERIFIED'},
             ])
+
+            self.assertEqual(report['missing_delivery_ranges'], [])
+            self.assertEqual(report['missing_delivery_ranges_by_source'], {
+                'pk5': [{'start_day': fix1_day.isoformat(), 'end_day': fix1_day.isoformat(), 'days': 1}],
+                'fix1': [{'start_day': pk5_day.isoformat(), 'end_day': pk5_day.isoformat(), 'days': 1}],
+            })
 
     def test_missing_delivery_ranges_cover_empty_and_partially_observed_windows(self):
         start = date(2026, 10, 24)
@@ -711,6 +718,9 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(report['missing_delivery_ranges'], [
             {'start_day': '2026-10-24', 'end_day': '2026-10-29', 'days': 6},
         ])
+        self.assertEqual(report['missing_delivery_ranges_by_source'], {
+            source: report['missing_delivery_ranges'] for source in ('pk5', 'fix1')
+        })
         self.assertEqual(audit_connection(self.conn, start_day=start)['missing_delivery_ranges'], [])
 
         self.seed_dst()

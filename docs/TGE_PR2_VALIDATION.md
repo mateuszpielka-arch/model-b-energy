@@ -1685,3 +1685,9 @@ Audyt history.hourly wskazuje etykiety z różnymi skończonymi
 wartościami JWCD lub Fix1 w obrębie jednej doby. Test doby 25h
 sprawdza konflikt JWCD przy etykiecie 2, konflikt Fix1 przy
 etykiecie 3 oraz zgodne powtórzenie etykiety 25.
+
+Audyt PostgreSQL podaje zakresy brakujących dat osobno dla PK5
+i Fix1 we wspólnym przedziale kalendarzowym. Test obejmuje daty
+obecne tylko w jednym źródle, odrzucone snapshoty PK5 oraz pusty
+przedział z podanymi granicami. Odrzucony snapshot liczy się jako
+obecny w inwentaryzacji.
