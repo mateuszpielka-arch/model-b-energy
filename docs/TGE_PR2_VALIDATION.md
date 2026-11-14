@@ -1669,3 +1669,8 @@ wiarygodnego czasu pierwszej obserwacji lub pobrania albo zapisano
 pobranie przed pierwszą obserwacją. Test doby 25h rozróżnia
 odwróconą chronologię pierwszego 02:00, spóźnione pobranie drugiego
 02:00 i brak czasu pobrania w ostatnim okresie.
+
+Audyt history.hourly w PostgreSQL podaje powtórzone etykiety,
+etykiety poza zakresem liczby okresów danej doby oraz liczbę
+wierszy bez etykiety. Test doby 25h obejmuje powtórzoną etykietę
+2, etykiety 25 i 26 oraz NULL. Etykiety nie ustalają kluczy UTC.

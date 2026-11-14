@@ -169,6 +169,8 @@ def audit_legacy_hourly(conn, start_day, end_day, *, reference_rows=None, refere
                    count(DISTINCT hour) FILTER (WHERE hour BETWEEN 1 AND 24),
                    count(*) FILTER (WHERE valid_jwcd),
                    count(*) FILTER (WHERE valid_fix1),
+                   array_agg(hour) FILTER (WHERE hour IS NOT NULL),
+                   count(*) FILTER (WHERE hour IS NULL),
                    array_agg(DISTINCT hour) FILTER (
                        WHERE hour BETWEEN 1 AND 24 AND valid_jwcd AND valid_fix1
                    )
@@ -182,13 +184,20 @@ def audit_legacy_hourly(conn, start_day, end_day, *, reference_rows=None, refere
             GROUP BY delivery_date
             ORDER BY delivery_date
         """, _audit_bounds(start_day, end_day)).fetchall()
-        for day, count, hours, jwcd, fix1, paired_labels in rows:
+        for day, count, hours, jwcd, fix1, labels, unlabeled, paired_labels in rows:
             expected = len(expected_periods(day))
             paired_hours = set(paired_labels or ())
+            label_counts = Counter(labels or ())
+            nominal_labels = set(range(1, expected + 1))
             days.append(dict(
                 day=day.isoformat(), rows=count, expected_periods=expected,
                 distinct_legacy_hours=hours, valid_jwcd_rows=jwcd, valid_fix1_rows=fix1,
                 paired_legacy_hours=len(paired_hours),
+                duplicate_legacy_hour_labels=sorted(
+                    label for label, occurrences in label_counts.items() if occurrences > 1
+                ),
+                out_of_range_legacy_hour_labels=sorted(label_counts.keys() - nominal_labels),
+                rows_without_legacy_hour_label=unlabeled,
                 missing_pair_legacy_hours=sorted(set(range(1, 25)) - paired_hours) if expected == 24 else None,
                 complete_pairs=expected == count == len(paired_hours) == 24,
                 model_ready=False,

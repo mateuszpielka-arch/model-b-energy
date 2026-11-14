@@ -211,6 +211,19 @@ class ReadonlyAuditTests(unittest.TestCase):
                 {'start_day': '2026-11-10', 'end_day': '2026-11-10', 'days': 1},
             ])
             self.assertEqual(self.conn.execute('SELECT count(*) FROM history.hourly').fetchone(), (71,))
+
+            self.conn.execute(
+                'INSERT INTO history.hourly VALUES (%s,2,1000,100), (%s,25,1000,100), '
+                '(%s,26,1000,100), (%s,NULL,1000,100)',
+                (autumn, autumn, autumn, autumn),
+            )
+            legacy = audit_connection(self.conn)['legacy_hourly_history']['days']
+            autumn_day = next(row for row in legacy if row['day'] == autumn.isoformat())
+            self.assertEqual(autumn_day['duplicate_legacy_hour_labels'], [2])
+            self.assertEqual(autumn_day['out_of_range_legacy_hour_labels'], [26])
+            self.assertEqual(autumn_day['rows_without_legacy_hour_label'], 1)
+            self.assertFalse(autumn_day['complete_pairs'])
+            self.assertFalse(autumn_day['model_ready'])
         finally:
             self.conn.execute('DROP SCHEMA history CASCADE')
 
