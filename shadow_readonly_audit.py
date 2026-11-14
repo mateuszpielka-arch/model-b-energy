@@ -164,6 +164,22 @@ def audit_legacy_hourly(conn, start_day, end_day, *, reference_rows=None, refere
     missing = sorted(required - table_columns(conn, 'history.hourly').keys())
     days = []
     if not missing:
+        bounds = _audit_bounds(start_day, end_day)
+        conflicting_labels = defaultdict(list)
+        for day, label in conn.execute("""
+            SELECT delivery_date, hour
+            FROM history.hourly
+            WHERE delivery_date BETWEEN %s AND %s AND hour BETWEEN 1 AND 25
+            GROUP BY delivery_date, hour
+            HAVING count(DISTINCT jwcd_mw) FILTER (
+                       WHERE jwcd_mw::text NOT IN ('NaN', 'Infinity', '-Infinity')
+                   ) > 1
+                OR count(DISTINCT fix1_pln_mwh) FILTER (
+                       WHERE fix1_pln_mwh::text NOT IN ('NaN', 'Infinity', '-Infinity')
+                   ) > 1
+            ORDER BY delivery_date, hour
+        """, bounds):
+            conflicting_labels[day].append(label)
         rows = conn.execute("""
             SELECT delivery_date, count(*),
                    count(*) FILTER (WHERE valid_jwcd),
@@ -182,7 +198,7 @@ def audit_legacy_hourly(conn, start_day, end_day, *, reference_rows=None, refere
             ) AS hourly
             GROUP BY delivery_date
             ORDER BY delivery_date
-        """, _audit_bounds(start_day, end_day)).fetchall()
+        """, bounds).fetchall()
         for day, count, jwcd, fix1, labels, unlabeled, paired_labels in rows:
             expected = len(expected_periods(day))
             nominal_labels = set(range(1, expected + 1))
@@ -196,6 +212,9 @@ def audit_legacy_hourly(conn, start_day, end_day, *, reference_rows=None, refere
                 duplicate_legacy_hour_labels=sorted(
                     label for label, occurrences in label_counts.items() if occurrences > 1
                 ),
+                conflicting_legacy_hour_labels=[
+                    label for label in conflicting_labels.get(day, ()) if label in nominal_labels
+                ],
                 out_of_range_legacy_hour_labels=sorted(label_counts.keys() - nominal_labels),
                 rows_without_legacy_hour_label=unlabeled,
                 missing_pair_legacy_hours=sorted(nominal_labels - paired_hours) if expected == 24 else None,

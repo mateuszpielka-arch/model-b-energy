@@ -1680,3 +1680,8 @@ skończonych wartości JWCD i Fix1 według długości doby. Na
 izolowanym PostgreSQL test sprawdza uwzględnienie etykiety 25
 jesienią oraz pominięcie etykiety 24 w dobie 23h. Obie doby
 pozostają bez potwierdzonego mapowania UTC.
+
+Audyt history.hourly wskazuje etykiety z różnymi skończonymi
+wartościami JWCD lub Fix1 w obrębie jednej doby. Test doby 25h
+sprawdza konflikt JWCD przy etykiecie 2, konflikt Fix1 przy
+etykiecie 3 oraz zgodne powtórzenie etykiety 25.
