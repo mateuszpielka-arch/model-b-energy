@@ -42,10 +42,14 @@ def parse_fix1(html: str, day: str, *, exact: bool = False) -> dict[int, float |
     date.fromisoformat(day)
     parser = _Rows()
     parser.feed(html)
+    return _parse_hourly_rows(parser.rows, day, exact=exact)
+
+
+def _parse_hourly_rows(rows, day, *, exact):
     prices = {}
     key = re.compile(rf"{re.escape(day)}_H(\d{{2}})")
     number = re.compile(r"[-−]?(?:\d{1,3}(?: \d{3})+|\d+)(?:,\d{1,4})?")
-    for cells in parser.rows:
+    for cells in rows:
         if len(cells) < 3:
             continue
         match = key.fullmatch(cells[0])
@@ -181,15 +185,12 @@ def _validated_rdn_rows(html: str):
 
 def parse_verified_layout(html: str, day: str, *, exact: bool = False) -> dict[int, float | Decimal]:
     """Parse integer-hour map only from the verified RDN Fixing I layout."""
+    date.fromisoformat(day)
     rows = _validated_rdn_rows(html)
     for row in rows:
         if row and row[0].startswith(day + "_H") and (len(row) < 2 or row[1] != "60"):
             raise ValueError(f"Hourly RDN row has wrong instrument type: {row[0]}")
-    # Reuse the strict numeric/duplicate validator only for this selected table.
-    from html import escape
-    selected = "".join("<tr>" + "".join("<td>" + escape(c) + "</td>" for c in row) + "</tr>"
-                       for row in rows)
-    return parse_fix1(selected, day, exact=exact)
+    return _parse_hourly_rows(rows, day, exact=exact)
 
 
 def parse_complete_standard_day(html: str, day: str, *, exact: bool = False) -> dict[int, float | Decimal]:

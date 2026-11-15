@@ -309,6 +309,42 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                     )
             self.assertEqual(ingest_manifest(manifest, conn=conn)['days_by_status'], {'REPLAY': 1})
 
+    def test_november_15_exact_price_survives_archive_and_scoring(self):
+        manifest = NOV_15_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        raw, reference, _ = load_session(entry, NOV_15_FIXTURES)
+        row_start = raw.index(b'2026-11-15_H01')
+        row_end = raw.index(b'</tr>', row_start)
+        row = raw[row_start:row_end]
+        self.assertIn(b'763,14', row)
+        price = Decimal('9007199254740992.0001')
+        raw = raw[:row_start] + row.replace(b'763,14', b'9007199254740992,0001', 1) + raw[row_end:]
+        reference = reference.replace(b'H01,763.14,', b'H01,9007199254740992.0001,', 1)
+        day = date.fromisoformat(entry['delivery_date'])
+        capture = datetime.fromisoformat(entry['retrieved_at_utc'])
+        batch = prepare_batch(
+            raw=raw, day=day.isoformat(), source_url=entry['url'], retrieved_at=capture,
+            reference_rows=read_reference_csv(reference, day.isoformat()),
+            reference_sha256=sha256(reference).hexdigest(),
+        )
+        cutoff = cutoff_for_day(day)
+        inputs = dict(day=day, forecast=batch.rows, forecast_id='exact-fix1-test',
+                      model_version='synthetic-test', forecast_status='SHADOW', issued_at=cutoff,
+                      publication_ts=cutoff - timedelta(minutes=1), retrieved_at=cutoff,
+                      evaluated_at=capture)
+
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(archive_batch(conn, batch, raw), 'INSERT')
+            self.assertEqual(archive_batch(conn, batch, raw), 'REPLAY')
+            stored, = conn.execute('SELECT price FROM fix1_shadow_test.prices WHERE period_start_utc = %s',
+                                   (batch.rows[0][0],)).fetchone()
+            self.assertEqual(stored, price)
+
+            status, score = score_archived_day(conn, **inputs)
+            self.assertEqual((status, score.mae, score.bias), ('INSERT', 0, 0))
+            self.assertEqual(score_archived_day(conn, **inputs, reference_csv=reference), ('REPLAY', score))
+
     def test_november_15_nonfinite_archived_prices_block_score_replay(self):
         manifest = NOV_15_FIXTURES / 'manifest.json'
         day = date(2026, 11, 15)

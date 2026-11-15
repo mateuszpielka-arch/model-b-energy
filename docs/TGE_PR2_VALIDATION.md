@@ -1800,3 +1800,9 @@ bez zaokrąglenia przez float. Test podmienia cenę H01 w kopii
 oficjalnego HTML z 02.11.2026 i sprawdza odrzucenie referencji
 różniącej się na czwartej pozycji po przecinku. Domyślne wywołania
 parsera nadal zwracają float.
+
+Parser Fixing I przekazuje wiersze zweryfikowanej tabeli RDN
+bezpośrednio do walidacji cen, bez ponownego składania i parsowania
+HTML. Test na zmodyfikowanej kopii oficjalnej sesji dla 15.11.2026
+sprawdza zachowanie czwartego miejsca po przecinku po zapisie
+w PostgreSQL i przy scoringu z referencyjnym CSV oraz bez niego.
