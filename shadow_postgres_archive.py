@@ -3,7 +3,6 @@
 Only accepts a dedicated local test database. Not a production integration.
 """
 from datetime import timezone
-from decimal import Decimal
 from hashlib import sha256
 import re
 
@@ -169,13 +168,13 @@ def archive_batch(conn, batch, raw):
             if decision == 'REPLAY' and stored_hash != batch.raw_sha256:
                 try:
                     archived_prices = parse_complete_standard_day(
-                        bytes(stored_raw).decode('utf-8'), batch.delivery_date.isoformat(),
+                        bytes(stored_raw).decode('utf-8'), batch.delivery_date.isoformat(), exact=True,
                     )
                 except ValueError:
                     decision = 'QUARANTINE'
                     reason = 'Existing price batch raw HTML cannot be parsed'
                 else:
-                    expected = tuple(Decimal(str(archived_prices[hour])) for hour in range(1, 25))
+                    expected = tuple(archived_prices[hour] for hour in range(1, 25))
                     if expected != tuple(price for _, price in batch.rows):
                         decision = 'QUARANTINE'
                         reason = 'Existing price batch raw HTML disagrees with stored prices'

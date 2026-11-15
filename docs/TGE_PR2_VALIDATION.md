@@ -1794,3 +1794,9 @@ Parser Fixing I odrzuca cenę, której zapis liczbowy po konwersji
 daje nieskończoność. Test na kopii oficjalnego HTML dla 02.11.2026
 sprawdza oba znaki na zmodyfikowanej cenie H01. Oryginalna sesja
 nadal zwraca 24 okresy, z ceną H01 równą 687,34 PLN/MWh.
+
+Archiwum i scoring SHADOW porównują ceny z HTML jako Decimal
+bez zaokrąglenia przez float. Test podmienia cenę H01 w kopii
+oficjalnego HTML z 02.11.2026 i sprawdza odrzucenie referencji
+różniącej się na czwartej pozycji po przecinku. Domyślne wywołania
+parsera nadal zwracają float.

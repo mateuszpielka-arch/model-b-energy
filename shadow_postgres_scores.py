@@ -131,8 +131,8 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
             raise ValueError('Unsupported archived parser version')
         if reference_csv is None:
             validate_source_url(source_url, day.isoformat())
-            parsed = parse_complete_standard_day(raw.decode('utf-8'), day.isoformat())
-            parsed_rows = [(period, Decimal(str(parsed[hour])))
+            parsed = parse_complete_standard_day(raw.decode('utf-8'), day.isoformat(), exact=True)
+            parsed_rows = [(period, parsed[hour])
                            for hour, period in enumerate(periods, 1)]
         else:
             if not isinstance(reference_csv, bytes) or sha256(reference_csv).hexdigest() != ref_hash:

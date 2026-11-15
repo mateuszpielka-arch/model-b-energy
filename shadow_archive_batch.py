@@ -98,7 +98,7 @@ def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: dateti
         raise ValueError('Fix1 retrieval must be after D-1 09:50 Europe/Warsaw')
     if not re.fullmatch('[0-9a-f]{64}', reference_sha256):
         raise ValueError('Independent reference artifact SHA256 required')
-    parsed = parse_complete_standard_day(raw.decode('utf-8', errors='strict'), day)
+    parsed = parse_complete_standard_day(raw.decode('utf-8', errors='strict'), day, exact=True)
     reference = {}
     for label, value in reference_rows:
         if not re.fullmatch(r'H(?:0[1-9]|1[0-9]|2[0-4])', label):
@@ -117,7 +117,7 @@ def prepare_batch(*, raw: bytes, day: str, source_url: str, retrieved_at: dateti
     expected = {f'H{h:02d}' for h in range(1,25)}
     if set(reference) != expected:
         raise ValueError('Incomplete reference day')
-    prices = {f'H{h:02d}': Decimal(str(v)) for h,v in parsed.items()}
+    prices = {f'H{h:02d}': v for h,v in parsed.items()}
     if prices != reference:
         mismatches = sorted(k for k in expected if prices[k] != reference[k])
         raise ValueError(f'Official reference mismatch: {mismatches}')

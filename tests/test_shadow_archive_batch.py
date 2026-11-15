@@ -1,5 +1,6 @@
 import csv
 from datetime import datetime, timezone
+from decimal import Decimal
 from hashlib import sha256
 from pathlib import Path
 import unittest
@@ -23,6 +24,24 @@ class ArchiveAdmissionTests(unittest.TestCase):
         self.assertEqual(batch.raw_sha256,sha256(kw['raw']).hexdigest())
         self.assertEqual(batch.rows[0][0],datetime(2026,11,1,23,tzinfo=timezone.utc))
         self.assertEqual(batch.rows[-1][0],datetime(2026,11,2,22,tzinfo=timezone.utc))
+
+    def test_html_reference_comparison_preserves_all_decimal_places(self):
+        args = self.args()
+        begin = args['raw'].index(b'2026-11-02_H01')
+        end = args['raw'].index(b'</tr>', begin)
+        row = args['raw'][begin:end]
+        self.assertIn(b'687,34', row)
+        price = '9007199254740992.0001'
+        args['raw'] = (
+            args['raw'][:begin] + row.replace(b'687,34', price.replace('.', ',').encode(), 1)
+            + args['raw'][end:]
+        )
+        args['reference_rows'][0] = ('H01', price)
+        self.assertEqual(prepare_batch(**args).rows[0][1], Decimal(price))
+
+        args['reference_rows'][0] = ('H01', '9007199254740992.0')
+        with self.assertRaisesRegex(ValueError, 'Official reference mismatch.*H01'):
+            prepare_batch(**args)
 
     def test_reference_mismatch_blocks_whole_batch(self):
         kw=self.args(); kw['reference_rows'][7]=('H08','1.00')

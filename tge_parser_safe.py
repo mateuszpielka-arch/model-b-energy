@@ -1,5 +1,6 @@
 """Strict hourly Fixing I parser. No database or network side effects."""
 import re
+from decimal import Decimal
 from math import isfinite
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -31,9 +32,10 @@ class _Rows(HTMLParser):
             self.row = None
 
 
-def parse_fix1(html: str, day: str) -> dict[int, float]:
+def parse_fix1(html: str, day: str, *, exact: bool = False) -> dict[int, float | Decimal]:
     """Read only hourly rows YYYY-MM-DD_H01..H24; 60 is instrument type.
 
+    Use exact=True for Decimal prices in evidence validation.
     Returns a partial map if the page is incomplete. Duplicate hour rows fail
     closed; 25-hour DST days require separate period identifiers and schema.
     """
@@ -59,10 +61,11 @@ def parse_fix1(html: str, day: str) -> dict[int, float]:
             raise ValueError(f"Invalid Fixing I price for H{hour:02d}: {raw!r}")
         if hour in prices:
             raise ValueError(f"Duplicate hourly key H{hour:02d}; fail closed")
-        price = float(raw.replace(" ", "").replace("−", "-").replace(",", "."))
+        normalized = raw.replace(" ", "").replace("−", "-").replace(",", ".")
+        price = float(normalized)
         if not isfinite(price):
             raise ValueError(f"Nonfinite Fixing I price for H{hour:02d}")
-        prices[hour] = price
+        prices[hour] = Decimal(normalized) if exact else price
     return prices
 
 
@@ -176,7 +179,7 @@ def _validated_rdn_rows(html: str):
     return table.rows
 
 
-def parse_verified_layout(html: str, day: str) -> dict[int, float]:
+def parse_verified_layout(html: str, day: str, *, exact: bool = False) -> dict[int, float | Decimal]:
     """Parse integer-hour map only from the verified RDN Fixing I layout."""
     rows = _validated_rdn_rows(html)
     for row in rows:
@@ -186,10 +189,10 @@ def parse_verified_layout(html: str, day: str) -> dict[int, float]:
     from html import escape
     selected = "".join("<tr>" + "".join("<td>" + escape(c) + "</td>" for c in row) + "</tr>"
                        for row in rows)
-    return parse_fix1(selected, day)
+    return parse_fix1(selected, day, exact=exact)
 
 
-def parse_complete_standard_day(html: str, day: str) -> dict[int, float]:
+def parse_complete_standard_day(html: str, day: str, *, exact: bool = False) -> dict[int, float | Decimal]:
     """SHADOW admission guard. DST blocked until official period mapping is tested.
 
     Requires the official RDN table/header layout; HTTP provenance remains separate.
@@ -200,7 +203,7 @@ def parse_complete_standard_day(html: str, day: str) -> dict[int, float]:
     end = datetime.combine(d + timedelta(days=1), time(), tz).astimezone(timezone.utc)
     if (end - start).total_seconds() != 86400:
         raise ValueError("DST day requires verified period mapping; admission blocked")
-    rows = parse_verified_layout(html, day)
+    rows = parse_verified_layout(html, day, exact=exact)
     if set(rows) != set(range(1, 25)):
         raise ValueError("Incomplete hourly Fixing I snapshot; admission blocked")
     return rows
