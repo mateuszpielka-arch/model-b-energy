@@ -1818,3 +1818,9 @@ z niezależnym rachunkiem na ułamkach dla syntetycznej prognozy
 650 PLN/MWh. Test izolowanego PostgreSQL sprawdza wszystkie cztery
 metryki, brak zapisu mikrosekundę przed pobraniem cen oraz INSERT
 i REPLAY dokładnie w chwili pobrania.
+
+Audyt CSV zlicza poprawne znaczniki JWCD po D−1 09:50 Europe/Warsaw
+także wtedy, gdy inne pole w tym samym wierszu jest puste lub błędne.
+Sprzeczne wartości początku pobrania nie są uwzględniane w liczniku
+`retrieved_at`. Test na cenach TGE z 16.11.2026 i syntetycznych
+znacznikach JWCD potwierdza, że takie wiersze nie potwierdzają dostępności.

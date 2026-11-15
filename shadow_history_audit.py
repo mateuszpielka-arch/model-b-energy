@@ -116,25 +116,30 @@ def audit_rows(rows):
             has_canonical_start = canonical_start not in (None, '')
             start_stamp = canonical_start if has_canonical_start else legacy_start
             stamps = (r.get('publication_ts'), start_stamp, r.get('retrieval_completed_at'))
-            missing_fields = [
-                field for field, stamp in zip(JWCD_TIMESTAMPS, stamps) if stamp in (None, '')
-            ]
+            missing_fields = []
+            parsed_stamps = {}
+            for field, raw_stamp in zip(JWCD_TIMESTAMPS, stamps):
+                if raw_stamp in (None, ''):
+                    missing_fields.append(field)
+                    continue
+                try:
+                    stamp = _stamp(raw_stamp)
+                    if (field == 'retrieved_at' and has_canonical_start
+                            and legacy_start not in (None, '') and _stamp(legacy_start) != stamp):
+                        continue
+                except (ValueError, TypeError):
+                    continue
+                parsed_stamps[field] = stamp
+                if stamp > cutoff:
+                    late_timestamps[field] += 1
             if missing_fields:
                 missing_timestamps.update(missing_fields)
                 missing_timing += 1
                 continue
-            try:
-                pub, start, end = map(_stamp, stamps)
-                if (has_canonical_start and legacy_start not in (None, '')
-                        and _stamp(legacy_start) != start):
-                    raise ValueError('Conflicting retrieval timestamps')
-            except (ValueError, TypeError):
+            if len(parsed_stamps) != len(JWCD_TIMESTAMPS):
                 invalid_timing += 1
                 continue
-            late_timestamps.update(
-                field for field, stamp in zip(JWCD_TIMESTAMPS, (pub, start, end))
-                if stamp > cutoff
-            )
+            pub, start, end = (parsed_stamps[field] for field in JWCD_TIMESTAMPS)
             if start > end or pub > end:
                 invalid_timing += 1
                 invalid_retrieval_order += start > end
