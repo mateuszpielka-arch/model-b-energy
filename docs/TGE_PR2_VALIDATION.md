@@ -1806,3 +1806,9 @@ bezpośrednio do walidacji cen, bez ponownego składania i parsowania
 HTML. Test na zmodyfikowanej kopii oficjalnej sesji dla 15.11.2026
 sprawdza zachowanie czwartego miejsca po przecinku po zapisie
 w PostgreSQL i przy scoringu z referencyjnym CSV oraz bez niego.
+
+Zapisano oficjalny HTML sesji TGE z 15.11.2026 dla dostawy
+16.11.2026, pobrany o 22:19 Europe/Warsaw. Parser Fixing I zwraca
+24 ceny zgodne z niezależną ekstrakcją XPath z tego HTML. Cena H01
+to 471,34 PLN/MWh. Manifest wiąże HTML i CSV sumami SHA-256.
+Test izolowanego PostgreSQL sprawdza INSERT i REPLAY bez duplikatów.
