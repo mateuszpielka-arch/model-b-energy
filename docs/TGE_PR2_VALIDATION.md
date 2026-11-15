@@ -1812,3 +1812,9 @@ Zapisano oficjalny HTML sesji TGE z 15.11.2026 dla dostawy
 24 ceny zgodne z niezależną ekstrakcją XPath z tego HTML. Cena H01
 to 471,34 PLN/MWh. Manifest wiąże HTML i CSV sumami SHA-256.
 Test izolowanego PostgreSQL sprawdza INSERT i REPLAY bez duplikatów.
+
+Scoring dla oficjalnych cen TGE z dostawy 16.11.2026 porównano
+z niezależnym rachunkiem na ułamkach dla syntetycznej prognozy
+650 PLN/MWh. Test izolowanego PostgreSQL sprawdza wszystkie cztery
+metryki, brak zapisu mikrosekundę przed pobraniem cen oraz INSERT
+i REPLAY dokładnie w chwili pobrania.
