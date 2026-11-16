@@ -111,6 +111,7 @@ def archive_batch(conn, batch, raw):
     """
     _guard(conn)
     batch = revalidate_batch(batch, raw)
+    cutoff = cutoff_for_day(batch.delivery_date)
     with conn.transaction():
         _lock_delivery_day(conn, batch.delivery_date)
         existing = conn.execute('''
@@ -145,7 +146,7 @@ def archive_batch(conn, batch, raw):
                 '''SELECT raw_sha256, raw_html, source_url, reference_sha256, parser_version,
                           retrieved_at > %s AND retrieved_at < TIMESTAMPTZ '10000-01-01 00:00:00+00'
                    FROM fix1_shadow_test.batches WHERE id = %s''',
-                (cutoff_for_day(batch.delivery_date), source_id),
+                (cutoff, source_id),
             ).fetchone()
             if not capture_valid:
                 decision = 'QUARANTINE'
@@ -193,18 +194,30 @@ def archive_batch(conn, batch, raw):
             VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING''',
             (batch.delivery_date,batch.raw_sha256,batch.reference_sha256,batch.parser_version,
              batch.source_url,batch.retrieved_at,raw))
-        bid, raw_matches, quarantined = conn.execute('''
-            SELECT batch.id, batch.raw_html = %s, EXISTS (
+        bid, raw_matches, capture_valid, evidence_url, quarantined = conn.execute('''
+            SELECT batch.id, batch.raw_html = %s,
+                   batch.retrieved_at > %s AND batch.retrieved_at < TIMESTAMPTZ '10000-01-01 00:00:00+00',
+                   batch.source_url, EXISTS (
                 SELECT 1 FROM fix1_shadow_test.quarantine AS q WHERE q.batch_id = batch.id
             )
             FROM fix1_shadow_test.batches AS batch
             WHERE delivery_date=%s AND raw_sha256=%s AND reference_sha256=%s AND parser_version=%s
-        ''', (raw, *batch.identity)).fetchone()
+        ''', (raw, cutoff, *batch.identity)).fetchone()
         if quarantined:
             return 'QUARANTINE'
-        if decision != 'QUARANTINE' and not raw_matches:
-            decision = 'QUARANTINE'
-            reason = 'Existing batch with this evidence identity has different raw HTML'
+        if decision != 'QUARANTINE':
+            if not raw_matches:
+                decision = 'QUARANTINE'
+                reason = 'Existing batch with this evidence identity has different raw HTML'
+            elif not capture_valid:
+                decision = 'QUARANTINE'
+                reason = 'Existing batch with this evidence identity has invalid Fix1 retrieval time'
+            else:
+                try:
+                    validate_source_url(evidence_url, batch.delivery_date.isoformat())
+                except ValueError:
+                    decision = 'QUARANTINE'
+                    reason = 'Existing batch with this evidence identity has invalid Fix1 source URL'
         if decision == 'QUARANTINE':
             conn.execute('INSERT INTO fix1_shadow_test.quarantine(batch_id,reason) VALUES (%s,%s) '
                          'ON CONFLICT DO NOTHING', (bid, reason))

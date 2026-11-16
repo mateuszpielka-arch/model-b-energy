@@ -1864,3 +1864,9 @@ klucz wskazuje zapisany wcześniej pakiet referencyjny, z którego
 nie pochodzą przyjęte ceny. Test na dostawie 16.11.2026 potwierdza
 kwarantannę po zmianie HTML w takim pakiecie, bez nadpisania dowodów
 lub cen i bez duplikowania wpisu w kwarantannie.
+
+Ponowny import do izolowanej bazy sprawdza czas pobrania i URL
+także dla dodatkowego pakietu dowodowego, z którego nie pochodzą
+przyjęte ceny. Test na dostawie 16.11.2026 potwierdza kwarantannę
+dla czasu równego D−1 09:50 Europe/Warsaw, nieskończonego czasu
+i URL innej sesji, z zachowaniem cen i zapisanych metadanych.

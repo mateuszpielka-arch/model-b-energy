@@ -144,6 +144,37 @@ class PostgresArchiveTests(unittest.TestCase):
         ''').fetchall(), [(secondary.reference_sha256,
                            'Existing batch with this evidence identity has different raw HTML')])
 
+    def test_replay_quarantines_secondary_evidence_with_invalid_capture_metadata(self):
+        fixture = Path(__file__).parent / 'fixtures' / 'tge_delivery_2026-11-16'
+        (batch, raw), = load_batches(fixture / 'manifest.json')
+        reference = (fixture / 'tge_delivery_2026-11-16.csv').read_bytes()
+        secondary = replace(batch, reference_sha256=sha256(reference + b'\n').hexdigest())
+        cutoff = cutoff_for_day(batch.delivery_date)
+        for column, invalid, reason in (
+            ('retrieved_at', cutoff, 'invalid Fix1 retrieval time'),
+            ('retrieved_at', 'infinity', 'invalid Fix1 retrieval time'),
+            ('source_url', batch.source_url.replace('15-11', '14-11'), 'invalid Fix1 source URL'),
+        ):
+            with self.subTest(column=column, invalid=invalid), self.conn.transaction(force_rollback=True):
+                self.assertEqual(archive_batch(self.conn, batch, raw), 'INSERT')
+                self.assertEqual(archive_batch(self.conn, secondary, raw), 'REPLAY')
+                self.conn.execute(
+                    f'UPDATE fix1_shadow_test.batches SET {column}=%s WHERE reference_sha256=%s',
+                    (invalid, secondary.reference_sha256),
+                )
+                for _ in range(2):
+                    self.assertEqual(archive_batch(self.conn, secondary, raw), 'QUARANTINE')
+                self.assertEqual(self.conn.execute('''
+                    SELECT period_start_utc, price FROM fix1_shadow_test.prices ORDER BY period_start_utc
+                ''').fetchall(), list(batch.rows))
+                self.assertEqual(self.conn.execute(f'''
+                    SELECT batch.reference_sha256, batch.{column} = %s, q.reason
+                    FROM fix1_shadow_test.quarantine AS q
+                    JOIN fix1_shadow_test.batches AS batch ON batch.id = q.batch_id
+                ''', (invalid,)).fetchall(), [
+                    (secondary.reference_sha256, True, f'Existing batch with this evidence identity has {reason}'),
+                ])
+
     def test_replay_checks_prices_in_different_archived_html_with_valid_hash(self):
         from lxml import html
 
