@@ -270,23 +270,37 @@ class WalkforwardCSVTests(unittest.TestCase):
             for row in rows
         ]
         rows += read_csv(fixtures / "tge_delivery_2026-11-12/tge_delivery_2026-11-12.csv")
+        for historical, available in (
+            (date(2026, 11, 10), cutoff),
+            (date(2026, 11, 11), cutoff + timedelta(microseconds=1)),
+        ):
+            historical_cutoff = cutoff_for_day(historical).isoformat()
+            file = fixtures / f"tge_delivery_{historical}/tge_delivery_{historical}.csv"
+            rows.extend(
+                dict(row, jwcd_mw="10000", jwcd_snapshot_id=f"synthetic-{historical}",
+                     publication_ts=historical_cutoff, retrieved_at=historical_cutoff,
+                     retrieval_completed_at=historical_cutoff, actual_available_at=available.isoformat(),
+                     actual_version="test-tge", actual_verified="true")
+                for row in read_csv(file)
+            )
         result = evaluate_csv_rows(
             rows, evaluated_at=cutoff + timedelta(days=2), target_from=target, target_to=target,
         )
         comparison = result["walkforward"]
         skipped, = comparison["skipped"]
         self.assertEqual(skipped["stage"], "ols30")
-        self.assertEqual(len(skipped["missing_training_days"]), 30)
+        self.assertEqual(len(skipped["missing_training_days"]), 28)
         rejected = result["csv_admission"]["excluded_days"]["2026-11-12"]
         self.assertIn("MISSING_OR_INVALID_JWCD", rejected)
         self.assertEqual(skipped["training_days_excluded_by_csv_audit"], {"2026-11-12": rejected})
         self.assertEqual(skipped["training_csv_coverage_by_window"], {
             key: {"absent_from_csv_days": days, "excluded_by_csv_audit_days": 1,
-                  "admitted_by_csv_audit_days": 0}
-            for key, days in (("30D", 29), ("60D", 59), ("90D", 89))
+                  "admitted_by_csv_audit_days": 2,
+                  "admitted_with_fix1_after_target_cutoff_days": 1}
+            for key, days in (("30D", 27), ("60D", 57), ("90D", 87))
         })
         self.assertEqual(skipped["training_days_absent_from_csv"], [
-            (target - timedelta(days=offset)).isoformat() for offset in range(30, 1, -1)
+            (target - timedelta(days=offset)).isoformat() for offset in range(30, 3, -1)
         ])
         self.assertEqual(comparison["ranking"], [])
 

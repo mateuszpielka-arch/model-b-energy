@@ -1956,3 +1956,8 @@ oddzielnie dla całych okien 30D, 60D i 90D, także gdy wykonanie kończy
 się na pierwszym modelu. Liczniki pokazują dni nieobecne, odrzucone
 przez audyt i przyjęte przez audyt. Test wykorzystuje dwa rzeczywiste
 dni Fix1, z których jeden nie ma JWCD, i sprawdza wszystkie trzy okna.
+
+Raport luk treningowych podaje, ile dni przyjętych przez audyt CSV
+miało ceny Fix1 dostępne dopiero po D−1 09:50 Europe/Warsaw dla
+doby ocenianej. Test z cenami TGE i syntetycznymi znacznikami
+odróżnia czas równy granicy od spóźnienia o mikrosekundę.

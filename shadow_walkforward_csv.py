@@ -8,7 +8,7 @@ from decimal import Decimal
 import json
 from pathlib import Path
 
-from shadow_asof import snapshot_identifier
+from shadow_asof import cutoff_for_day, snapshot_identifier
 from shadow_history_audit import FIX1_COLUMNS, _stamp, audit_rows, missing_delivery_ranges, read_csv
 from shadow_scoring import Score, expected_periods
 from shadow_walkforward import OLS_WINDOWS, run_walkforward
@@ -71,6 +71,7 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
         frozen_90d_by_day=frozen_90d_by_day,
     )
     observed_days = ready_days | excluded_days.keys()
+    actual_ready_at = {packet["day"].isoformat(): packet["actual_available_at"] for packet in history}
     for skipped in comparison["skipped"]:
         missing = skipped.get("missing_training_days")
         if missing:
@@ -78,17 +79,23 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
                 day: excluded_days[day] for day in missing if day in excluded_days
             }
             skipped["training_days_absent_from_csv"] = [day for day in missing if day not in observed_days]
-            target = date.fromisoformat(skipped["day"]).toordinal()
-            # Count CSV admission only. The model still verifies timing for each training window.
+        if missing or skipped.get("late_training_actual_days"):
+            target_day = date.fromisoformat(skipped["day"])
+            target = target_day.toordinal()
+            cutoff = cutoff_for_day(target_day)
+            # CSV admission records existence; Fix1 may still arrive after this target's cutoff.
             coverage = {}
             for window in OLS_WINDOWS:
                 labels = [date.fromordinal(prior).isoformat() for prior in range(max(1, target - window), target)]
                 excluded = sum(label in excluded_days for label in labels)
-                admitted = sum(label in ready_days for label in labels)
+                available_times = [actual_ready_at[label] for label in labels if label in actual_ready_at]
+                admitted = len(available_times)
+                late = sum(timestamp > cutoff for timestamp in available_times)
                 coverage[f"{window}D"] = {
                     "absent_from_csv_days": window - excluded - admitted,
                     "excluded_by_csv_audit_days": excluded,
                     "admitted_by_csv_audit_days": admitted,
+                    "admitted_with_fix1_after_target_cutoff_days": late,
                 }
             skipped["training_csv_coverage_by_window"] = coverage
     comparison["targets_excluded_by_csv_audit"] = {
