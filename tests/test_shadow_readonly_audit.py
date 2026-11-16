@@ -839,6 +839,33 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(actual['rows_retrieved_after_first_seen'], 1)
         self.assertEqual(actual['quality_status'], 'UNVERIFIED_REQUIRES_SOURCE_RECONCILIATION')
 
+    def test_fix1_audit_identifies_refetched_utc_period_on_fall_dst_day(self):
+        day = date(2026, 10, 25)
+        first, second = [period for period in expected_periods(day) if period.astimezone(WARSAW).hour == 2]
+        self.conn.execute(
+            'ALTER TABLE actual.tge_fix1 ADD COLUMN period_start_utc timestamptz, '
+            'ADD COLUMN retrieved_at_utc timestamptz'
+        )
+        with self.conn.cursor() as cursor:
+            cursor.executemany(
+                'INSERT INTO actual.tge_fix1 VALUES (%s,%s,100,%s,%s)',
+                [(day, 3, first, '2026-10-24T08:00:00Z'),
+                 (day, 4, second, '2026-10-24T08:00:01Z')],
+            )
+        actual, = audit_connection(self.conn)['actual_days']
+        self.assertIsNone(actual['observed_periods_retrieved_after_first_seen_utc'])
+
+        self.conn.execute('ALTER TABLE actual.tge_fix1 ADD COLUMN first_seen_at_utc timestamptz')
+        self.conn.execute("UPDATE actual.tge_fix1 SET first_seen_at_utc='2026-10-24T08:00:00Z'")
+        actual, = audit_connection(self.conn)['actual_days']
+        self.assertEqual(actual['rows_retrieved_after_first_seen'], 1)
+        self.assertEqual(actual['observed_periods_retrieved_after_first_seen_utc'], [second.isoformat()])
+
+        self.conn.execute("UPDATE actual.tge_fix1 SET retrieved_at_utc=first_seen_at_utc")
+        actual, = audit_connection(self.conn)['actual_days']
+        self.assertEqual(actual['rows_retrieved_after_first_seen'], 0)
+        self.assertEqual(actual['observed_periods_retrieved_after_first_seen_utc'], [])
+
     def test_fix1_audit_does_not_infer_timezone_for_legacy_timestamps(self):
         day = date(2026, 11, 2)
         self.conn.execute(

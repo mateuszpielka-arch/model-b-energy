@@ -454,6 +454,9 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                       AND ({first_seen} IS NULL OR {retrieved} IS NULL OR {retrieved} < {first_seen})
                 ),
                 array_agg(DISTINCT {period_column}) FILTER (
+                    WHERE {period_column} IS NOT NULL AND {retrieved} > {first_seen}
+                ),
+                array_agg(DISTINCT {period_column}) FILTER (
                     WHERE {period_column} IS NOT NULL
                       AND price_pln_mwh::text NOT IN ('NaN','Infinity','-Infinity')
                 )
@@ -463,7 +466,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                  earliest_retrieved,latest_retrieved,missing_timing,invalid_timing,refetched,
                  missing_source,source_count,
                  invalid_periods,explicit_periods,explicit_hours,late_price_periods,early_price_periods,
-                 unproven_price_timing_periods,valid_price_periods) in rows:
+                 unproven_price_timing_periods,refetched_price_periods,valid_price_periods) in rows:
                 periods = expected_periods(day)
                 expected = len(periods)
                 observed = set(hours or [])
@@ -473,6 +476,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                 late_retrieval_periods = None
                 early_retrieval_periods = None
                 unproven_timing_periods = None
+                refetched_periods = None
                 hour_utc_mismatches = []
                 if explicit_periods or invalid_periods:
                     explicit_utc = [period.astimezone(timezone.utc) for period in explicit_periods or ()]
@@ -483,6 +487,10 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                         ]
                         late_retrieval_periods = [
                             period.isoformat() for period in sorted(set(periods) & set(late_price_periods or ()))
+                        ]
+                    if columns.get('retrieved_at_utc') and columns.get('first_seen_at_utc'):
+                        refetched_periods = [
+                            period.isoformat() for period in sorted(set(periods) & set(refetched_price_periods or ()))
                         ]
                     unproven_timing_periods = [
                         period.isoformat()
@@ -551,6 +559,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     rows_missing_price_timing=missing_timing,
                     rows_with_invalid_price_timing=invalid_timing,
                     rows_retrieved_after_first_seen=refetched,
+                    observed_periods_retrieved_after_first_seen_utc=refetched_periods,
                     rows_without_usable_source_metadata=missing_source,
                     distinct_recorded_sources=source_count,
                     single_recorded_source=structurally_complete and missing_source == 0 and source_count == 1,

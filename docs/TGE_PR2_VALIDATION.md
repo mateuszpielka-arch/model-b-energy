@@ -1843,3 +1843,8 @@ Audyt PostgreSQL wskazuje okresy UTC PK5 z publikacją po zapisaniu
 snapshotu. Test doby 25h rozróżnia oba wystąpienia lokalnej godziny
 02:00, odróżnia zapis snapshotu od granicy D−1 09:50 Europe/Warsaw
 i sprawdza przypadki równości oraz braku czasu zapisu.
+
+Audyt PostgreSQL wskazuje okresy UTC Fix1, w których
+`retrieved_at_utc` jest późniejszy niż `first_seen_at_utc`.
+Test doby 25h przypisuje ponowne pobranie do drugiego wystąpienia
+02:00 oraz rozróżnia brak kolumny czasu od braku ponownych pobrań.
