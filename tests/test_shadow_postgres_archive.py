@@ -115,6 +115,35 @@ class PostgresArchiveTests(unittest.TestCase):
             'SELECT reason FROM fix1_shadow_test.quarantine'
         ).fetchall(), [('Existing price batch raw HTML hash mismatch',)])
 
+    def test_replay_quarantines_corrupted_secondary_evidence_without_overwrite(self):
+        fixture = Path(__file__).parent / 'fixtures' / 'tge_delivery_2026-11-16'
+        (batch, raw), = load_batches(fixture / 'manifest.json')
+        reference = (fixture / 'tge_delivery_2026-11-16.csv').read_bytes()
+        secondary = replace(batch, reference_sha256=sha256(reference + b'\n').hexdigest())
+        self.assertEqual(archive_batch(self.conn, batch, raw), 'INSERT')
+        self.assertEqual(archive_batch(self.conn, secondary, raw), 'REPLAY')
+        self.assertEqual(self.count('batches'), 2)
+
+        corrupt = b'altered secondary HTML'
+        self.conn.execute(
+            'UPDATE fix1_shadow_test.batches SET raw_html=%s WHERE reference_sha256=%s',
+            (corrupt, secondary.reference_sha256),
+        )
+        for _ in range(2):
+            self.assertEqual(archive_batch(self.conn, secondary, raw), 'QUARANTINE')
+        self.assertEqual(self.conn.execute(
+            'SELECT period_start_utc, price FROM fix1_shadow_test.prices ORDER BY period_start_utc'
+        ).fetchall(), list(batch.rows))
+        self.assertEqual(self.conn.execute(
+            'SELECT reference_sha256, raw_html FROM fix1_shadow_test.batches ORDER BY id'
+        ).fetchall(), [(batch.reference_sha256, raw), (secondary.reference_sha256, corrupt)])
+        self.assertEqual(self.conn.execute('''
+            SELECT batch.reference_sha256, q.reason
+            FROM fix1_shadow_test.quarantine AS q
+            JOIN fix1_shadow_test.batches AS batch ON batch.id = q.batch_id
+        ''').fetchall(), [(secondary.reference_sha256,
+                           'Existing batch with this evidence identity has different raw HTML')])
+
     def test_replay_checks_prices_in_different_archived_html_with_valid_hash(self):
         from lxml import html
 

@@ -193,15 +193,18 @@ def archive_batch(conn, batch, raw):
             VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING''',
             (batch.delivery_date,batch.raw_sha256,batch.reference_sha256,batch.parser_version,
              batch.source_url,batch.retrieved_at,raw))
-        bid, quarantined = conn.execute('''
-            SELECT batch.id, EXISTS (
+        bid, raw_matches, quarantined = conn.execute('''
+            SELECT batch.id, batch.raw_html = %s, EXISTS (
                 SELECT 1 FROM fix1_shadow_test.quarantine AS q WHERE q.batch_id = batch.id
             )
             FROM fix1_shadow_test.batches AS batch
             WHERE delivery_date=%s AND raw_sha256=%s AND reference_sha256=%s AND parser_version=%s
-        ''', batch.identity).fetchone()
+        ''', (raw, *batch.identity)).fetchone()
         if quarantined:
             return 'QUARANTINE'
+        if decision != 'QUARANTINE' and not raw_matches:
+            decision = 'QUARANTINE'
+            reason = 'Existing batch with this evidence identity has different raw HTML'
         if decision == 'QUARANTINE':
             conn.execute('INSERT INTO fix1_shadow_test.quarantine(batch_id,reason) VALUES (%s,%s) '
                          'ON CONFLICT DO NOTHING', (bid, reason))

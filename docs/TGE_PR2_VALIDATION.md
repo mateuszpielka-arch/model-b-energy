@@ -1858,3 +1858,9 @@ Importer walidacyjny odczytuje manifest w UTF-8 i odrzuca plik
 większy niż 1 MiB przed odczytem HTML i CSV oraz przed pracą z bazą.
 Test na kopii manifestu dostawy 16.11.2026 potwierdza poprawny tryb
 dry-run przy dokładnie 1 MiB i odrzucenie po dodaniu jednego bajtu.
+
+Archiwizacja testowa sprawdza zgodność HTML również wtedy, gdy
+klucz wskazuje zapisany wcześniej pakiet referencyjny, z którego
+nie pochodzą przyjęte ceny. Test na dostawie 16.11.2026 potwierdza
+kwarantannę po zmianie HTML w takim pakiecie, bez nadpisania dowodów
+lub cen i bez duplikowania wpisu w kwarantannie.
