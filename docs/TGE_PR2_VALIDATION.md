@@ -1877,3 +1877,10 @@ dla wszystkich 24 okresów dostawy 17.11.2026. Surowy HTML zachowano
 jako fixture regresyjne. Ekstraktor referencji wskazuje teraz brak ceny
 i konkretny okres. Test potwierdza odrzucenie odpowiedzi przez parser
 oraz brak zapisu HTML i CSV przez ścieżkę pobierania cen.
+
+Drugie pobranie [tej samej sesji TGE](https://tge.pl/energia-elektryczna-rdn?dateShow=16-11-2026)
+o 11:34:27 Europe/Warsaw potwierdziło 24 ceny Fixing I dla 17.11.2026.
+Zapisano HTML, CSV z okresami UTC i manifest z sumami SHA-256. Parser
+zgadza się z niezależną ekstrakcją XPath z tej odpowiedzi. Cena H01 to
+738,93 PLN/MWh. Test w izolowanym PostgreSQL sprawdza INSERT i REPLAY
+oraz zachowanie czasu drugiego pobrania w zapisanym pakiecie.

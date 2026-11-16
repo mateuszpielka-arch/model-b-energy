@@ -34,6 +34,7 @@ NOV_13_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-13')
 NOV_14_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-14')
 NOV_15_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-15')
 NOV_16_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-16')
+NOV_17_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-17')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
@@ -182,6 +183,18 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         report = ingest_manifest(manifest)
         self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
 
+    def test_november_17_fixing_i_matches_official_reference(self):
+        day = date(2026, 11, 17)
+        self.check_sessions(NOV_17_FIXTURES, [day.isoformat()])
+        manifest = NOV_17_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        _, _, rows = load_session(entry, NOV_17_FIXTURES)
+        self.assertEqual([row['period_start_utc'] for row in rows],
+                         [period.isoformat() for period in expected_periods(day)])
+        self.assertEqual(rows[0]['price_pln_mwh'], '738.93')
+        report = ingest_manifest(manifest)
+        self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
+
     def test_november_17_unpriced_official_session_cannot_create_evidence(self):
         day = date(2026, 11, 17)
         directory = FIXTURES.with_name('tge_delivery_2026-11-17_unpriced')
@@ -262,6 +275,9 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
     def test_november_16_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_16_FIXTURES)
+
+    def test_november_17_manifest_is_archived_and_replayed_without_duplicate_rows(self):
+        self.check_manifest_archive_and_replay(NOV_17_FIXTURES)
 
     def test_november_15_replay_quarantines_an_archived_url_for_the_wrong_session(self):
         manifest = NOV_15_FIXTURES / 'manifest.json'
