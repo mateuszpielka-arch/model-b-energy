@@ -1939,3 +1939,9 @@ czas dostępności danych dla wszystkich dni swojego okna 30D, 60D lub
 90D. Brak dnia, duplikat albo data spoza okna wykluczają dobę docelową
 ze wspólnego rankingu. Test usuwa, powiela lub przesuwa poza okno dowód
 czasowy OLS 60D i potwierdza, że scoring tego dnia się nie rozpoczyna.
+
+Walk-forward odrzuca dobę docelową, gdy model zwróci wadliwy dowód
+czasowy treningu. Raport wskazuje model oraz błędne pole, jeśli data
+dowodu jest poprawna. Test OLS 60D obejmuje błędną datę, brak czasu Fix1
+i znacznik pobrania JWCD bez strefy. Druga doba zachowuje komplet
+ocen wszystkich modeli.

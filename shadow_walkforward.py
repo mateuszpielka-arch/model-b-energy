@@ -187,13 +187,20 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                 for name in MODELS[:-1]:
                     scoring_model = name
                     latest_publication, latest_retrieval = publication, retrieved
-                    training_timing = predictions[name].get('training_timing') or ()
+                    training_timing = predictions[name].get('training_timing')
+                    if training_timing is None:
+                        training_timing = ()
+                    if not isinstance(training_timing, (tuple, list)):
+                        raise ValueError('Invalid training timing evidence collection')
                     window_days = TRAINING_WINDOWS[name]
                     window_start = day - timedelta(days=window_days)
                     training_days = set()
                     training_actual_times = []
                     for evidence in training_timing:
-                        training_day = date.fromisoformat(evidence['day'])
+                        try:
+                            training_day = date.fromisoformat(evidence['day'])
+                        except (KeyError, TypeError, ValueError) as exc:
+                            raise ValueError('Invalid delivery date in training timing evidence') from exc
                         if training_day >= day:
                             raise ValueError(f'Training delivery must precede target delivery: {training_day}')
                         if training_day < window_start:
@@ -202,13 +209,24 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                             raise ValueError(f'Duplicate training timing evidence: {training_day}')
                         training_days.add(training_day)
                         training_cutoff = cutoff_for_day(training_day)
-                        available = _utc(datetime.fromisoformat(evidence['actual_available_at_utc']))
+                        timestamps = {}
+                        for field in (
+                            'actual_available_at_utc', 'latest_publication_ts_utc',
+                            'retrieved_at_utc', 'retrieval_completed_at_utc',
+                        ):
+                            try:
+                                timestamps[field] = _utc(datetime.fromisoformat(evidence[field]))
+                            except (KeyError, TypeError, ValueError) as exc:
+                                raise ValueError(
+                                    f'Invalid training timing evidence for {training_day}: {field}'
+                                ) from exc
+                        available = timestamps['actual_available_at_utc']
                         if available <= training_cutoff:
                             raise ValueError(f'Training Fix1 available at or before its own D-1 09:50: {training_day}')
                         training_actual_times.append(available)
-                        published = _utc(datetime.fromisoformat(evidence['latest_publication_ts_utc']))
-                        started = _utc(datetime.fromisoformat(evidence['retrieved_at_utc']))
-                        completed = _utc(datetime.fromisoformat(evidence['retrieval_completed_at_utc']))
+                        published = timestamps['latest_publication_ts_utc']
+                        started = timestamps['retrieved_at_utc']
+                        completed = timestamps['retrieval_completed_at_utc']
                         if max(published, started) > completed or completed > training_cutoff:
                             raise ValueError(f'Training JWCD chronology invalid at D-1 09:50: {training_day}')
                         latest_publication = max(latest_publication, published)

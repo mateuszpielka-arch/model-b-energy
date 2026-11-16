@@ -742,6 +742,7 @@ class WalkforwardTests(unittest.TestCase):
         outside_window = (target - timedelta(days=61)).isoformat()
         for change, reason in (
             (lambda timing: None, 'Incomplete training timing evidence for the 60D window'),
+            (lambda timing: {'day': 'bad shape'}, 'Invalid training timing evidence collection'),
             (lambda timing: timing[:-1], 'Incomplete training timing evidence for the 60D window'),
             (lambda timing: (timing[-1], *timing[1:]), f'Duplicate training timing evidence: {last_training_day}'),
             (lambda timing: ({**timing[0], 'day': outside_window}, *timing[1:]),
@@ -764,6 +765,39 @@ class WalkforwardTests(unittest.TestCase):
                 self.assertEqual(result['skipped'], [{
                     'day': target.isoformat(), 'stage': 'scoring', 'model': 'ols60', 'reason': reason,
                 }])
+
+    def test_malformed_training_timing_rejects_only_the_affected_target(self):
+        args = self.args()
+        first, second = args['target_days']
+        last_training_day = first - timedelta(days=1)
+        for field, replacement, reason in (
+            ('day', 'invalid', 'Invalid delivery date in training timing evidence'),
+            ('actual_available_at_utc', None,
+             f'Invalid training timing evidence for {last_training_day}: actual_available_at_utc'),
+            ('retrieved_at_utc', '2026-11-01T07:00:00',
+             f'Invalid training timing evidence for {last_training_day}: retrieved_at_utc'),
+        ):
+            with self.subTest(field=field):
+                def change_training_timing(**kwargs):
+                    prediction = predict_ols(**kwargs)
+                    if kwargs['target_day'] == first and kwargs['window_days'] == 60:
+                        evidence = prediction['training_timing'][-1]
+                        if replacement is None:
+                            del evidence[field]
+                        else:
+                            evidence[field] = replacement
+                    return prediction
+
+                with patch('shadow_walkforward.predict_ols', side_effect=change_training_timing), patch(
+                    'shadow_walkforward.score_day', wraps=score_day,
+                ) as scoring:
+                    result = run_walkforward(**args)
+
+                self.assertEqual(result['skipped'], [{
+                    'day': first.isoformat(), 'stage': 'scoring', 'model': 'ols60', 'reason': reason,
+                }])
+                self.assertEqual([day['day'] for day in result['accepted']], [second.isoformat()])
+                self.assertEqual([call.kwargs['day'] for call in scoring.call_args_list], [second] * len(MODELS))
 
     def test_scoring_excludes_common_day_if_model_reports_late_training_fix1(self):
         args = self.args()
