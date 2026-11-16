@@ -98,7 +98,8 @@ class ScoringTests(unittest.TestCase):
         # Warsaw cutoff in winter is 08:50 UTC.
         for field in ('issued_at','publication_ts','retrieved_at'):
             kw=self.args(); kw[field]=datetime(2026,11,1,8,50,1,tzinfo=timezone.utc)
-            with self.subTest(field=field), self.assertRaises(ValueError): score_day(**kw)
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, f'D-1 09:50: {field}$'):
+                score_day(**kw)
         kw=self.args(); kw['issued_at']=datetime(2026,11,1,8,50,tzinfo=timezone.utc)
         self.assertEqual(score_day(**kw).mae,0)
 

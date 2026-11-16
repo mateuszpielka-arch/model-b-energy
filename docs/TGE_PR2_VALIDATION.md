@@ -1890,3 +1890,9 @@ i wiążą go z sumą kontrolną wejścia. Test na sesji dla 17.11.2026
 przesuwa czas pobrania o sekundę w izolowanym PostgreSQL i potwierdza
 odrzucenie ponownego scoringu oraz zachowanie zapisanego wyniku.
 Starsze rekordy można nadal odtworzyć bez zmiany ich formatu.
+
+Scoring wskazuje, które znaczniki prognozy przekroczyły D−1 09:50
+Europe/Warsaw. Test cen TGE dla 17.11.2026 potwierdza odrzucenie
+publikacji i pobrania spóźnionych o mikrosekundę oraz przyjęcie obu
+znaczników na granicy. MAE, MAPE, WAPE i bias dla syntetycznej
+prognozy 650 PLN/MWh porównano z niezależnym rachunkiem na ułamkach.

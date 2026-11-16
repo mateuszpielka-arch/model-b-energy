@@ -90,8 +90,17 @@ def validate_forecast_timing(day, issued_at, publication_ts, retrieved_at):
     """Require every forecast input to precede issuance and its Warsaw cutoff."""
     issued, published, retrieved = map(_utc, (issued_at, publication_ts, retrieved_at))
     cutoff = datetime.combine(day - timedelta(days=1), time(9,50), WARSAW).astimezone(UTC)
-    if not published <= retrieved <= issued <= cutoff:
-        raise ValueError('Invalid chronology or data unavailable before D-1 09:50')
+    late_fields = [
+        field for field, timestamp in (
+            ('publication_ts', published), ('retrieved_at', retrieved), ('issued_at', issued),
+        ) if timestamp > cutoff
+    ]
+    if late_fields:
+        raise ValueError(f'Forecast unavailable before D-1 09:50: {", ".join(late_fields)}')
+    if published > retrieved:
+        raise ValueError('Invalid chronology: publication_ts is after retrieved_at')
+    if retrieved > issued:
+        raise ValueError('Invalid chronology: retrieved_at is after issued_at')
 
 
 def validate_forecast_identity(forecast_id, model_version, forecast_status):

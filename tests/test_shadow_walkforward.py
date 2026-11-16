@@ -64,7 +64,8 @@ class WalkforwardTests(unittest.TestCase):
             self.assertEqual(pair['ols90'], accepted['scores']['ols90'])
             self.assertEqual(pair['frozen_90d'].actual_version, pair['ols90'].actual_version)
         self.assertEqual(set(benchmark['excluded_days']), {monday.isoformat()})
-        self.assertIn('chronology', benchmark['excluded_days'][monday.isoformat()])
+        self.assertEqual(benchmark['excluded_days'][monday.isoformat()],
+                         'Forecast unavailable before D-1 09:50: issued_at')
 
         ols, frozen = benchmark['ranking']
         self.assertEqual([ols['model'], frozen['model']], ['ols90', 'frozen_90d'])

@@ -780,6 +780,43 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             self.assertEqual(score_archived_day(conn, **inputs, evaluated_at=captured), ('REPLAY', score))
             self.assertEqual(conn.execute(count).fetchone(), (1,))
 
+    def test_score_november_17_rejects_late_forecast_inputs_and_matches_reference_metrics(self):
+        manifest = NOV_17_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        _, reference, _ = load_session(entry, NOV_17_FIXTURES)
+        day = date.fromisoformat(entry['delivery_date'])
+        cutoff = cutoff_for_day(day)
+        captured = datetime.fromisoformat(entry['retrieved_at_utc'])
+        inputs = dict(
+            day=day, forecast=[(period, Decimal('650')) for period in expected_periods(day)],
+            forecast_id='november-17-cutoff-test', model_version='synthetic-test',
+            forecast_status='SHADOW', issued_at=cutoff, publication_ts=cutoff,
+            retrieved_at=cutoff, evaluated_at=captured, reference_csv=reference,
+        )
+        late = cutoff + timedelta(microseconds=1)
+        # Exact-fraction oracle from the reference CSV and the fixed 650 PLN/MWh input.
+        expected = {
+            'mae': '507.959583333333',
+            'mape_pct': '36.736480386777',
+            'wape_pct': '43.866780036580',
+            'bias': '-507.959583333333',
+        }
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            for field in ('publication_ts', 'retrieved_at'):
+                with self.subTest(field=field):
+                    with self.assertRaisesRegex(ValueError, f'D-1 09:50: {field}$'):
+                        score_archived_day(conn, **{**inputs, field: late})
+            count = 'SELECT count(*) FROM fix1_shadow_test.scores'
+            self.assertEqual(conn.execute(count).fetchone(), (0,))
+            status, score = score_archived_day(conn, **inputs)
+            self.assertEqual((status, score.periods), ('INSERT', 24))
+            for metric, value in expected.items():
+                self.assertEqual(getattr(score, metric).quantize(Decimal('1e-12')), Decimal(value))
+            self.assertEqual(score_archived_day(conn, **inputs), ('REPLAY', score))
+            self.assertEqual(conn.execute(count).fetchone(), (1,))
+
     def test_score_november_17_binds_the_recorded_fix1_capture_time(self):
         manifest = NOV_17_FIXTURES / 'manifest.json'
         entry, = json.loads(manifest.read_text())['entries']
