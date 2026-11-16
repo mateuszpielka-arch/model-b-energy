@@ -44,6 +44,10 @@ class WalkforwardCSVTests(unittest.TestCase):
         })
         self.assertEqual(comparison["common_days"], 1)
         self.assertEqual(comparison["common_periods"], 25)
+        self.assertEqual(comparison["target_coverage"], {
+            "calendar_days": 91, "absent_from_csv_days": 0, "excluded_by_csv_audit_days": 0,
+            "admitted_but_unscored_days": 90, "scored_on_common_sample_days": 1,
+        })
         self.assertEqual(len(comparison["ranking"]), 6)
         self.assertEqual(comparison["accepted"][0]["day"], target.isoformat())
 
@@ -55,6 +59,10 @@ class WalkforwardCSVTests(unittest.TestCase):
         self.assertEqual(scoped["walkforward"]["ranking"], comparison["ranking"])
         self.assertEqual(scoped["walkforward"]["target_from"], target.isoformat())
         self.assertEqual(scoped["walkforward"]["target_to"], target.isoformat())
+        self.assertEqual(scoped["walkforward"]["target_coverage"], {
+            "calendar_days": 1, "absent_from_csv_days": 0, "excluded_by_csv_audit_days": 0,
+            "admitted_but_unscored_days": 0, "scored_on_common_sample_days": 1,
+        })
 
         cutoff = cutoff_for_day(target)
         record = dict(
@@ -264,6 +272,19 @@ class WalkforwardCSVTests(unittest.TestCase):
         self.assertEqual(skipped["training_days_absent_from_csv"], [
             (target - timedelta(days=offset)).isoformat() for offset in range(30, 1, -1)
         ])
+        self.assertEqual(comparison["ranking"], [])
+
+    def test_target_coverage_counts_gaps_and_audit_exclusions_with_real_fix1(self):
+        fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-17/tge_delivery_2026-11-17.csv'
+        comparison = evaluate_csv_rows(
+            read_csv(fixture), evaluated_at=datetime(2026, 11, 19, tzinfo=timezone.utc),
+            target_from=date(2026, 11, 16), target_to=date(2026, 11, 18),
+        )["walkforward"]
+        self.assertEqual(comparison["target_coverage"], {
+            "calendar_days": 3, "absent_from_csv_days": 2, "excluded_by_csv_audit_days": 1,
+            "admitted_but_unscored_days": 0, "scored_on_common_sample_days": 0,
+        })
+        self.assertIn("MISSING_OR_INVALID_JWCD", comparison["targets_excluded_by_csv_audit"]["2026-11-17"])
         self.assertEqual(comparison["ranking"], [])
 
     def test_empty_source_reports_full_explicit_target_range(self):

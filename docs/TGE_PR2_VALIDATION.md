@@ -1907,3 +1907,10 @@ Audyt CSV wskazuje osobno okresy UTC, w których powtórzone wiersze
 mają różne skończone ceny Fix1 lub różne JWCD. Kontrola obejmuje ceny
 TGE dla 17.11.2026 i dobę 25h z syntetycznymi danymi. Równe wartości
 o różnym zapisie pozostają duplikatami bez konfliktu wartości.
+
+Raport walk-forward z CSV podaje liczbę wszystkich dni w badanym
+zakresie oraz rozkład na dni bez rekordu, odrzucone w audycie,
+dopuszczone bez wyniku i ocenione przez wszystkie modele. Test
+na cenach TGE dla 17.11.2026 bez JWCD odróżnia dzień odrzucony
+od dwóch brakujących dni. Test syntetyczny sprawdza też wspólną
+próbę z dobą 25h i zakres ograniczony do tej doby.

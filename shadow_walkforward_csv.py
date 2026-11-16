@@ -84,9 +84,18 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
     }
     comparison["target_from"] = target_from.isoformat() if target_from is not None else None
     comparison["target_to"] = target_to.isoformat() if target_to is not None else None
-    comparison["target_missing_ranges"] = missing_delivery_ranges(
-        readiness["days"], target_from, target_to,
-    )
+    target_gaps = missing_delivery_ranges(readiness["days"], target_from, target_to)
+    comparison["target_missing_ranges"] = target_gaps
+    absent_days = sum(gap["days"] for gap in target_gaps)
+    audit_excluded_days = len(comparison["targets_excluded_by_csv_audit"])
+    scored_days = comparison["common_days"]
+    comparison["target_coverage"] = {
+        "calendar_days": absent_days + audit_excluded_days + len(targets),
+        "absent_from_csv_days": absent_days,
+        "excluded_by_csv_audit_days": audit_excluded_days,
+        "admitted_but_unscored_days": len(targets) - scored_days,
+        "scored_on_common_sample_days": scored_days,
+    }
     admission = {
         "delivery_days": len(readiness["days"]),
         "admitted_days": len(ready_days),
