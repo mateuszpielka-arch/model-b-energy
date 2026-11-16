@@ -22,6 +22,7 @@ class ManifestTests(unittest.TestCase):
         self.assertTrue(report['dry_run']);self.assertEqual((report['days'],report['periods']),(7,168))
         self.assertTrue(all(r['status']=='VALIDATED_DRY_RUN' for r in report['results']))
         self.assertTrue(all(r['scoring_blocked_by_quarantine'] is None for r in report['results']))
+        self.assertTrue(all(r['accepted_capture'] is None for r in report['results']))
         self.assertEqual(report['days_by_status'], {'VALIDATED_DRY_RUN': 7})
         self.assertEqual(report['inserted_periods'], 0)
         self.assertTrue(all('?dateShow=' in r['source_url'] for r in report['results']))
@@ -637,6 +638,9 @@ class ManifestPostgresTests(unittest.TestCase):
         self.assertEqual([row['status'] for row in report['results']],
                          ['REPLAY', 'QUARANTINE'] + ['INSERT'] * 5)
         self.assertEqual(report['days_by_status'], {'INSERT': 5, 'QUARANTINE': 1, 'REPLAY': 1})
+        self.assertIsNone(report['results'][1]['accepted_capture'])
+        for row in report['results'][2:]:
+            self.assertEqual(row['accepted_capture']['raw_sha256'], row['raw_sha256'])
         self.assertEqual((report['periods'], report['inserted_periods']), (168, 120))
         replay = ingest_manifest(MANIFEST, conn=self.conn)
         self.assertEqual(replay['days_by_status'], {'QUARANTINE': 1, 'REPLAY': 6})

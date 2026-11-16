@@ -300,6 +300,11 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                 self.assertEqual(report['days_by_status'], {'REPLAY': 1})
                 self.assertEqual(report['inserted_periods'], 0)
                 self.assertFalse(report['results'][0]['scoring_blocked_by_quarantine'])
+                self.assertEqual(report['results'][0]['raw_sha256'], recaptured.raw_sha256)
+                self.assertEqual(report['results'][0]['accepted_capture'], {
+                    'raw_sha256': original.raw_sha256,
+                    'retrieved_at_utc': original.retrieved_at.isoformat(),
+                })
             self.assertEqual(conn.execute('''
                 SELECT raw_sha256, retrieved_at
                 FROM fix1_shadow_test.batches ORDER BY retrieved_at

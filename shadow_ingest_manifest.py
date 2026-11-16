@@ -4,7 +4,7 @@ Default is dry-run; no network, DATABASE_URL, production writes, or scheduling.
 """
 from collections import Counter
 from contextlib import nullcontext
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 import gzip
 from hashlib import sha256
 import json
@@ -171,14 +171,26 @@ def _ingest_batches(batches, conn):
         for batch,raw in batches:
             status = 'VALIDATED_DRY_RUN' if conn is None else archive_batch(conn, batch, raw)
             blocked = None
+            accepted_capture = None
             if conn is not None:
                 # A replay can match accepted prices even after a different capture was quarantined.
                 blocked = status == 'QUARANTINE' or (
                     status == 'REPLAY' and _has_delivery_quarantine(conn, batch.delivery_date)
                 )
+                if not blocked:
+                    accepted_hash, accepted_at = conn.execute('''
+                        SELECT source.raw_sha256, source.retrieved_at AT TIME ZONE 'UTC'
+                        FROM fix1_shadow_test.prices AS price
+                        JOIN fix1_shadow_test.batches AS source ON source.id = price.batch_id
+                        WHERE price.delivery_date = %s AND price.period_start_utc = %s
+                    ''', (batch.delivery_date, batch.rows[0][0])).fetchone()
+                    accepted_capture = {
+                        'raw_sha256': accepted_hash,
+                        'retrieved_at_utc': accepted_at.replace(tzinfo=timezone.utc).isoformat(),
+                    }
             report.append(dict(day=batch.delivery_date.isoformat(),periods=len(batch.rows),status=status,
                                raw_sha256=batch.raw_sha256,source_url=batch.source_url,
-                               scoring_blocked_by_quarantine=blocked))
+                               scoring_blocked_by_quarantine=blocked,accepted_capture=accepted_capture))
     return dict(
         dry_run=conn is None,
         days=len(report),

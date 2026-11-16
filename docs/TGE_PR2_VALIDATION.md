@@ -1921,3 +1921,9 @@ o 17:26:30 Europe/Warsaw dało inny surowy HTML i identyczny CSV
 Test izolowanego PostgreSQL sprawdza dwa ponowne importy późniejszego
 HTML, dwa pakiety dowodowe i jeden zestaw 24 cen powiązany z pierwszym
 pobraniem, bez kwarantanny.
+
+Raport importu do izolowanego PostgreSQL podaje sumę SHA-256 i czas UTC
+pobrania przypisanego do przyjętych cen. Przy ponownym imporcie późniejszego
+HTML z 17.11.2026 raport zachowuje skrót złożonego pakietu i wskazuje
+wcześniejsze pobranie jako źródło cen. Pole pozostaje puste w trybie
+dry-run oraz przy kwarantannie.
