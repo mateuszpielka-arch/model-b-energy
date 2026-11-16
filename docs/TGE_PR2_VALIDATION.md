@@ -1848,3 +1848,8 @@ Audyt PostgreSQL wskazuje okresy UTC Fix1, w których
 `retrieved_at_utc` jest późniejszy niż `first_seen_at_utc`.
 Test doby 25h przypisuje ponowne pobranie do drugiego wystąpienia
 02:00 oraz rozróżnia brak kolumny czasu od braku ponownych pobrań.
+
+Zapis manifestu walidacyjnego publikuje gotowy JSON atomowo
+i odrzuca zapis, gdy manifest już istnieje. Test dwóch równoczesnych
+zapisów z manifestem sesji dla 16.11.2026 potwierdza jeden kompletny
+wynik i usunięcie obu plików tymczasowych.

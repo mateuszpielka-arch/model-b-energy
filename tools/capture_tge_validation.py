@@ -13,6 +13,7 @@ from hashlib import sha256
 from http.client import IncompleteRead
 import io
 import json
+from os import link
 from pathlib import Path
 import re
 from tempfile import NamedTemporaryFile
@@ -175,7 +176,7 @@ def capture(day, directory, *, autumn_25h=False):
 
 
 def write_manifest(directory, manifest):
-    # Publish the manifest only once the complete JSON has been written.
+    # Link the complete JSON into place atomically, refusing an existing manifest.
     temporary = NamedTemporaryFile(
         mode="w", encoding="utf-8", dir=directory, delete=False
     )
@@ -183,7 +184,7 @@ def write_manifest(directory, manifest):
     try:
         with temporary:
             json.dump(manifest, temporary, indent=2)
-        staging_path.replace(directory / "manifest.json")
+        link(staging_path, directory / "manifest.json")
     finally:
         staging_path.unlink(missing_ok=True)
 

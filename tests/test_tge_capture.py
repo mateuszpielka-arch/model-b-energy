@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 import csv
 from datetime import date, datetime
 from decimal import Decimal
@@ -250,6 +251,29 @@ class CaptureOutputTest(unittest.TestCase):
 
             path = output / "manifest.json"
             self.assertEqual(json.loads(path.read_text(encoding="utf-8")), manifest)
+            self.assertEqual(list(output.iterdir()), [path])
+
+    def test_concurrent_manifest_writers_publish_only_one_complete_manifest(self):
+        fixture = Path(__file__).parent / "fixtures/tge_delivery_2026-11-16/manifest.json"
+        first = json.loads(fixture.read_text(encoding="utf-8"))
+        second = {"entries": [], "errors": [{"day": "2026-11-16", "error": "capture failed"}]}
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+
+            def publish(manifest):
+                try:
+                    write_manifest(output, manifest)
+                except FileExistsError:
+                    return None
+                return manifest
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                winners = [manifest for manifest in pool.map(publish, (first, second))
+                           if manifest is not None]
+
+            winner, = winners
+            path = output / "manifest.json"
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), winner)
             self.assertEqual(list(output.iterdir()), [path])
 
     def test_failed_serialization_leaves_no_manifest_or_temporary_file(self):
