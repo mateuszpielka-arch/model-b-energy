@@ -1870,3 +1870,10 @@ także dla dodatkowego pakietu dowodowego, z którego nie pochodzą
 przyjęte ceny. Test na dostawie 16.11.2026 potwierdza kwarantannę
 dla czasu równego D−1 09:50 Europe/Warsaw, nieskończonego czasu
 i URL innej sesji, z zachowaniem cen i zapisanych metadanych.
+
+Odpowiedź HTTP 200 z [sesji TGE 16.11.2026](https://tge.pl/energia-elektryczna-rdn?dateShow=16-11-2026)
+z godz. 10:43:18 Europe/Warsaw zawierała `-` w polach ceny Fixing I
+dla wszystkich 24 okresów dostawy 17.11.2026. Surowy HTML zachowano
+jako fixture regresyjne. Ekstraktor referencji wskazuje teraz brak ceny
+i konkretny okres. Test potwierdza odrzucenie odpowiedzi przez parser
+oraz brak zapisu HTML i CSV przez ścieżkę pobierania cen.

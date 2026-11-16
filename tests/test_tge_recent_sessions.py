@@ -7,6 +7,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from threading import Barrier
 from time import monotonic, sleep
 import unittest
@@ -19,7 +20,7 @@ from shadow_postgres_archive import archive_batch, connect_test_database, initia
 from shadow_postgres_scores import initialize_scores, score_archived_day
 from shadow_scoring import expected_periods
 from tge_parser_safe import parse_complete_standard_day
-from tools.capture_tge_validation import extract_reference
+from tools.capture_tge_validation import capture, extract_reference
 
 
 FIXTURES = Path(__file__).parent / 'fixtures/tge_history_2026-11-04_2026-11-06'
@@ -180,6 +181,25 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         self.assertEqual(rows[0]['price_pln_mwh'], '471.34')
         report = ingest_manifest(manifest)
         self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
+
+    def test_november_17_unpriced_official_session_cannot_create_evidence(self):
+        day = date(2026, 11, 17)
+        directory = FIXTURES.with_name('tge_delivery_2026-11-17_unpriced')
+        raw = gzip.decompress((directory / 'tge_delivery_2026-11-17_unpriced.html.gz').read_bytes())
+        self.assertEqual(sha256(raw).hexdigest(),
+                         '4bb601a5780ce3796f10ea7d69044b42228331c05f5be378db4e438cb42558f9')
+        with self.assertRaisesRegex(ValueError, r"Invalid Fixing I price for H01: '-'"):
+            parse_complete_standard_day(raw.decode('utf-8'), day.isoformat(), exact=True)
+        with TemporaryDirectory() as tmp, patch(
+            'tools.capture_tge_validation._fetch_session', return_value=(200, raw),
+        ) as fetch:
+            output = Path(tmp)
+            with self.assertRaisesRegex(ValueError, 'Fixing I price unavailable for 2026-11-17_H01'):
+                capture(day, output)
+            fetch.assert_called_once_with(
+                'https://tge.pl/energia-elektryczna-rdn?dateShow=16-11-2026', day,
+            )
+            self.assertEqual(list(output.iterdir()), [])
 
     def check_sessions(self, directory, days):
         manifest = json.loads((directory / 'manifest.json').read_text())

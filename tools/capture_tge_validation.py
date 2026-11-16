@@ -65,6 +65,8 @@ def extract_reference(raw, day, *, autumn_25h=False):
         label=cells[0].split('_',1)[1]
         if label not in expected:
             raise ValueError('Unexpected hourly label in Fix1 reference')
+        if cells[2] == '-':
+            raise ValueError(f'Fixing I price unavailable for {day}_{label}')
         if not re.fullmatch(r'[-−]?(?:\d+|\d{1,3}(?: \d{3})+)(?:,\d{1,4})?',cells[2]):
             raise ValueError('Invalid reference number')
         rows.append((label,Decimal(cells[2].replace(' ','').replace('−','-').replace(',','.'))))
