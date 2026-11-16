@@ -1914,3 +1914,10 @@ dopuszczone bez wyniku i ocenione przez wszystkie modele. Test
 na cenach TGE dla 17.11.2026 bez JWCD odróżnia dzień odrzucony
 od dwóch brakujących dni. Test syntetyczny sprawdza też wspólną
 próbę z dobą 25h i zakres ograniczony do tej doby.
+
+Ponowne pobranie [sesji TGE z 16.11.2026](https://tge.pl/energia-elektryczna-rdn?dateShow=16-11-2026)
+o 17:26:30 Europe/Warsaw dało inny surowy HTML i identyczny CSV
+24 cen Fixing I dla 17.11.2026. Zachowano oba HTML i ich czasy pobrania.
+Test izolowanego PostgreSQL sprawdza dwa ponowne importy późniejszego
+HTML, dwa pakiety dowodowe i jeden zestaw 24 cen powiązany z pierwszym
+pobraniem, bez kwarantanny.

@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 from shadow_archive_batch import prepare_batch, read_reference_csv
 from shadow_asof import cutoff_for_day
-from shadow_ingest_manifest import ingest_manifest
+from shadow_ingest_manifest import ingest_manifest, load_batches
 from shadow_postgres_archive import archive_batch, connect_test_database, initialize
 from shadow_postgres_scores import initialize_scores, score_archived_day
 from shadow_scoring import expected_periods
@@ -195,6 +195,15 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         report = ingest_manifest(manifest)
         self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
 
+    def test_november_17_later_official_capture_keeps_all_fixing_i_prices(self):
+        (original, original_raw), = load_batches(NOV_17_FIXTURES / 'manifest.json')
+        (later, later_raw), = load_batches(NOV_17_FIXTURES / 'manifest_1726.json')
+        self.assertGreater(later.retrieved_at, original.retrieved_at)
+        self.assertNotEqual(later_raw, original_raw)
+        self.assertNotEqual(later.raw_sha256, original.raw_sha256)
+        self.assertEqual(later.reference_sha256, original.reference_sha256)
+        self.assertEqual(later.rows, original.rows)
+
     def test_november_17_unpriced_official_session_cannot_create_evidence(self):
         day = date(2026, 11, 17)
         directory = FIXTURES.with_name('tge_delivery_2026-11-17_unpriced')
@@ -278,6 +287,32 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
     def test_november_17_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_17_FIXTURES)
+
+    def test_november_17_later_official_capture_replays_without_replacing_accepted_prices(self):
+        earlier = NOV_17_FIXTURES / 'manifest.json'
+        later = NOV_17_FIXTURES / 'manifest_1726.json'
+        (original, _), = load_batches(earlier)
+        (recaptured, _), = load_batches(later)
+        with self.isolated_connection() as conn:
+            self.assertEqual(ingest_manifest(earlier, conn=conn)['days_by_status'], {'INSERT': 1})
+            for _ in range(2):
+                report = ingest_manifest(later, conn=conn)
+                self.assertEqual(report['days_by_status'], {'REPLAY': 1})
+                self.assertEqual(report['inserted_periods'], 0)
+                self.assertFalse(report['results'][0]['scoring_blocked_by_quarantine'])
+            self.assertEqual(conn.execute('''
+                SELECT raw_sha256, retrieved_at
+                FROM fix1_shadow_test.batches ORDER BY retrieved_at
+            ''').fetchall(), [
+                (original.raw_sha256, original.retrieved_at),
+                (recaptured.raw_sha256, recaptured.retrieved_at),
+            ])
+            self.assertEqual(conn.execute('''
+                SELECT p.period_start_utc, p.price, b.raw_sha256
+                FROM fix1_shadow_test.prices AS p
+                JOIN fix1_shadow_test.batches AS b ON b.id = p.batch_id
+                ORDER BY p.period_start_utc
+            ''').fetchall(), [(period, price, original.raw_sha256) for period, price in original.rows])
 
     def test_november_15_replay_quarantines_an_archived_url_for_the_wrong_session(self):
         manifest = NOV_15_FIXTURES / 'manifest.json'
