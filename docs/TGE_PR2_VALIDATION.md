@@ -1927,3 +1927,9 @@ pobrania przypisanego do przyjętych cen. Przy ponownym imporcie późniejszego
 HTML z 17.11.2026 raport zachowuje skrót złożonego pakietu i wskazuje
 wcześniejsze pobranie jako źródło cen. Pole pozostaje puste w trybie
 dry-run oraz przy kwarantannie.
+
+Test scoringu dla 17.11.2026 importuje dwa rzeczywiste pobrania TGE
+w obu kolejnościach. W każdej kolejności ocena jest możliwa dokładnie
+od czasu pobrania pakietu, z którego zapisano ceny. Mikrosekundę
+wcześniej baza pozostaje bez wyniku. Ponowne obliczenie zachowuje
+pierwotny czas pobrania i sumę kontrolną zapisanego wyniku.

@@ -857,6 +857,43 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             self.assertEqual(score_archived_day(conn, **inputs), ('REPLAY', score))
             self.assertEqual(conn.execute(count).fetchone(), (1,))
 
+    def test_score_november_17_uses_accepted_capture_in_either_import_order(self):
+        earlier = NOV_17_FIXTURES / 'manifest.json'
+        later = NOV_17_FIXTURES / 'manifest_1726.json'
+        (first_capture, _), = load_batches(earlier)
+        (later_capture, _), = load_batches(later)
+        day = first_capture.delivery_date
+        cutoff = cutoff_for_day(day)
+        inputs = dict(
+            day=day, forecast=[(period, Decimal('650')) for period in expected_periods(day)],
+            forecast_id='november-17-capture-order-test', model_version='synthetic-test',
+            forecast_status='SHADOW', issued_at=cutoff,
+            publication_ts=cutoff, retrieved_at=cutoff,
+        )
+        query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+        for first, second, accepted in (
+            (earlier, later, first_capture),
+            (later, earlier, later_capture),
+        ):
+            with self.subTest(first=first.name), self.isolated_connection() as conn:
+                initialize_scores(conn)
+                self.assertEqual(ingest_manifest(first, conn=conn)['days_by_status'], {'INSERT': 1})
+                self.assertEqual(ingest_manifest(second, conn=conn)['days_by_status'], {'REPLAY': 1})
+                with self.assertRaisesRegex(ValueError, 'not yet available'):
+                    score_archived_day(
+                        conn, **inputs, evaluated_at=accepted.retrieved_at - timedelta(microseconds=1),
+                    )
+                self.assertEqual(conn.execute(query).fetchall(), [])
+
+                status, score = score_archived_day(conn, **inputs, evaluated_at=accepted.retrieved_at)
+                self.assertEqual((status, score.periods), ('INSERT', 24))
+                saved, = conn.execute(query).fetchall()
+                self.assertEqual(saved[1]['actual_captured_at_utc'], accepted.retrieved_at.isoformat())
+                self.assertEqual(score_archived_day(
+                    conn, **inputs, evaluated_at=later_capture.retrieved_at,
+                ), ('REPLAY', score))
+                self.assertEqual(conn.execute(query).fetchall(), [saved])
+
     def test_score_november_17_binds_the_recorded_fix1_capture_time(self):
         manifest = NOV_17_FIXTURES / 'manifest.json'
         entry, = json.loads(manifest.read_text())['entries']
