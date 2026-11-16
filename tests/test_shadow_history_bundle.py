@@ -49,13 +49,15 @@ class HistoryBundleTests(unittest.TestCase):
                          ['2026-11-12', '2026-11-13'])
 
     def make_bundle(self, path, *, manifest_changes=None, corrupt_csv=False,
-                    days=("2026-10-24", "2026-10-26"), duplicate_manifest_field=None):
+                    days=("2026-10-24", "2026-10-26"), duplicate_manifest_field=None,
+                    csv_data=None):
         workbook = b"opaque workbook bytes"
-        csv_data = b"delivery_date,hour,fix1_pln_mwh,jwcd_mw\n" + b"".join(
-            f"{day},H{hour:02d},-10,1200\n".encode()
-            for day in days
-            for hour in range(1, 25)
-        )
+        if csv_data is None:
+            csv_data = b"delivery_date,hour,fix1_pln_mwh,jwcd_mw\n" + b"".join(
+                f"{day},H{hour:02d},-10,1200\n".encode()
+                for day in days
+                for hour in range(1, 25)
+            )
         manifest = dict(
             hourly_rows=24 * len(days), days=len(days), first_date=days[0], last_date=days[-1],
             sha256={"test.xlsb": sha256(workbook).hexdigest(),
@@ -95,6 +97,38 @@ class HistoryBundleTests(unittest.TestCase):
         self.assertEqual(report["comparison_candidates"]["90D"], [])
         self.assertEqual(report["actual_availability_invalid_timestamp_rows"], 0)
         self.assertEqual(report["actual_availability_at_or_before_cutoff_rows"], 0)
+
+    def test_bundle_reports_jwcd_timing_diagnostics_from_verified_csv(self):
+        delivery = "2026-11-16"
+        fixture = Path(__file__).parent / "fixtures" / f"tge_delivery_{delivery}" / f"tge_delivery_{delivery}.csv"
+        cutoff = "2026-11-15T08:50:00Z"
+        late = "2026-11-15T08:50:01Z"
+        lines = [
+            "delivery_date,period_start_utc,fix1_pln_mwh,jwcd_mw,publication_ts,retrieved_at,retrieval_completed_at"
+        ]
+        for index, row in enumerate(read_csv(fixture)):
+            stamps = (cutoff, cutoff, cutoff)
+            if index == 0:
+                stamps = ("", late, "invalid")
+            elif index == 1:
+                stamps = (late, late, cutoff)
+            lines.append(",".join((delivery, row["period_start_utc"], row["price_pln_mwh"], "1200", *stamps)))
+        csv_data = ("\n".join(lines) + "\n").encode()
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "history.zip"
+            self.make_bundle(path, days=(delivery,), csv_data=csv_data)
+            report = audit_bundle(path)
+        self.assertEqual(report["complete_pair_days"], 1)
+        self.assertEqual(report["model_ready_days"], 0)
+        self.assertEqual(report["missing_timestamp_rows_by_field"]["publication_ts"], 1)
+        self.assertEqual(report["invalid_jwcd_timestamp_rows_by_field"], {
+            "publication_ts": 0, "retrieved_at": 0, "retrieval_completed_at": 1,
+        })
+        self.assertEqual(report["after_cutoff_rows_by_field"], {
+            "publication_ts": 1, "retrieved_at": 2, "retrieval_completed_at": 0,
+        })
+        self.assertEqual(report["retrieval_start_after_completion_rows"], 1)
+        self.assertEqual(report["publication_after_completion_rows"], 1)
 
     def test_reports_contiguous_gap_with_23_and_24_hour_days(self):
         with TemporaryDirectory() as tmp:

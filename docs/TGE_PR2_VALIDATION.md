@@ -1830,3 +1830,11 @@ publikacji, początku i końca pobrania. Pole jest liczone również
 w wierszu z brakującym innym znacznikiem. Testy na syntetycznych
 dobach 23h i 25h sprawdzają m.in. sprzeczne aliasy początku pobrania
 i zachowanie dotychczasowej kwalifikacji całego wiersza.
+
+Raport audytu ZIP pokazuje liczniki błędnych i spóźnionych znaczników
+JWCD według pól oraz liczbę publikacji i początków pobrania po
+zakończeniu pobrania. Test wykorzystuje ceny TGE z 16.11.2026
+i syntetyczne znaczniki JWCD wokół D−1 09:50 Europe/Warsaw.
+Ponowny odczyt archiwum z 04.11.2026 potwierdził brak wszystkich
+wymaganych znaczników w 50 928 wierszach i 0 dób gotowych do backtestu.
+Sprawdzono sumę SHA-256 ZIP przed audytem i po nim.

@@ -150,6 +150,10 @@ def audit_bundle(path, *, reference_paths=(), verify_workbook=False):
         "complete_pair_days": audit["complete_pair_days"],
         "model_ready_days": audit["model_ready_days"],
         "missing_timestamp_rows_by_field": audit["missing_timestamp_rows_by_field"],
+        "invalid_jwcd_timestamp_rows_by_field": audit["invalid_jwcd_timestamp_rows_by_field"],
+        "after_cutoff_rows_by_field": audit["after_cutoff_rows_by_field"],
+        "retrieval_start_after_completion_rows": audit["retrieval_start_after_completion_rows"],
+        "publication_after_completion_rows": audit["publication_after_completion_rows"],
         "actual_availability_invalid_timestamp_rows": audit["actual_availability_invalid_timestamp_rows"],
         "actual_availability_at_or_before_cutoff_rows": audit["actual_availability_at_or_before_cutoff_rows"],
         "delivery_days_by_hours": dict(sorted(Counter(
