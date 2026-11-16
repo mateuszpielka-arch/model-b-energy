@@ -1824,3 +1824,9 @@ także wtedy, gdy inne pole w tym samym wierszu jest puste lub błędne.
 Sprzeczne wartości początku pobrania nie są uwzględniane w liczniku
 `retrieved_at`. Test na cenach TGE z 16.11.2026 i syntetycznych
 znacznikach JWCD potwierdza, że takie wiersze nie potwierdzają dostępności.
+
+Audyt CSV podaje liczbę niepoprawnych znaczników JWCD osobno dla
+publikacji, początku i końca pobrania. Pole jest liczone również
+w wierszu z brakującym innym znacznikiem. Testy na syntetycznych
+dobach 23h i 25h sprawdzają m.in. sprzeczne aliasy początku pobrania
+i zachowanie dotychczasowej kwalifikacji całego wiersza.

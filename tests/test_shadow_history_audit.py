@@ -184,6 +184,36 @@ class HistoryAuditTests(unittest.TestCase):
                 'publication_ts': 1, 'retrieved_at': 1, 'retrieval_completed_at': 2,
             })
 
+    def test_counts_invalid_jwcd_fields_even_when_row_has_missing_fields(self):
+        rows_by_day = []
+        for delivery, cutoff, late in (
+            ('2026-03-29', '2026-03-28T08:50:00Z', '2026-03-28T08:50:01Z'),
+            ('2026-10-25', '2026-10-24T07:50:00Z', '2026-10-24T07:50:01Z'),
+        ):
+            rows = self.rows(delivery)
+            for row in rows:
+                row.update(publication_ts=cutoff, retrieved_at=cutoff,
+                           retrieved_at_utc=cutoff, retrieval_completed_at=cutoff)
+            rows[0].update(publication_ts='', retrieval_completed_at='invalid')
+            rows[1].update(publication_ts='2026-01-01T00:00:00', retrieved_at_utc=late)
+            rows[2].update(publication_ts=late)
+            rows_by_day.extend(rows)
+
+        report = audit_rows(rows_by_day)
+        for day, expected_count in zip(report['days'], (23, 25), strict=True):
+            self.assertEqual(day['expected_periods'], expected_count)
+            self.assertTrue(day['complete_pairs'])
+            self.assertFalse(day['model_ready'])
+            self.assertEqual(day['availability_proven_rows'], expected_count - 3)
+            self.assertEqual(day['availability_missing_timestamp_rows'], 1)
+            self.assertEqual(day['availability_invalid_timestamp_rows'], 2)
+            self.assertEqual(day['invalid_jwcd_timestamp_rows_by_field'], {
+                'publication_ts': 1, 'retrieved_at': 1, 'retrieval_completed_at': 1,
+            })
+        self.assertEqual(report['invalid_jwcd_timestamp_rows_by_field'], {
+            'publication_ts': 2, 'retrieved_at': 2, 'retrieval_completed_at': 2,
+        })
+
     def test_reports_overlapping_jwcd_chronology_errors_on_real_fix1_prices(self):
         fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-14/tge_delivery_2026-11-14.csv'
         rows = self.rows('2026-11-14')

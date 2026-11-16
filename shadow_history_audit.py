@@ -43,6 +43,7 @@ def audit_rows(rows):
     ready_at = {}
     missing_timestamp_totals = Counter(dict.fromkeys((*JWCD_TIMESTAMPS, 'actual_available_at'), 0))
     late_timestamp_totals = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
+    invalid_timestamp_totals = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
     for d,records in sorted(groups.items()):
         periods=expected_periods(d); expected=set(periods); seen=[]; issues=set()
         good_prices=good_jwcd=available=verified=0
@@ -55,6 +56,7 @@ def audit_rows(rows):
         invalid_retrieval_order = publication_after_completion = 0
         missing_timestamps = Counter(dict.fromkeys(missing_timestamp_totals, 0))
         late_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
+        invalid_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
         cutoff = cutoff_for_day(d)
         conflicting_price_periods = set()
         valid_fix1_periods = set()
@@ -126,8 +128,9 @@ def audit_rows(rows):
                     stamp = _stamp(raw_stamp)
                     if (field == 'retrieved_at' and has_canonical_start
                             and legacy_start not in (None, '') and _stamp(legacy_start) != stamp):
-                        continue
+                        raise ValueError('Conflicting retrieval timestamps')
                 except (ValueError, TypeError):
+                    invalid_timestamps[field] += 1
                     continue
                 parsed_stamps[field] = stamp
                 if stamp > cutoff:
@@ -173,6 +176,7 @@ def audit_rows(rows):
             issues.add("MIXED_JWCD_SNAPSHOT_IDS")
         missing_timestamp_totals.update(missing_timestamps)
         late_timestamp_totals.update(late_timestamps)
+        invalid_timestamp_totals.update(invalid_timestamps)
         days.append(dict(day=d.isoformat(),expected_periods=len(periods),rows=len(records),
             unique_periods=len(set(seen)),complete_periods=complete,
             missing_periods_utc=[p.isoformat() for p in sorted(missing)],
@@ -195,6 +199,7 @@ def audit_rows(rows):
             availability_missing_timestamp_rows=missing_timing,
             missing_timestamp_rows_by_field=dict(missing_timestamps),
             availability_invalid_timestamp_rows=invalid_timing,
+            invalid_jwcd_timestamp_rows_by_field=dict(invalid_timestamps),
             retrieval_start_after_completion_rows=invalid_retrieval_order,
             publication_after_completion_rows=publication_after_completion,
             availability_after_cutoff_rows=late_timing,
@@ -210,6 +215,7 @@ def audit_rows(rows):
     return dict(days=days, invalid_date_rows=invalid_dates,
                 missing_timestamp_rows_by_field=dict(missing_timestamp_totals),
                 after_cutoff_rows_by_field=dict(late_timestamp_totals),
+                invalid_jwcd_timestamp_rows_by_field=dict(invalid_timestamp_totals),
                 retrieval_start_after_completion_rows=sum(
                     day["retrieval_start_after_completion_rows"] for day in days),
                 publication_after_completion_rows=sum(
