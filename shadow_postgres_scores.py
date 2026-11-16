@@ -158,7 +158,11 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
             issued_at=_utc(issued_at).isoformat(), publication_ts=_utc(publication_ts).isoformat(),
             retrieved_at=_utc(retrieved_at).isoformat())
         score_values = asdict(score)
-        fingerprint, payload = _score_record(metadata, forecast_prices, score_values, canonical_decimal)
+        capture_evidence = {'actual_captured_at_utc': capture_time.isoformat()}
+        fingerprint, payload = _score_record(
+            {**metadata, **capture_evidence}, forecast_prices, {**score_values, **capture_evidence},
+            canonical_decimal,
+        )
         key = (forecast_id,model_version,bid,SCORING_VERSION)
         from psycopg.types.json import Jsonb
         inserted = conn.execute('''INSERT INTO fix1_shadow_test.scores
@@ -171,8 +175,9 @@ def score_archived_day(conn, *, day, forecast, forecast_id, model_version,
             if previous is None:
                 raise ValueError('Score identity conflict: existing result unavailable')
             if previous != (fingerprint, payload):
-                # Older rows may use lowercase exponents or preserve Decimal spelling.
+                # Legacy rows lack capture evidence and may use alternate Decimal spellings.
                 previous_formats = (
+                    canonical_decimal,
                     lambda value: canonical_decimal(value).lower(),
                     lambda value: str(value).upper(),
                     lambda value: str(value).lower(),

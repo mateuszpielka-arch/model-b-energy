@@ -780,6 +780,35 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             self.assertEqual(score_archived_day(conn, **inputs, evaluated_at=captured), ('REPLAY', score))
             self.assertEqual(conn.execute(count).fetchone(), (1,))
 
+    def test_score_november_17_binds_the_recorded_fix1_capture_time(self):
+        manifest = NOV_17_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        day = date.fromisoformat(entry['delivery_date'])
+        cutoff = cutoff_for_day(day)
+        captured = datetime.fromisoformat(entry['retrieved_at_utc'])
+        inputs = dict(
+            day=day, forecast=[(period, Decimal('650')) for period in expected_periods(day)],
+            forecast_id='november-17-constant-650-test', model_version='synthetic-test',
+            forecast_status='SHADOW', issued_at=cutoff, publication_ts=cutoff - timedelta(minutes=1),
+            retrieved_at=cutoff, evaluated_at=captured + timedelta(seconds=1),
+        )
+        query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            status, score = score_archived_day(conn, **inputs)
+            self.assertEqual((status, score.periods), ('INSERT', 24))
+            saved = conn.execute(query).fetchone()
+            self.assertEqual(saved[1]['actual_captured_at_utc'], captured.isoformat())
+            with conn.transaction(force_rollback=True):
+                conn.execute(
+                    "UPDATE fix1_shadow_test.batches SET retrieved_at = retrieved_at + INTERVAL '1 second'"
+                )
+                with self.assertRaisesRegex(ValueError, 'input fingerprint differs'):
+                    score_archived_day(conn, **inputs)
+                self.assertEqual(conn.execute(query).fetchone(), saved)
+            self.assertEqual(score_archived_day(conn, **inputs), ('REPLAY', score))
+
     def test_score_monday_manifest_at_capture_time_against_csv_metrics(self):
         manifest_path = NOV_9_FIXTURES / 'manifest.json'
         entry, = json.loads(manifest_path.read_text())['entries']

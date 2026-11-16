@@ -66,7 +66,7 @@ class ScorePersistenceTests(unittest.TestCase):
 
         self.assertEqual(self.conn.execute(query).fetchall(), saved)
 
-    def test_preexisting_lowercase_exponents_replay_without_rewriting(self):
+    def test_legacy_canonical_and_lowercase_exponents_replay_without_rewriting(self):
         from psycopg.types.json import Jsonb
 
         self.kw['forecast'] = [(period, '1000') for period, _ in self.kw['forecast']]
@@ -78,10 +78,19 @@ class ScorePersistenceTests(unittest.TestCase):
             metadata[field] = self.kw[field].isoformat()
         upper_rows = [(period.isoformat(), '1E+3') for period, _ in self.kw['forecast']]
         lower_rows = [(period, value.lower()) for period, value in upper_rows]
-        self.assertEqual(upper_hash, input_fingerprint({**metadata, 'forecast': upper_rows}))
+        self.assertEqual(upper_hash, input_fingerprint({
+            **metadata, 'forecast': upper_rows, 'actual_captured_at_utc': self.batch.retrieved_at.isoformat(),
+        }))
         old_hash = input_fingerprint({**metadata, 'forecast': lower_rows})
         self.assertNotEqual(upper_hash, old_hash)
         old_payload = {**payload}
+        del old_payload['actual_captured_at_utc']
+        legacy_canonical_hash = input_fingerprint({**metadata, 'forecast': upper_rows})
+        self.conn.execute('UPDATE fix1_shadow_test.scores SET input_sha256=%s,payload=%s',
+                          (legacy_canonical_hash, Jsonb(old_payload)))
+        self.assertEqual(score_archived_day(self.conn, **self.kw), ('REPLAY', expected))
+        self.assertEqual(self.conn.execute(query).fetchone(), (legacy_canonical_hash, old_payload))
+
         for metric in ('mae', 'mape_pct', 'wape_pct', 'bias'):
             if old_payload[metric] is not None:
                 old_payload[metric] = old_payload[metric].lower()

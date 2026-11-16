@@ -1884,3 +1884,9 @@ Zapisano HTML, CSV z okresami UTC i manifest z sumami SHA-256. Parser
 zgadza się z niezależną ekstrakcją XPath z tej odpowiedzi. Cena H01 to
 738,93 PLN/MWh. Test w izolowanym PostgreSQL sprawdza INSERT i REPLAY
 oraz zachowanie czasu drugiego pobrania w zapisanym pakiecie.
+
+Nowe wyniki scoringu SHADOW zapisują czas pobrania cen Fix1 w UTC
+i wiążą go z sumą kontrolną wejścia. Test na sesji dla 17.11.2026
+przesuwa czas pobrania o sekundę w izolowanym PostgreSQL i potwierdza
+odrzucenie ponownego scoringu oraz zachowanie zapisanego wyniku.
+Starsze rekordy można nadal odtworzyć bez zmiany ich formatu.
