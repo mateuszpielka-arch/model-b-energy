@@ -11,7 +11,7 @@ from pathlib import Path
 from shadow_asof import snapshot_identifier
 from shadow_history_audit import FIX1_COLUMNS, _stamp, audit_rows, missing_delivery_ranges, read_csv
 from shadow_scoring import Score, expected_periods
-from shadow_walkforward import run_walkforward
+from shadow_walkforward import OLS_WINDOWS, run_walkforward
 
 
 def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, frozen_90d_by_day=None):
@@ -78,6 +78,19 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
                 day: excluded_days[day] for day in missing if day in excluded_days
             }
             skipped["training_days_absent_from_csv"] = [day for day in missing if day not in observed_days]
+            target = date.fromisoformat(skipped["day"]).toordinal()
+            # Count CSV admission only. The model still verifies timing for each training window.
+            coverage = {}
+            for window in OLS_WINDOWS:
+                labels = [date.fromordinal(prior).isoformat() for prior in range(max(1, target - window), target)]
+                excluded = sum(label in excluded_days for label in labels)
+                admitted = sum(label in ready_days for label in labels)
+                coverage[f"{window}D"] = {
+                    "absent_from_csv_days": window - excluded - admitted,
+                    "excluded_by_csv_audit_days": excluded,
+                    "admitted_by_csv_audit_days": admitted,
+                }
+            skipped["training_csv_coverage_by_window"] = coverage
     comparison["targets_excluded_by_csv_audit"] = {
         day: issues for day, issues in excluded_days.items()
         if within_target_range(date.fromisoformat(day))

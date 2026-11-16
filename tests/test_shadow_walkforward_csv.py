@@ -280,6 +280,11 @@ class WalkforwardCSVTests(unittest.TestCase):
         rejected = result["csv_admission"]["excluded_days"]["2026-11-12"]
         self.assertIn("MISSING_OR_INVALID_JWCD", rejected)
         self.assertEqual(skipped["training_days_excluded_by_csv_audit"], {"2026-11-12": rejected})
+        self.assertEqual(skipped["training_csv_coverage_by_window"], {
+            key: {"absent_from_csv_days": days, "excluded_by_csv_audit_days": 1,
+                  "admitted_by_csv_audit_days": 0}
+            for key, days in (("30D", 29), ("60D", 59), ("90D", 89))
+        })
         self.assertEqual(skipped["training_days_absent_from_csv"], [
             (target - timedelta(days=offset)).isoformat() for offset in range(30, 1, -1)
         ])

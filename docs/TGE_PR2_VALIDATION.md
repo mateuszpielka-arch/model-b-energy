@@ -1950,3 +1950,9 @@ Raport CSV walk-forward pokazuje pokrycie danych w badanym zakresie
 osobno dla zaobserwowanych dób 23h, 24h i 25h. Test zawiera ocenioną
 dobę 25h i doby 24h dopuszczone bez wyniku. Osobny przypadek z cenami
 TGE z 17.11.2026 sprawdza liczenie doby odrzuconej przez brak JWCD.
+
+Przy braku dni treningowych raport walk-forward podaje pokrycie CSV
+oddzielnie dla całych okien 30D, 60D i 90D, także gdy wykonanie kończy
+się na pierwszym modelu. Liczniki pokazują dni nieobecne, odrzucone
+przez audyt i przyjęte przez audyt. Test wykorzystuje dwa rzeczywiste
+dni Fix1, z których jeden nie ma JWCD, i sprawdza wszystkie trzy okna.
