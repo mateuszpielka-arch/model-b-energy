@@ -20,6 +20,7 @@ from shadow_asof import cutoff_for_day
 from shadow_scoring import _utc, expected_periods
 
 MAX_HTML_BYTES = 8 * 1024 * 1024
+MAX_MANIFEST_BYTES = 1024 * 1024
 
 
 def _unique_manifest_object(pairs):
@@ -62,7 +63,11 @@ def _read_raw_evidence(path, entry):
 
 def load_batches(manifest_path):
     path = Path(manifest_path)
-    manifest = json.loads(path.read_text(), object_pairs_hook=_unique_manifest_object)
+    with path.open('rb') as stream:
+        content = stream.read(MAX_MANIFEST_BYTES + 1)
+    if len(content) > MAX_MANIFEST_BYTES:
+        raise ValueError('Fix1 capture manifest exceeds 1 MiB')
+    manifest = json.loads(content.decode('utf-8'), object_pairs_hook=_unique_manifest_object)
     if not isinstance(manifest, dict) or manifest.get('errors') != []:
         raise ValueError('Incomplete capture manifest: expected an explicit empty errors array')
     entries = manifest.get('entries')

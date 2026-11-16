@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import call, patch
 from shadow_archive_batch import MAX_REFERENCE_BYTES, read_reference_csv
-from shadow_ingest_manifest import ingest_manifest,load_batches
+from shadow_ingest_manifest import MAX_MANIFEST_BYTES, ingest_manifest, load_batches
 from shadow_postgres_archive import connect_test_database,initialize
 from shadow_scoring import expected_periods
 
@@ -60,6 +60,24 @@ class ManifestTests(unittest.TestCase):
                 manifest.write_text(json.dumps(data))
                 with self.assertRaisesRegex(ValueError, error):
                     ingest_manifest(manifest, conn=object())
+
+    def test_manifest_size_is_bounded_before_evidence_io_or_database_initialization(self):
+        source = FIX.with_name('tge_delivery_2026-11-16')
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'capture'
+            shutil.copytree(source, root)
+            manifest = root / 'manifest.json'
+            at_limit = manifest.read_bytes().ljust(MAX_MANIFEST_BYTES, b' ')
+            manifest.write_bytes(at_limit)
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+
+            manifest.write_bytes(at_limit + b' ')
+            with (patch('shadow_ingest_manifest._inside') as resolve_evidence,
+                  patch('shadow_ingest_manifest._ingest_batches') as write_batches):
+                with self.assertRaisesRegex(ValueError, 'manifest exceeds 1 MiB'):
+                    ingest_manifest(manifest, conn=object())
+                resolve_evidence.assert_not_called()
+                write_batches.assert_not_called()
 
     def test_plain_html_size_is_validated_before_database_initialization(self):
         with TemporaryDirectory() as tmp:

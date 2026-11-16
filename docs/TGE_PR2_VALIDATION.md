@@ -1853,3 +1853,8 @@ Zapis manifestu walidacyjnego publikuje gotowy JSON atomowo
 i odrzuca zapis, gdy manifest już istnieje. Test dwóch równoczesnych
 zapisów z manifestem sesji dla 16.11.2026 potwierdza jeden kompletny
 wynik i usunięcie obu plików tymczasowych.
+
+Importer walidacyjny odczytuje manifest w UTF-8 i odrzuca plik
+większy niż 1 MiB przed odczytem HTML i CSV oraz przed pracą z bazą.
+Test na kopii manifestu dostawy 16.11.2026 potwierdza poprawny tryb
+dry-run przy dokładnie 1 MiB i odrzucenie po dodaniu jednego bajtu.
