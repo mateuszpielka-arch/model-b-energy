@@ -482,6 +482,33 @@ class HistoryAuditTests(unittest.TestCase):
                 self.assertEqual(result['duplicate_periods_utc'], [rows[2]['period_start_utc']])
                 self.assertEqual(result['unexpected_periods_utc'], ['2026-01-01T00:00:00+00:00'])
 
+    def test_distinguishes_duplicate_rows_from_conflicting_finite_values(self):
+        for delivery in ('2026-10-25', '2026-11-17'):
+            with self.subTest(delivery=delivery):
+                rows = self.rows(delivery)
+                if delivery == '2026-11-17':
+                    fixture = Path(__file__).parent / 'fixtures' / f'tge_delivery_{delivery}' / f'tge_delivery_{delivery}.csv'
+                    for row, price in zip(rows, read_csv(fixture), strict=True):
+                        row['fix1'] = price['price_pln_mwh']
+                unchanged, fix1_conflict, jwcd_conflict = rows[1:4]
+                records = [
+                    *rows, {**unchanged, 'fix1': unchanged['fix1'] + (
+                        '0' if '.' in unchanged['fix1'] else '.0'
+                    ), 'jwcd_mw': '1E+4'},
+                    {**fix1_conflict, 'fix1': '99.99', 'jwcd_mw': 'NaN'},
+                    {**jwcd_conflict, 'jwcd_mw': '10000.01'},
+                ]
+                result, = audit_rows(records)['days']
+                self.assertEqual(result['duplicate_periods_utc'],
+                                 [row['period_start_utc'] for row in rows[1:4]])
+                self.assertEqual(result['observed_periods_with_conflicting_fix1_rows_utc'],
+                                 [fix1_conflict['period_start_utc']])
+                self.assertEqual(result['observed_periods_with_conflicting_jwcd_rows_utc'],
+                                 [jwcd_conflict['period_start_utc']])
+                self.assertEqual(result['conflicting_fix1_periods_utc'], [])
+                self.assertFalse(result['complete_pairs'])
+                self.assertFalse(result['model_ready'])
+
     def test_duplicate_csv_column_is_rejected(self):
         with TemporaryDirectory() as folder:
             path = Path(folder) / 'history.csv'

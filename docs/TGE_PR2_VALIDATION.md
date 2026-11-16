@@ -1902,3 +1902,8 @@ znaczników JWCD oraz bez znacznika Fix1 po D−1 09:50 Europe/Warsaw.
 Test odróżnia brak dowodu czasowego od braku całego wiersza.
 Obejmuje ceny TGE dla 17.11.2026 i syntetyczne doby 23h i 25h,
 w tym oba wystąpienia 02:00 przy jesiennej zmianie czasu.
+
+Audyt CSV wskazuje osobno okresy UTC, w których powtórzone wiersze
+mają różne skończone ceny Fix1 lub różne JWCD. Kontrola obejmuje ceny
+TGE dla 17.11.2026 i dobę 25h z syntetycznymi danymi. Równe wartości
+o różnym zapisie pozostają duplikatami bez konfliktu wartości.

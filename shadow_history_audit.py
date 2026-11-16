@@ -59,8 +59,8 @@ def audit_rows(rows):
         invalid_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
         cutoff = cutoff_for_day(d)
         conflicting_price_periods = set()
-        valid_fix1_periods = set()
-        valid_jwcd_periods = set()
+        fix1_values_by_period = defaultdict(set)
+        jwcd_values_by_period = defaultdict(set)
         timely_jwcd_periods = set()
         post_cutoff_fix1_periods = set()
         uses_explicit_utc = any(r.get('period_start_utc') not in (None, '') for r in records)
@@ -86,16 +86,18 @@ def audit_rows(rows):
             price_fields = [r[name] for name in FIX1_COLUMNS
                             if r.get(name) not in (None, '')]
             if price_fields and all(_number(value) for value in price_fields):
-                if len({Decimal(str(value)) for value in price_fields}) == 1:
+                price_values = {Decimal(str(value)) for value in price_fields}
+                if len(price_values) == 1:
                     good_prices += 1
-                    valid_fix1_periods.add(p)
+                    fix1_values_by_period[p].update(price_values)
                 else:
                     issues.add('CONFLICTING_FIX1_COLUMNS')
                     if p is not None:
                         conflicting_price_periods.add(p)
-            if _number(r.get('jwcd_mw')):
+            jwcd = r.get('jwcd_mw')
+            if _number(jwcd):
                 good_jwcd += 1
-                valid_jwcd_periods.add(p)
+                jwcd_values_by_period[p].add(Decimal(str(jwcd)))
             verification = r.get('actual_verified')
             if verification is True or (isinstance(verification, str) and verification in ('true', 'True')):
                 verified += 1
@@ -187,10 +189,18 @@ def audit_rows(rows):
             unexpected_periods_utc=[p.isoformat() for p in sorted(unexpected)],
             duplicate_periods_utc=[p.isoformat() for p in sorted(duplicates)],
             observed_periods_without_valid_fix1_utc=[
-                p.isoformat() for p in sorted(expected & (period_counts.keys() - valid_fix1_periods))
+                p.isoformat() for p in sorted(expected & (period_counts.keys() - fix1_values_by_period.keys()))
             ],
             observed_periods_without_valid_jwcd_utc=[
-                p.isoformat() for p in sorted(expected & (period_counts.keys() - valid_jwcd_periods))
+                p.isoformat() for p in sorted(expected & (period_counts.keys() - jwcd_values_by_period.keys()))
+            ],
+            observed_periods_with_conflicting_fix1_rows_utc=[
+                p.isoformat() for p in sorted(expected & fix1_values_by_period.keys())
+                if len(fix1_values_by_period[p]) > 1
+            ],
+            observed_periods_with_conflicting_jwcd_rows_utc=[
+                p.isoformat() for p in sorted(expected & jwcd_values_by_period.keys())
+                if len(jwcd_values_by_period[p]) > 1
             ],
             observed_periods_without_timely_jwcd_timestamps_utc=[
                 p.isoformat() for p in sorted(expected & (period_counts.keys() - timely_jwcd_periods))
