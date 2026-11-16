@@ -734,6 +734,37 @@ class WalkforwardTests(unittest.TestCase):
                         'model': 'ols60', 'reason': expected_reason,
                     }])
 
+    def test_scoring_refuses_incomplete_or_repeated_training_timing_evidence(self):
+        args = self.args()
+        target = args['target_days'][-1]
+        args['target_days'] = [target]
+        last_training_day = (target - timedelta(days=1)).isoformat()
+        outside_window = (target - timedelta(days=61)).isoformat()
+        for change, reason in (
+            (lambda timing: None, 'Incomplete training timing evidence for the 60D window'),
+            (lambda timing: timing[:-1], 'Incomplete training timing evidence for the 60D window'),
+            (lambda timing: (timing[-1], *timing[1:]), f'Duplicate training timing evidence: {last_training_day}'),
+            (lambda timing: ({**timing[0], 'day': outside_window}, *timing[1:]),
+             f'Training timing evidence outside the 60D window: {outside_window}'),
+        ):
+            with self.subTest(reason=reason):
+                def change_training_timing(**kwargs):
+                    prediction = predict_ols(**kwargs)
+                    if kwargs['window_days'] == 60:
+                        prediction['training_timing'] = change(prediction['training_timing'])
+                    return prediction
+
+                with patch('shadow_walkforward.predict_ols', side_effect=change_training_timing), patch(
+                    'shadow_walkforward.score_day', wraps=score_day,
+                ) as scoring:
+                    result = run_walkforward(**args)
+
+                scoring.assert_not_called()
+                self.assertEqual(result['ranking'], [])
+                self.assertEqual(result['skipped'], [{
+                    'day': target.isoformat(), 'stage': 'scoring', 'model': 'ols60', 'reason': reason,
+                }])
+
     def test_scoring_excludes_common_day_if_model_reports_late_training_fix1(self):
         args = self.args()
         target = args['target_days'][-1]
@@ -802,18 +833,19 @@ class WalkforwardTests(unittest.TestCase):
         target = args['history'][-1]
         args['target_days'] = [target['day']]
 
-        def forecast(error):
-            training = args['history'][-2]
-            snapshot, = training['snapshots']
-            timing = ({
-                'day': training['day'].isoformat(),
-                'retrieved_at_utc': snapshot['retrieved_at'].isoformat(),
-                'actual_available_at_utc': training['actual_available_at'].isoformat(),
-                'latest_publication_ts_utc': max(
-                    row['publication_ts'] for row in snapshot['rows']
-                ).isoformat(),
-                'retrieval_completed_at_utc': snapshot['retrieval_completed_at'].isoformat(),
-            },)
+        def forecast(error, window):
+            timing = []
+            for training in args['history'][-window - 1:-1]:
+                snapshot, = training['snapshots']
+                timing.append({
+                    'day': training['day'].isoformat(),
+                    'retrieved_at_utc': snapshot['retrieved_at'].isoformat(),
+                    'actual_available_at_utc': training['actual_available_at'].isoformat(),
+                    'latest_publication_ts_utc': max(
+                        row['publication_ts'] for row in snapshot['rows']
+                    ).isoformat(),
+                    'retrieval_completed_at_utc': snapshot['retrieval_completed_at'].isoformat(),
+                })
             return dict(
                 model_version='test', training_timing=timing,
                 target_snapshot_id=target['snapshots'][0]['id'],
@@ -821,9 +853,9 @@ class WalkforwardTests(unittest.TestCase):
             )
 
         with patch('shadow_walkforward.predict_ols', side_effect=[
-            forecast(1), forecast(-1), forecast(2),
-        ]), patch('shadow_walkforward.predict_similar', return_value=forecast(3)), patch(
-            'shadow_walkforward.median_consensus', return_value=forecast(4),
+            forecast(1, 30), forecast(-1, 60), forecast(2, 90),
+        ]), patch('shadow_walkforward.predict_similar', return_value=forecast(3, 90)), patch(
+            'shadow_walkforward.median_consensus', return_value=forecast(4, 90),
         ):
             ranking = run_walkforward(**args)['ranking']
 

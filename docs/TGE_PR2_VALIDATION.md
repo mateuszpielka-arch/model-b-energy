@@ -1933,3 +1933,9 @@ w obu kolejnościach. W każdej kolejności ocena jest możliwa dokładnie
 od czasu pobrania pakietu, z którego zapisano ceny. Mikrosekundę
 wcześniej baza pozostaje bez wyniku. Ponowne obliczenie zachowuje
 pierwotny czas pobrania i sumę kontrolną zapisanego wyniku.
+
+Walk-forward sprawdza przed scoringiem, czy każdy model udokumentował
+czas dostępności danych dla wszystkich dni swojego okna 30D, 60D lub
+90D. Brak dnia, duplikat albo data spoza okna wykluczają dobę docelową
+ze wspólnego rankingu. Test usuwa, powiela lub przesuwa poza okno dowód
+czasowy OLS 60D i potwierdza, że scoring tego dnia się nie rozpoczyna.

@@ -6,7 +6,7 @@ No I/O. Verified canonical history is a prerequisite, not produced by this modul
 from bisect import bisect_left, bisect_right
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, localcontext
 from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
@@ -19,7 +19,14 @@ from shadow_scoring import (
     validate_forecast_timing,
 )
 
-MODELS=('ols30','ols60','ols90','similar_shape','similar_level','median4')
+OLS_WINDOWS = (30, 60, 90)
+SIMILAR_WINDOW = 90
+TRAINING_WINDOWS = {
+    **{f'ols{window}': window for window in OLS_WINDOWS},
+    'similar_shape': SIMILAR_WINDOW,
+    'similar_level': SIMILAR_WINDOW,
+}
+MODELS = (*TRAINING_WINDOWS, 'median4')
 FROZEN_90D_VERSION = 'jwcd-linear-hourly-90d-v1-20261006'
 
 
@@ -71,7 +78,7 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
     """
     evaluated = _utc(evaluated_at)
     target_days = sorted(set(target_days))
-    max_window_days = 90
+    max_window_days = max(TRAINING_WINDOWS.values())
     target_ordinals = [day.toordinal() for day in target_days]
     elapsed_targets = bisect_right(target_days, evaluated, key=cutoff_for_day)
     packets = {}
@@ -157,11 +164,11 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                     continue
                 common=dict(target_day=day,target_snapshots=target['snapshots'],history=history)
                 predictions={}
-                for n in (30,60,90):
+                for n in OLS_WINDOWS:
                     stage=f'ols{n}'; predictions[stage]=predict_ols(**common,window_days=n)
                 for mode in ('shape','level'):
                     stage='similar_'+mode
-                    predictions[stage]=predict_similar(**common,window_days=90,k=5,mode=mode)
+                    predictions[stage]=predict_similar(**common,window_days=SIMILAR_WINDOW,k=5,mode=mode)
                 forecast_prices = {}
                 for name in MEDIAN_MEMBERS:
                     stage = name
@@ -180,12 +187,20 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                 for name in MODELS[:-1]:
                     scoring_model = name
                     latest_publication, latest_retrieval = publication, retrieved
-                    training_timing = predictions[name]['training_timing']
+                    training_timing = predictions[name].get('training_timing') or ()
+                    window_days = TRAINING_WINDOWS[name]
+                    window_start = day - timedelta(days=window_days)
+                    training_days = set()
                     training_actual_times = []
                     for evidence in training_timing:
                         training_day = date.fromisoformat(evidence['day'])
                         if training_day >= day:
                             raise ValueError(f'Training delivery must precede target delivery: {training_day}')
+                        if training_day < window_start:
+                            raise ValueError(f'Training timing evidence outside the {window_days}D window: {training_day}')
+                        if training_day in training_days:
+                            raise ValueError(f'Duplicate training timing evidence: {training_day}')
+                        training_days.add(training_day)
                         training_cutoff = cutoff_for_day(training_day)
                         available = _utc(datetime.fromisoformat(evidence['actual_available_at_utc']))
                         if available <= training_cutoff:
@@ -198,6 +213,8 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                             raise ValueError(f'Training JWCD chronology invalid at D-1 09:50: {training_day}')
                         latest_publication = max(latest_publication, published)
                         latest_retrieval = max(latest_retrieval, completed)
+                    if len(training_days) != window_days:
+                        raise ValueError(f'Incomplete training timing evidence for the {window_days}D window')
                     input_times[name] = (latest_publication, latest_retrieval, max(training_actual_times))
                 scoring_model = 'median4'
                 input_times['median4'] = (
