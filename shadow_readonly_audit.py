@@ -27,12 +27,16 @@ def _utc_period_gaps(expected, observed):
     }
 
 
-def audit_pk5_utc_hours(day, rows, *, late_publication_rows=(), invalid_publication_rows=()):
+def audit_pk5_utc_hours(
+    day, rows, *, late_publication_rows=(), invalid_publication_rows=(),
+    publication_rows_after_archive=None,
+):
     """Check explicit canonical period starts; legacy labels cannot disambiguate DST."""
     expected = set(expected_periods(day))
     periods = Counter()
     jwcd_values_by_period = defaultdict(set)
     periods_with_late_publication = set()
+    periods_with_publication_after_archive = set()
     periods_with_invalid_publication = set()
     missing_utc = invalid_utc = valid_jwcd = 0
     for index, row in enumerate(rows):
@@ -54,6 +58,8 @@ def audit_pk5_utc_hours(day, rows, *, late_publication_rows=(), invalid_publicat
         periods[period] += 1
         if index in late_publication_rows:
             periods_with_late_publication.add(period)
+        if publication_rows_after_archive is not None and index in publication_rows_after_archive:
+            periods_with_publication_after_archive.add(period)
         if index in invalid_publication_rows:
             periods_with_invalid_publication.add(period)
         if has_valid_jwcd:
@@ -68,6 +74,9 @@ def audit_pk5_utc_hours(day, rows, *, late_publication_rows=(), invalid_publicat
         'observed_periods_with_publication_after_cutoff_utc': [
             period.isoformat() for period in sorted(expected & periods_with_late_publication)
         ],
+        'observed_periods_with_publication_after_archive_utc': [
+            period.isoformat() for period in sorted(expected & periods_with_publication_after_archive)
+        ] if publication_rows_after_archive is not None else None,
         'observed_periods_with_missing_or_invalid_publication_utc': [
             period.isoformat() for period in sorted(expected & periods_with_invalid_publication)
         ],
@@ -298,7 +307,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     (index, row['publication_ts']) for index, row in enumerate(values)
                     if isinstance(row, dict) and row.get('publication_ts') not in (None, '')
                 ]
-                publications = []
+                publications = {}
                 late_publication_rows = set()
                 invalid_publication_rows = set(range(len(values)))
                 for index, value in publication_values:
@@ -308,7 +317,7 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                         stamp = _stamp(value)
                     except (ValueError, OverflowError):
                         continue
-                    publications.append(stamp)
+                    publications[index] = stamp
                     invalid_publication_rows.remove(index)
                     if stamp > cutoff:
                         late_publication_rows.add(index)
@@ -331,9 +340,9 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     archived.astimezone(timezone.utc)
                     if isinstance(archived, datetime) and archived.utcoffset() is not None else None
                 )
-                latest_publication = max(publications, default=None)
-                publications_after_archive = (
-                    sum(stamp > archived_utc for stamp in publications)
+                latest_publication = max(publications.values(), default=None)
+                publication_rows_after_archive = (
+                    {index for index, stamp in publications.items() if stamp > archived_utc}
                     if archived_utc is not None else None
                 )
                 archive_timing_rejections = [
@@ -347,13 +356,14 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                          and archived_utc < retrieved_utc, 'ARCHIVE_BEFORE_RETRIEVAL'),
                         (not publications or len(publications) != len(values), 'INCOMPLETE_PUBLICATION_TIMESTAMPS'),
                         (bool(late_publications), 'PUBLICATION_AFTER_CUTOFF'),
-                        (bool(publications_after_archive), 'PUBLICATION_AFTER_ARCHIVE'),
+                        (bool(publication_rows_after_archive), 'PUBLICATION_AFTER_ARCHIVE'),
                     ) if rejected
                 ]
                 archive_timing_candidate = not archive_timing_rejections
                 utc_hours = audit_pk5_utc_hours(
                     day, values, late_publication_rows=late_publication_rows,
                     invalid_publication_rows=invalid_publication_rows,
+                    publication_rows_after_archive=publication_rows_after_archive,
                 )
                 hourly_rejections = list(archive_timing_rejections)
                 if not utc_hours['complete_utc_hours']:
@@ -376,7 +386,8 @@ def audit_connection(conn, *, start_day=None, end_day=None, reference_rows=None)
                     publication_missing=len(values)-len(publication_values),
                     publication_unverified=len(publication_values)-len(publications),
                     publication_after_cutoff=late_publications,
-                    publication_after_archive=publications_after_archive,
+                    publication_after_archive=(len(publication_rows_after_archive)
+                                               if publication_rows_after_archive is not None else None),
                     retrieved_at_utc=retrieved_utc.isoformat() if retrieved_utc is not None else None,
                     cutoff_utc=cutoff.isoformat(),
                     archived_at_utc=archived_utc.isoformat() if archived_utc is not None else None,

@@ -453,14 +453,22 @@ class ReadonlyAuditTests(unittest.TestCase):
         self.assertEqual(snapshot['publication_after_cutoff'], 1)
         self.assertEqual(snapshot['utc_hour_audit']['observed_periods_with_publication_after_cutoff_utc'],
                          [second.isoformat()])
+        self.assertEqual(snapshot['utc_hour_audit']['observed_periods_with_publication_after_archive_utc'],
+                         [first.isoformat(), second.isoformat()])
         self.assertEqual(snapshot['archive_timing_rejections'], [
             'PUBLICATION_AFTER_CUTOFF', 'PUBLICATION_AFTER_ARCHIVE',
         ])
         self.assertEqual(result['archive_hourly_candidate_days'], [])
 
+        self.conn.execute("UPDATE raw.snapshots SET created_at='2026-10-24T07:50:01Z'")
+        snapshot, = audit_connection(self.conn)['snapshots']
+        self.assertEqual(snapshot['publication_after_archive'], 0)
+        self.assertEqual(snapshot['utc_hour_audit']['observed_periods_with_publication_after_archive_utc'], [])
+
         self.conn.execute('UPDATE raw.snapshots SET created_at=NULL')
         snapshot, = audit_connection(self.conn)['snapshots']
         self.assertIsNone(snapshot['publication_after_archive'])
+        self.assertIsNone(snapshot['utc_hour_audit']['observed_periods_with_publication_after_archive_utc'])
         self.assertEqual(snapshot['publication_after_cutoff'], 1)
 
     def test_missing_legacy_retrieval_evidence_does_not_abort_audit(self):

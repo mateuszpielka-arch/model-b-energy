@@ -1838,3 +1838,8 @@ i syntetyczne znaczniki JWCD wokół D−1 09:50 Europe/Warsaw.
 Ponowny odczyt archiwum z 04.11.2026 potwierdził brak wszystkich
 wymaganych znaczników w 50 928 wierszach i 0 dób gotowych do backtestu.
 Sprawdzono sumę SHA-256 ZIP przed audytem i po nim.
+
+Audyt PostgreSQL wskazuje okresy UTC PK5 z publikacją po zapisaniu
+snapshotu. Test doby 25h rozróżnia oba wystąpienia lokalnej godziny
+02:00, odróżnia zapis snapshotu od granicy D−1 09:50 Europe/Warsaw
+i sprawdza przypadki równości oraz braku czasu zapisu.
