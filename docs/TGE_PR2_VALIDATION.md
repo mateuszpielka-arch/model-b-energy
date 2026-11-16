@@ -1945,3 +1945,8 @@ czasowy treningu. Raport wskazuje model oraz błędne pole, jeśli data
 dowodu jest poprawna. Test OLS 60D obejmuje błędną datę, brak czasu Fix1
 i znacznik pobrania JWCD bez strefy. Druga doba zachowuje komplet
 ocen wszystkich modeli.
+
+Raport CSV walk-forward pokazuje pokrycie danych w badanym zakresie
+osobno dla zaobserwowanych dób 23h, 24h i 25h. Test zawiera ocenioną
+dobę 25h i doby 24h dopuszczone bez wyniku. Osobny przypadek z cenami
+TGE z 17.11.2026 sprawdza liczenie doby odrzuconej przez brak JWCD.

@@ -64,6 +64,17 @@ class WalkforwardCSVTests(unittest.TestCase):
             "admitted_but_unscored_days": 0, "scored_on_common_sample_days": 1,
         })
 
+        coverage = scoped["walkforward"]["observed_target_coverage_by_hours"]
+        self.assertEqual(coverage["25"], {
+            "observed_days": 1, "excluded_by_csv_audit_days": 0,
+            "admitted_but_unscored_days": 0, "scored_on_common_sample_days": 1,
+        })
+        self.assertEqual(coverage["24"]["observed_days"], 0)
+        self.assertEqual(comparison["observed_target_coverage_by_hours"]["24"], {
+            "observed_days": 90, "excluded_by_csv_audit_days": 0,
+            "admitted_but_unscored_days": 90, "scored_on_common_sample_days": 0,
+        })
+
         cutoff = cutoff_for_day(target)
         record = dict(
             delivery_date=target.isoformat(), forecast_id="archived-test", forecast_status="FROZEN",
@@ -282,6 +293,10 @@ class WalkforwardCSVTests(unittest.TestCase):
         )["walkforward"]
         self.assertEqual(comparison["target_coverage"], {
             "calendar_days": 3, "absent_from_csv_days": 2, "excluded_by_csv_audit_days": 1,
+            "admitted_but_unscored_days": 0, "scored_on_common_sample_days": 0,
+        })
+        self.assertEqual(comparison["observed_target_coverage_by_hours"]["24"], {
+            "observed_days": 1, "excluded_by_csv_audit_days": 1,
             "admitted_but_unscored_days": 0, "scored_on_common_sample_days": 0,
         })
         self.assertIn("MISSING_OR_INVALID_JWCD", comparison["targets_excluded_by_csv_audit"]["2026-11-17"])

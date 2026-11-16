@@ -1,7 +1,7 @@
 """Run the offline SHADOW comparison on audited, canonical hourly CSV history."""
 
 import argparse
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date
 from dataclasses import asdict
 from decimal import Decimal
@@ -96,6 +96,23 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
         "admitted_but_unscored_days": len(targets) - scored_days,
         "scored_on_common_sample_days": scored_days,
     }
+    observed_by_hours = Counter()
+    excluded_by_hours = Counter()
+    for entry in readiness["days"]:
+        if within_target_range(date.fromisoformat(entry["day"])):
+            hours = entry["expected_periods"]
+            observed_by_hours[hours] += 1
+            if not entry["model_ready"]:
+                excluded_by_hours[hours] += 1
+    comparison["observed_target_coverage_by_hours"] = {}
+    for hours in (23, 24, 25):
+        scored = comparison["common_days_by_hours"][str(hours)]
+        comparison["observed_target_coverage_by_hours"][str(hours)] = {
+            "observed_days": observed_by_hours[hours],
+            "excluded_by_csv_audit_days": excluded_by_hours[hours],
+            "admitted_but_unscored_days": observed_by_hours[hours] - excluded_by_hours[hours] - scored,
+            "scored_on_common_sample_days": scored,
+        }
     admission = {
         "delivery_days": len(readiness["days"]),
         "admitted_days": len(ready_days),
