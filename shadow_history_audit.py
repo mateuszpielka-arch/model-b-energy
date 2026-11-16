@@ -61,6 +61,8 @@ def audit_rows(rows):
         conflicting_price_periods = set()
         valid_fix1_periods = set()
         valid_jwcd_periods = set()
+        timely_jwcd_periods = set()
+        post_cutoff_fix1_periods = set()
         uses_explicit_utc = any(r.get('period_start_utc') not in (None, '') for r in records)
         for r in records:
             p = None
@@ -113,6 +115,7 @@ def audit_rows(rows):
                         premature_actual_timestamps += 1
                     else:
                         actual_times.append(actual_time)
+                        post_cutoff_fix1_periods.add(p)
             canonical_start = r.get('retrieved_at')
             legacy_start = r.get('retrieved_at_utc')
             has_canonical_start = canonical_start not in (None, '')
@@ -151,6 +154,7 @@ def audit_rows(rows):
                 late_timing += 1
             else:
                 available += 1
+                timely_jwcd_periods.add(p)
                 retrieval_windows.add((start, end))
         period_counts = Counter(seen)
         missing = expected - period_counts.keys()
@@ -187,6 +191,12 @@ def audit_rows(rows):
             ],
             observed_periods_without_valid_jwcd_utc=[
                 p.isoformat() for p in sorted(expected & (period_counts.keys() - valid_jwcd_periods))
+            ],
+            observed_periods_without_timely_jwcd_timestamps_utc=[
+                p.isoformat() for p in sorted(expected & (period_counts.keys() - timely_jwcd_periods))
+            ],
+            observed_periods_without_post_cutoff_fix1_timestamp_utc=[
+                p.isoformat() for p in sorted(expected & (period_counts.keys() - post_cutoff_fix1_periods))
             ],
             conflicting_fix1_periods_utc=[p.isoformat() for p in sorted(conflicting_price_periods)],
             complete_pairs=(complete and "HOUR_UTC_MISMATCH" not in issues

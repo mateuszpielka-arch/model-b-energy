@@ -1,11 +1,11 @@
 import csv
 from copy import deepcopy
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from shadow_history_audit import audit_rows,read_csv
-from shadow_scoring import expected_periods
+from shadow_scoring import WARSAW, expected_periods
 
 class HistoryAuditTests(unittest.TestCase):
     def rows(self,day='2026-11-03'):
@@ -213,6 +213,40 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(report['invalid_jwcd_timestamp_rows_by_field'], {
             'publication_ts': 2, 'retrieved_at': 2, 'retrieval_completed_at': 2,
         })
+
+    def test_identifies_observed_periods_without_timing_evidence(self):
+        for delivery, cutoff in (
+            ('2026-03-29', '2026-03-28T09:50:00+01:00'),
+            ('2026-10-25', '2026-10-24T09:50:00+02:00'),
+            ('2026-11-17', '2026-11-16T09:50:00+01:00'),
+        ):
+            with self.subTest(delivery=delivery):
+                day = date.fromisoformat(delivery)
+                rows = self.rows(delivery)
+                late = (datetime.fromisoformat(cutoff) + timedelta(microseconds=1)).isoformat()
+                if delivery == '2026-11-17':
+                    fixture = Path(__file__).parent / 'fixtures' / f'tge_delivery_{delivery}' / f'tge_delivery_{delivery}.csv'
+                    for row, price in zip(rows, read_csv(fixture), strict=True):
+                        row['fix1'] = price['price_pln_mwh']
+                for row in rows:
+                    row.update(publication_ts=cutoff, retrieved_at_utc=cutoff, retrieval_completed_at=cutoff)
+                periods = expected_periods(day)
+                first, second = 2, 3
+                if delivery == '2026-10-25':
+                    self.assertEqual(
+                        [(p.astimezone(WARSAW).hour, p.astimezone(WARSAW).fold) for p in periods[first:second + 1]],
+                        [(2, 0), (2, 1)],
+                    )
+                rows[first]['actual_available_at'] = cutoff
+                rows[second]['retrieved_at_utc'] = late
+                missing = rows.pop()
+                result, = audit_rows(rows)['days']
+                self.assertEqual(result['missing_periods_utc'], [missing['period_start_utc']])
+                self.assertEqual(result['observed_periods_without_timely_jwcd_timestamps_utc'],
+                                 [periods[second].isoformat()])
+                self.assertEqual(result['observed_periods_without_post_cutoff_fix1_timestamp_utc'],
+                                 [periods[first].isoformat()])
+                self.assertFalse(result['model_ready'])
 
     def test_reports_overlapping_jwcd_chronology_errors_on_real_fix1_prices(self):
         fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-14/tge_delivery_2026-11-14.csv'

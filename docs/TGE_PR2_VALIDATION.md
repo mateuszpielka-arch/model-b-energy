@@ -1896,3 +1896,9 @@ Europe/Warsaw. Test cen TGE dla 17.11.2026 potwierdza odrzucenie
 publikacji i pobrania spóźnionych o mikrosekundę oraz przyjęcie obu
 znaczników na granicy. MAE, MAPE, WAPE i bias dla syntetycznej
 prognozy 650 PLN/MWh porównano z niezależnym rachunkiem na ułamkach.
+
+Audyt CSV wskazuje zaobserwowane okresy UTC bez terminowych
+znaczników JWCD oraz bez znacznika Fix1 po D−1 09:50 Europe/Warsaw.
+Test odróżnia brak dowodu czasowego od braku całego wiersza.
+Obejmuje ceny TGE dla 17.11.2026 i syntetyczne doby 23h i 25h,
+w tym oba wystąpienia 02:00 przy jesiennej zmianie czasu.
