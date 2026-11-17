@@ -469,6 +469,36 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertIn('HOUR_UTC_MISMATCH', day['issues'])
         self.assertNotIn('INCOMPLETE_OR_DUPLICATE_PERIODS', day['issues'])
 
+    def test_malformed_hour_label_does_not_hide_observed_fix1_utc_period(self):
+        delivery = '2026-11-17'
+        fixture = Path(__file__).parent / 'fixtures' / f'tge_delivery_{delivery}' / f'tge_delivery_{delivery}.csv'
+        rows = self.rows(delivery)
+        for row, official in zip(rows, read_csv(fixture), strict=True):
+            row.update(hour=official['hour'], fix1=official['price_pln_mwh'],
+                       publication_ts='2026-11-16T08:00:00+00:00',
+                       retrieved_at_utc='2026-11-16T08:49:00+00:00',
+                       retrieval_completed_at='2026-11-16T08:50:00+00:00')
+            self.assertEqual(datetime.fromisoformat(row['period_start_utc']),
+                             datetime.fromisoformat(official['period_start_utc']))
+        baseline, = audit_rows(rows)['days']
+        self.assertTrue(baseline['complete_pairs'])
+        self.assertTrue(baseline['model_ready'])
+
+        rows[0]['hour'] = 'HXX'
+        wrong_label, = audit_rows(rows)['days']
+        self.assertTrue(wrong_label['complete_periods'])
+        self.assertEqual(wrong_label['unique_periods'], 24)
+        self.assertEqual(wrong_label['missing_periods_utc'], [])
+        self.assertFalse(wrong_label['complete_pairs'])
+        self.assertFalse(wrong_label['model_ready'])
+        self.assertIn('HOUR_UTC_MISMATCH', wrong_label['issues'])
+
+        missing_period = rows[0]['period_start_utc']
+        rows[0]['period_start_utc'] = 'invalid'
+        wrong_utc, = audit_rows(rows)['days']
+        self.assertEqual(wrong_utc['missing_periods_utc'], [missing_period])
+        self.assertIn('INVALID_OR_AMBIGUOUS_PERIOD', wrong_utc['issues'])
+
     def test_dst_coverage_lists_missing_duplicate_and_unexpected_utc_keys(self):
         for day in ('2026-03-29', '2026-10-25'):
             with self.subTest(day=day):

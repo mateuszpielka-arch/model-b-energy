@@ -69,11 +69,6 @@ def audit_rows(rows):
             try:
                 if r.get('period_start_utc') not in (None, ''):
                     p=_stamp(r['period_start_utc'])
-                    if len(periods) == 24 and r.get("hour") not in (None, ""):
-                        label = str(r["hour"]).removeprefix("H")
-                        hour = int(label)
-                        if not 1 <= hour <= 24 or p != periods[hour - 1]:
-                            issues.add("HOUR_UTC_MISMATCH")
                 elif len(periods) == 24 and not uses_explicit_utc:
                     label=str(r.get('hour','')).removeprefix('H')
                     h=int(label)
@@ -81,8 +76,17 @@ def audit_rows(rows):
                     p=periods[h-1]
                 else:
                     raise ValueError('Missing explicit UTC period')
+            except (ValueError, TypeError, IndexError):
+                issues.add('INVALID_OR_AMBIGUOUS_PERIOD')
+            else:
                 seen.append(p)
-            except (ValueError,TypeError,IndexError): issues.add('INVALID_OR_AMBIGUOUS_PERIOD')
+                if len(periods) == 24 and uses_explicit_utc and r.get('hour') not in (None, ''):
+                    try:
+                        hour = int(str(r['hour']).removeprefix('H'))
+                    except ValueError:
+                        hour = 0
+                    if not 1 <= hour <= 24 or p != periods[hour - 1]:
+                        issues.add('HOUR_UTC_MISMATCH')
             price_fields = [r[name] for name in FIX1_COLUMNS
                             if r.get(name) not in (None, '')]
             if price_fields and all(_number(value) for value in price_fields):

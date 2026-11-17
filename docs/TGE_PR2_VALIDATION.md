@@ -2014,3 +2014,8 @@ Niezależny ekstraktor XPath odrzuca script i style w komórkach wiersza
 godzinowego Fixing I. Test na kopiach HTML TGE dla 17.11.2026 potwierdza,
 że narzędzie pobierające nie zapisuje HTML ani CSV dla obu wariantów.
 Referencja z ceną w zwykłym span nadal zgadza się z oryginałem.
+
+Audyt CSV zachowuje prawidłowy okres UTC w inwentaryzacji, gdy jego
+etykieta godzinowa jest błędna. Taka doba nie kwalifikuje się do
+backtestu. Test na cenach TGE dla 17.11.2026 i syntetycznych danych
+JWCD rozróżnia błędną etykietę od brakującego okresu UTC.
