@@ -2040,3 +2040,8 @@ Audyt CSV wskazuje okresy UTC z błędnym znacznikiem JWCD osobno
 dla publikacji, początku i końca pobrania. Testy dób 23h i 25h
 sprawdzają publikację bez strefy, sprzeczne aliasy początku i błędny
 koniec pobrania w wierszu z brakującym znacznikiem publikacji.
+
+Test izolowanego PostgreSQL uruchamia równocześnie import oficjalnego
+pobrania dla 17.11.2026 i jego syntetycznej rewizji ceny H01. Sprawdza
+jeden pełny zestaw 24 cen, dwa zachowane HTML i kwarantannę przegranego
+importu. Ponowienie obu importów zachowuje ceny i jeden wpis kwarantanny.

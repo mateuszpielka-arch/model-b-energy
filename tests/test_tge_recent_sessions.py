@@ -1243,6 +1243,64 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                 score_archived_day(conn, **{**inputs, 'reference_csv': changed_reference})
             self.assertEqual(conn.execute(query).fetchall(), stored)
 
+    def test_concurrent_conflicting_captures_preserve_one_complete_day(self):
+        from lxml import html
+
+        (original, raw), = load_batches(NOV_17_FIXTURES / 'manifest.json')
+        page = html.fromstring(raw)
+        cells = page.xpath(
+            '//table[@id="rdn"]/tbody/tr[normalize-space(td[1])=$period]/td[3]',
+            period='2026-11-17_H01',
+        )
+        self.assertEqual(len(cells), 1)
+        # A synthetic conflicting revision of the official capture.
+        revised_price = original.rows[0][1] + Decimal('0.01')
+        cells[0].text = format(revised_price, 'f').replace('.', ',')
+        revised_raw = html.tostring(page, encoding='utf-8')
+        reference_rows = extract_reference(revised_raw, '2026-11-17')
+        reference = '\n'.join(f'{label},{price}' for label, price in reference_rows).encode()
+        revised = prepare_batch(
+            raw=revised_raw, day='2026-11-17', source_url=original.source_url,
+            retrieved_at=original.retrieved_at,
+            reference_rows=reference_rows, reference_sha256=sha256(reference).hexdigest(),
+        )
+        candidates = ((original, raw), (revised, revised_raw))
+        start = Barrier(2, timeout=10)
+
+        def import_candidate(candidate):
+            batch, evidence = candidate
+            with connect_test_database(DSN) as worker:
+                start.wait()
+                return archive_batch(worker, batch, evidence)
+
+        with self.isolated_connection() as conn:
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results = list(pool.map(import_candidate, candidates))
+            self.assertCountEqual(results, ['INSERT', 'QUARANTINE'])
+            winner = candidates[results.index('INSERT')][0]
+            loser = candidates[results.index('QUARANTINE')][0]
+            query = '''
+                SELECT p.period_start_utc, p.price, b.raw_sha256
+                FROM fix1_shadow_test.prices p
+                JOIN fix1_shadow_test.batches b ON b.id = p.batch_id
+                ORDER BY p.period_start_utc
+            '''
+            stored = conn.execute(query).fetchall()
+            self.assertEqual(stored, [(period, price, winner.raw_sha256) for period, price in winner.rows])
+            self.assertEqual(conn.execute(
+                'SELECT raw_sha256, raw_html FROM fix1_shadow_test.batches ORDER BY raw_sha256'
+            ).fetchall(), sorted((batch.raw_sha256, evidence) for batch, evidence in candidates))
+            quarantine = conn.execute('''
+                SELECT b.raw_sha256, q.reason FROM fix1_shadow_test.quarantine q
+                JOIN fix1_shadow_test.batches b ON b.id = q.batch_id
+            ''').fetchall()
+            self.assertEqual(quarantine, [(loser.raw_sha256, 'Existing prices differ or day is partial')])
+            for batch, evidence in candidates:
+                self.assertEqual(archive_batch(conn, batch, evidence), 'QUARANTINE')
+            self.assertEqual(conn.execute(query).fetchall(), stored)
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (2,))
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.quarantine').fetchone(), (1,))
+
     def test_concurrent_saturday_imports_write_one_official_batch(self):
         manifest = json.loads((NOV_7_FIXTURES / 'manifest.json').read_text())
         entry, = manifest['entries']
