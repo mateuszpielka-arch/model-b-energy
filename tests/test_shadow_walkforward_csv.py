@@ -144,6 +144,28 @@ class WalkforwardCSVTests(unittest.TestCase):
             self.assertEqual(rejected.returncode, 2)
             self.assertIn("Invalid archived FROZEN forecast at entry 1", rejected.stderr)
 
+        late_labels = [(target - timedelta(days=offset)).isoformat() for offset in (31, 1)]
+        late_stamp = (cutoff + timedelta(microseconds=1)).isoformat()
+        delayed = [
+            {**row, "actual_available_at": late_stamp}
+            if row["delivery_date"] in late_labels else row
+            for row in rows
+        ]
+        late_comparison = evaluate_csv_rows(
+            delayed, evaluated_at=evaluated_at, target_from=target, target_to=target,
+        )["walkforward"]
+        skipped, = late_comparison["skipped"]
+        self.assertEqual(skipped["stage"], "ols30")
+        self.assertEqual(skipped["late_training_actual_days"], late_labels[1:])
+        self.assertEqual(late_comparison["ranking"], [])
+        for window, labels in ((30, late_labels[1:]), (60, late_labels), (90, late_labels)):
+            self.assertEqual(skipped["training_csv_coverage_by_window"][f"{window}D"], {
+                "absent_from_csv_days": 0, "excluded_by_csv_audit_days": 0,
+                "admitted_by_csv_audit_days": window,
+                "admitted_with_fix1_after_target_cutoff_days": len(labels),
+                "fix1_available_after_target_cutoff_utc_by_day": dict.fromkeys(labels, late_stamp),
+            })
+
         rows[0]["retrieval_completed_at"] = rows[0]["actual_available_at"]
         result = evaluate_csv_rows(rows, evaluated_at=evaluated_at)
         self.assertEqual(result["history_audit"]["model_ready_days"], 90)
@@ -296,7 +318,10 @@ class WalkforwardCSVTests(unittest.TestCase):
         self.assertEqual(skipped["training_csv_coverage_by_window"], {
             key: {"absent_from_csv_days": days, "excluded_by_csv_audit_days": 1,
                   "admitted_by_csv_audit_days": 2,
-                  "admitted_with_fix1_after_target_cutoff_days": 1}
+                  "admitted_with_fix1_after_target_cutoff_days": 1,
+                  "fix1_available_after_target_cutoff_utc_by_day": {
+                      "2026-11-11": (cutoff + timedelta(microseconds=1)).isoformat(),
+                  }}
             for key, days in (("30D", 27), ("60D", 57), ("90D", 87))
         })
         self.assertEqual(skipped["training_days_absent_from_csv"], [

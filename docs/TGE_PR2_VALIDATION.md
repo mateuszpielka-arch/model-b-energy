@@ -1961,3 +1961,8 @@ Raport luk treningowych podaje, ile dni przyjętych przez audyt CSV
 miało ceny Fix1 dostępne dopiero po D−1 09:50 Europe/Warsaw dla
 doby ocenianej. Test z cenami TGE i syntetycznymi znacznikami
 odróżnia czas równy granicy od spóźnienia o mikrosekundę.
+
+Raport okien treningowych pokazuje datę i znacznik UTC dla każdej
+doby z cenami Fix1 dostępnymi po granicy prognozy. Test doby 25h
+z kompletną syntetyczną historią sprawdza odrzucenie rankingu oraz
+wskazanie spóźnionej doby sprzed 31 dni tylko w oknach 60D i 90D.

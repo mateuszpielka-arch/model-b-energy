@@ -88,14 +88,18 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
             for window in OLS_WINDOWS:
                 labels = [date.fromordinal(prior).isoformat() for prior in range(max(1, target - window), target)]
                 excluded = sum(label in excluded_days for label in labels)
-                available_times = [actual_ready_at[label] for label in labels if label in actual_ready_at]
-                admitted = len(available_times)
-                late = sum(timestamp > cutoff for timestamp in available_times)
+                admitted_labels = [label for label in labels if label in actual_ready_at]
+                admitted = len(admitted_labels)
+                late_actuals = {
+                    label: actual_ready_at[label].isoformat()
+                    for label in admitted_labels if actual_ready_at[label] > cutoff
+                }
                 coverage[f"{window}D"] = {
                     "absent_from_csv_days": window - excluded - admitted,
                     "excluded_by_csv_audit_days": excluded,
                     "admitted_by_csv_audit_days": admitted,
-                    "admitted_with_fix1_after_target_cutoff_days": late,
+                    "admitted_with_fix1_after_target_cutoff_days": len(late_actuals),
+                    "fix1_available_after_target_cutoff_utc_by_day": late_actuals,
                 }
             skipped["training_csv_coverage_by_window"] = coverage
     comparison["targets_excluded_by_csv_audit"] = {
