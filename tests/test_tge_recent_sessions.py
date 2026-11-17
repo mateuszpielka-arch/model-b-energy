@@ -238,6 +238,21 @@ class RecentOfficialSessionsTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, error):
                     prepare_session(entry, changed.encode('utf-8'), reference_rows)
 
+    def test_november_17_rejects_hourly_row_outside_rdn_table_sections(self):
+        manifest = NOV_17_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        raw, _, rows = load_session(entry, NOV_17_FIXTURES)
+        source = raw.decode('utf-8')
+        day = entry['delivery_date']
+        self.assertEqual(len(parse_complete_standard_day(source, day)), 24)
+        table = re.search(r"""<table\b[^>]*\sid\s*=\s*(['"])rdn\1[^>]*>""", source, re.IGNORECASE)
+        self.assertIsNotNone(table)
+        extra_row = f'<tr><td>{day}_H01</td><td>60</td><td>99,00</td></tr>'
+        changed = source[:table.end()] + extra_row + source[table.end():]
+        reference_rows = [(row['hour'], row['price_pln_mwh']) for row in rows]
+        with self.assertRaisesRegex(ValueError, 'RDN row outside a table section'):
+            prepare_session(entry, changed.encode('utf-8'), reference_rows)
+
     def test_november_17_later_official_capture_keeps_all_fixing_i_prices(self):
         (original, original_raw), = load_batches(NOV_17_FIXTURES / 'manifest.json')
         (later, later_raw), = load_batches(NOV_17_FIXTURES / 'manifest_1726.json')

@@ -1986,3 +1986,7 @@ Parser blokuje archiwizację, gdy komórka tabeli RDN ma powtórzony
 colspan lub rowspan albo colspan bez wartości. Test na kopii HTML
 TGE dla 17.11.2026 sprawdza odrzucenie wszystkich trzech wariantów
 i poprawny odczyt 24 cen z oryginalnej odpowiedzi.
+
+Parser odrzuca wiersze tabeli RDN osadzone poza thead, tbody lub tfoot.
+Test na kopii HTML TGE dla 17.11.2026 dodaje przed thead wiersz H01
+z inną ceną i potwierdza odrzucenie pakietu. Oryginał daje 24 ceny.
