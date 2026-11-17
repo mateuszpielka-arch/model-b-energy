@@ -2061,3 +2061,9 @@ Walk-forward porównuje okresy UTC prognoz wszystkich sześciu modeli
 z kalendarzem dostawy przed pierwszym scoringiem. Test usuwa jeden okres
 z prognozy dni podobnych level i potwierdza brak scoringu całej doby oraz
 pusty wspólny ranking. Dane i prognoza w tym teście są syntetyczne.
+
+Test walk-forward sprawdza granicę dostępności treningowego Fix1
+dla każdego okna OLS 30D, 60D i 90D. Dowód dokładnie o D−1 09:50
+dopuszcza wspólną ocenę sześciu modeli. Spóźnienie o mikrosekundę
+w dowolnym oknie blokuje wszystkie wywołania scoringu tej doby.
+Test wykorzystuje syntetyczną historię i znaczniki czasu.

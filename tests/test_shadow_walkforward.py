@@ -799,30 +799,39 @@ class WalkforwardTests(unittest.TestCase):
                 self.assertEqual([day['day'] for day in result['accepted']], [second.isoformat()])
                 self.assertEqual([call.kwargs['day'] for call in scoring.call_args_list], [second] * len(MODELS))
 
-    def test_scoring_excludes_common_day_if_model_reports_late_training_fix1(self):
+    def test_training_fix1_cutoff_boundary_for_all_ols_windows(self):
         args = self.args()
         target = args['target_days'][-1]
         args['target_days'] = [target]
+        for window in (30, 60, 90):
+            for delay in (timedelta(0), timedelta(microseconds=1)):
+                with self.subTest(window=window, delay=delay):
+                    def training_at_boundary(**kwargs):
+                        prediction = predict_ols(**kwargs)
+                        if kwargs['window_days'] == window:
+                            prediction['training_timing'][-1]['actual_available_at_utc'] = (
+                                cutoff_for_day(target) + delay
+                            ).isoformat()
+                        return prediction
 
-        def late_training(**kwargs):
-            prediction = predict_ols(**kwargs)
-            if kwargs['window_days'] == 60:
-                prediction['training_timing'][-1]['actual_available_at_utc'] = (
-                    cutoff_for_day(target) + timedelta(seconds=1)
-                ).isoformat()
-            return prediction
-
-        with patch('shadow_walkforward.predict_ols', side_effect=late_training), patch(
-            'shadow_walkforward.score_day', wraps=score_day,
-        ) as scoring:
-            result = run_walkforward(**args)
-        scoring.assert_not_called()
-        self.assertEqual(result['ranking'], [])
-        self.assertEqual(result['common_periods'], 0)
-        self.assertEqual(result['skipped'], [{
-            'day': target.isoformat(), 'stage': 'scoring', 'model': 'ols60',
-            'reason': 'Training Fix1 prices unavailable at D-1 09:50',
-        }])
+                    with patch('shadow_walkforward.predict_ols', side_effect=training_at_boundary), patch(
+                        'shadow_walkforward.score_day', wraps=score_day,
+                    ) as scoring:
+                        result = run_walkforward(**args)
+                    if not delay:
+                        self.assertEqual(result['common_days'], 1)
+                        self.assertEqual(result['common_periods'], 24)
+                        self.assertEqual(scoring.call_count, len(MODELS))
+                        self.assertEqual(len(result['ranking']), len(MODELS))
+                        self.assertEqual(result['skipped'], [])
+                    else:
+                        scoring.assert_not_called()
+                        self.assertEqual(result['ranking'], [])
+                        self.assertEqual(result['common_periods'], 0)
+                        self.assertEqual(result['skipped'], [{
+                            'day': target.isoformat(), 'stage': 'scoring', 'model': f'ols{window}',
+                            'reason': 'Training Fix1 prices unavailable at D-1 09:50',
+                        }])
 
     def test_incomplete_similar_level_blocks_all_common_day_scoring(self):
         args = self.args()
