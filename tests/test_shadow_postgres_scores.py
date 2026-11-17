@@ -2,6 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from datetime import date, datetime, timezone, timedelta
 from decimal import Decimal, Inexact, ROUND_UP, localcontext
 import test_shadow_archive_batch as fixtures
@@ -423,6 +424,43 @@ class ScorePersistenceTests(unittest.TestCase):
         self.assertEqual(self.conn.execute(
             'SELECT count(*) FROM fix1_shadow_test.prices'
         ).fetchone()[0], 24)
+
+    def test_concurrent_conflicting_forecasts_preserve_the_winning_score(self):
+        start = Barrier(2, timeout=10)
+        offsets = (Decimal(5), Decimal(6))
+
+        def inputs(offset):
+            return {**self.kw, 'forecast': [
+                (period, price + offset) for period, price in self.kw['forecast']
+            ]}
+
+        def write(offset):
+            with connect_test_database(DSN) as conn:
+                start.wait()
+                try:
+                    decision, score = score_archived_day(conn, **inputs(offset))
+                except ValueError as exc:
+                    return offset, str(exc), None
+                return offset, decision, score
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(write, offsets))
+        self.assertCountEqual([decision for _, decision, _ in results], [
+            'INSERT', 'Score identity conflict: input fingerprint differs; existing result preserved',
+        ])
+        winner, = [(offset, score) for offset, decision, score in results if decision == 'INSERT']
+        offset, score = winner
+        self.assertEqual((score.mae, score.bias), (offset, offset))
+        saved = self.conn.execute('SELECT input_sha256, payload FROM fix1_shadow_test.scores').fetchall()
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(score_archived_day(self.conn, **inputs(offset)), ('REPLAY', score))
+        loser, = [value for value in offsets if value != offset]
+        with self.assertRaisesRegex(ValueError, 'identity conflict: input fingerprint differs'):
+            score_archived_day(self.conn, **inputs(loser))
+        self.assertEqual(
+            self.conn.execute('SELECT input_sha256, payload FROM fix1_shadow_test.scores').fetchall(),
+            saved,
+        )
 
     def test_four_concurrent_scores_only_insert_once(self):
         def write(_):

@@ -2045,3 +2045,9 @@ Test izolowanego PostgreSQL uruchamia równocześnie import oficjalnego
 pobrania dla 17.11.2026 i jego syntetycznej rewizji ceny H01. Sprawdza
 jeden pełny zestaw 24 cen, dwa zachowane HTML i kwarantannę przegranego
 importu. Ponowienie obu importów zachowuje ceny i jeden wpis kwarantanny.
+
+Test scoringu w izolowanym PostgreSQL uruchamia równocześnie dwie
+różne prognozy o tej samej tożsamości. Sprawdza jeden zapis wyniku,
+odrzucenie konkurencyjnego wejścia, REPLAY zwycięskiej prognozy
+i zachowanie skrótu oraz metryk po ponowieniu przegranej prognozy.
+Prognozy mają syntetyczne błędy +5 i +6 PLN/MWh względem cen fixture.
