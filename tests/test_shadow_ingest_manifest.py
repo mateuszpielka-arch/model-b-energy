@@ -126,12 +126,12 @@ class ManifestTests(unittest.TestCase):
                 read_reference_csv(oversized, day)
 
     def test_ambiguous_reference_csv_is_rejected_even_with_matching_hash(self):
-        source = FIX.with_name('tge_delivery_2026-11-07')
+        source = FIX.with_name('tge_delivery_2026-11-17')
         for change, error in (
             ('duplicate', 'duplicate CSV columns'),
             ('extra_field', 'wrong field count'),
             ('missing_field', 'wrong field count'),
-            ('open_quote', 'Malformed Fix1 reference CSV'),
+            ('open_quote', 'Fix1 reference CSV: malformed CSV record at line 25'),
             ('missing_header', 'Missing required Fix1 reference CSV columns'),
         ):
             with self.subTest(change=change), TemporaryDirectory() as tmp:

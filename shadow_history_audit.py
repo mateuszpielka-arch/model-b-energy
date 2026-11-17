@@ -315,7 +315,11 @@ def read_csv_rows(lines, *, source):
         # Let the CSV reader consume continuation lines verbatim. Only a
         # comment at the start of a new record can be skipped.
         reader = csv.reader(chain((line,), lines), strict=True)
-        record = next(reader)
+        record_start = line_num
+        try:
+            record = next(reader)
+        except csv.Error as exc:
+            raise csv.Error(f'{source}: malformed CSV record at line {record_start}: {exc}') from exc
         line_num += reader.line_num - 1
         if not record:
             continue
@@ -326,7 +330,7 @@ def read_csv_rows(lines, *, source):
                 raise ValueError(f'{source}: duplicate CSV columns: {", ".join(duplicates)}')
             continue
         if len(record) != len(header):
-            raise ValueError(f'{source}: CSV record at line {line_num} has wrong field count')
+            raise ValueError(f'{source}: CSV record at line {record_start} has wrong field count')
         rows.append(dict(zip(header, record, strict=True)))
     return rows
 

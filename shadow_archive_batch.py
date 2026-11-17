@@ -45,7 +45,7 @@ def read_reference_csv(reference, day, *, require_utc=False):
         try:
             rows = read_csv_rows(stream, source='Fix1 reference CSV')
         except csv.Error as exc:
-            raise ValueError('Malformed Fix1 reference CSV') from exc
+            raise ValueError(str(exc)) from exc
     if rows and not {'delivery_date', 'hour', 'price_pln_mwh'} <= rows[0].keys():
         raise ValueError('Missing required Fix1 reference CSV columns')
     if any(row['delivery_date'] != day for row in rows):

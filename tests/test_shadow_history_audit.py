@@ -533,8 +533,21 @@ class HistoryAuditTests(unittest.TestCase):
     def test_csv_rejects_unclosed_quoted_value(self):
         with TemporaryDirectory() as folder:
             path = Path(folder) / 'history.csv'
-            path.write_text('delivery_date,jwcd_mw\n2026-11-03,"12000\n', encoding='utf-8')
-            with self.assertRaises(csv.Error):
+            path.write_text(
+                '# metadata\ndelivery_date,jwcd_mw\n2026-11-03,"12000\n# quoted continuation\n',
+                encoding='utf-8',
+            )
+            with self.assertRaisesRegex(csv.Error, r'history\.csv: malformed CSV record at line 3:'):
+                read_csv(path)
+
+    def test_wrong_field_count_identifies_start_of_multiline_record(self):
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / 'history.csv'
+            path.write_text(
+                '# metadata\ndelivery_date,jwcd_mw\n2026-11-03,"12000\nnotes",extra\n',
+                encoding='utf-8',
+            )
+            with self.assertRaisesRegex(ValueError, 'CSV record at line 3 has wrong field count'):
                 read_csv(path)
 
     def test_price_aliases_must_agree_when_both_populated(self):
