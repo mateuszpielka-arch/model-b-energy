@@ -62,6 +62,8 @@ def audit_rows(rows):
         fix1_values_by_period = defaultdict(set)
         jwcd_values_by_period = defaultdict(set)
         timely_jwcd_periods = set()
+        retrieval_start_after_completion_periods = set()
+        publication_after_completion_periods = set()
         post_cutoff_fix1_periods = set()
         uses_explicit_utc = any(r.get('period_start_utc') not in (None, '') for r in records)
         for r in records:
@@ -149,6 +151,10 @@ def audit_rows(rows):
             pub_after_end = pub is not None and end is not None and pub > end
             invalid_retrieval_order += start_after_end
             publication_after_completion += pub_after_end
+            if start_after_end and p in expected:
+                retrieval_start_after_completion_periods.add(p)
+            if pub_after_end and p in expected:
+                publication_after_completion_periods.add(p)
             if missing_fields:
                 missing_timestamps.update(missing_fields)
                 missing_timing += 1
@@ -228,6 +234,12 @@ def audit_rows(rows):
             invalid_jwcd_timestamp_rows_by_field=dict(invalid_timestamps),
             retrieval_start_after_completion_rows=invalid_retrieval_order,
             publication_after_completion_rows=publication_after_completion,
+            retrieval_start_after_completion_periods_utc=[
+                p.isoformat() for p in sorted(retrieval_start_after_completion_periods)
+            ],
+            publication_after_completion_periods_utc=[
+                p.isoformat() for p in sorted(publication_after_completion_periods)
+            ],
             availability_after_cutoff_rows=late_timing,
             after_cutoff_rows_by_field=dict(late_timestamps),
             model_ready=not issues,issues=sorted(issues)))

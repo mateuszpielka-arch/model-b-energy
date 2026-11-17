@@ -2025,3 +2025,8 @@ koniec pobrania także wtedy, gdy trzeci znacznik jest pusty lub błędny.
 Test na cenach TGE z 17.11.2026 i syntetycznych znacznikach sprawdza
 obie pary oraz brak rozstrzygnięcia przy nieznanym końcu pobrania.
 Klasyfikacja dostępności całego wiersza pozostaje taka sama.
+
+Audyt CSV wskazuje okresy UTC, w których publikacja lub początek
+pobrania JWCD nastąpiły po końcu pobrania. Test doby 25h rozróżnia oba
+wystąpienia 02:00 i potwierdza, że wiersz z błędnym kluczem UTC liczy się
+w statystyce błędów bez przypisania do okresu dostawy.

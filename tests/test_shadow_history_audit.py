@@ -299,6 +299,27 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(day['availability_proven_rows'], 21)
         self.assertFalse(day['model_ready'])
 
+    def test_locates_jwcd_chronology_errors_in_both_autumn_02_hours(self):
+        rows = self.rows('2026-10-25')
+        first, second = rows[2:4]
+        self.assertEqual(len(rows), 25)
+        self.assertEqual(first['period_start_utc'], '2026-10-25T00:00:00+00:00')
+        self.assertEqual(second['period_start_utc'], '2026-10-25T01:00:00+00:00')
+        cutoff = '2026-10-24T07:50:00Z'
+        after = '2026-10-24T07:50:00.000001Z'
+        for row in rows:
+            row.update(publication_ts=cutoff, retrieved_at_utc=cutoff, retrieval_completed_at=cutoff)
+        self.assertTrue(audit_rows(rows)['days'][0]['model_ready'])
+        first.update(publication_ts='', retrieved_at_utc=after)
+        second.update(publication_ts=after, retrieved_at_utc='invalid')
+        invalid_period = {**first, 'period_start_utc': 'invalid'}
+        day, = audit_rows([*rows, invalid_period])['days']
+        self.assertEqual(day['retrieval_start_after_completion_rows'], 2)
+        self.assertEqual(day['publication_after_completion_rows'], 1)
+        self.assertEqual(day['retrieval_start_after_completion_periods_utc'], [first['period_start_utc']])
+        self.assertEqual(day['publication_after_completion_periods_utc'], [second['period_start_utc']])
+        self.assertFalse(day['model_ready'])
+
     def test_reports_periods_with_missing_values_separately_from_missing_rows(self):
         fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-14/tge_delivery_2026-11-14.csv'
         rows = read_csv(fixture)
