@@ -7,6 +7,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import re
 from tempfile import TemporaryDirectory
 from threading import Barrier
 from time import monotonic, sleep
@@ -194,6 +195,26 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         self.assertEqual(rows[0]['price_pln_mwh'], '738.93')
         report = ingest_manifest(manifest)
         self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
+
+    def test_november_17_rejects_ambiguous_rdn_table_id(self):
+        manifest = NOV_17_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        raw, _, rows = load_session(entry, NOV_17_FIXTURES)
+        source = raw.decode('utf-8')
+        day = entry['delivery_date']
+        self.assertEqual(len(parse_complete_standard_day(source, day)), 24)
+        table = re.search(r"""<table\b[^>]*\sid\s*=\s*(['"])rdn\1[^>]*>""", source, re.IGNORECASE)
+        self.assertIsNotNone(table)
+        tag = table.group(0)
+        reference_rows = [(row['hour'], row['price_pln_mwh']) for row in rows]
+        for duplicate in (
+            '<table id="other"' + tag[len('<table'):],
+            tag[:-1] + ' id="other">',
+        ):
+            with self.subTest(duplicate=duplicate):
+                changed = source[:table.start()] + duplicate + source[table.end():]
+                with self.assertRaisesRegex(ValueError, 'Ambiguous id attributes on RDN table'):
+                    prepare_session(entry, changed.encode('utf-8'), reference_rows)
 
     def test_november_17_later_official_capture_keeps_all_fixing_i_prices(self):
         (original, original_raw), = load_batches(NOV_17_FIXTURES / 'manifest.json')

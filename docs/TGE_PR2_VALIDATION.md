@@ -1976,3 +1976,8 @@ Audyt ZIP sprawdza typ liczby wierszy, liczby dni i mapy sum
 SHA-256 przed odczytem arkusza. Test odrzuca m.in. wartość
 logiczną zamiast liczby dni i liczbę zmiennoprzecinkową zamiast
 liczby wierszy. Bajty badanego ZIP pozostają identyczne.
+
+Parser odrzuca tabelę RDN z dwoma atrybutami id, niezależnie
+od ich kolejności. Test na kopii HTML TGE z cenami dla 17.11.2026
+sprawdza, że taki układ blokuje przygotowanie pakietu do archiwizacji.
+Oryginalna odpowiedź nadal daje komplet 24 cen Fixing I.

@@ -89,16 +89,19 @@ class _FixingTable(_Rows):
         self.cell_tag = None
 
     def handle_starttag(self, tag, attrs):
-        attrs = dict(attrs)
         if tag == "table":
             if self.active:
                 raise ValueError("Nested table in RDN; unsupported layout")
-            if attrs.get("id") == "rdn":
+            ids = [value for name, value in attrs if name == "id"]
+            if "rdn" in ids:
+                if len(ids) != 1:
+                    raise ValueError("Ambiguous id attributes on RDN table")
                 self.count += 1
                 self.active = True
             return
         if not self.active:
             return
+        attrs = dict(attrs)
         if tag in self.SECTIONS:
             if self.section is not None or self.row is not None:
                 raise ValueError("Unclosed RDN table section")
