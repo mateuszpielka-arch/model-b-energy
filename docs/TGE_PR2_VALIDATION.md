@@ -2067,3 +2067,9 @@ dla każdego okna OLS 30D, 60D i 90D. Dowód dokładnie o D−1 09:50
 dopuszcza wspólną ocenę sześciu modeli. Spóźnienie o mikrosekundę
 w dowolnym oknie blokuje wszystkie wywołania scoringu tej doby.
 Test wykorzystuje syntetyczną historię i znaczniki czasu.
+
+Pobrano oficjalny HTML sesji TGE z 17.11.2026 dla dostawy 18.11.2026
+o 22:11:47 Europe/Warsaw. Zapisano HTML gzip, CSV z okresami UTC i
+manifest SHA-256. Test porównuje 24 ceny parsera z ekstrakcją XPath
+tej samej odpowiedzi oraz sprawdza INSERT i REPLAY w izolowanym PostgreSQL.
+H01 wynosi 619,88, a H24 589,64 PLN/MWh.

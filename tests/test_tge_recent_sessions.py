@@ -36,6 +36,7 @@ NOV_14_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-14')
 NOV_15_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-15')
 NOV_16_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-16')
 NOV_17_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-17')
+NOV_18_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-18')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
@@ -181,6 +182,19 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         self.assertEqual([row['period_start_utc'] for row in rows],
                          [period.isoformat() for period in expected_periods(day)])
         self.assertEqual(rows[0]['price_pln_mwh'], '471.34')
+        report = ingest_manifest(manifest)
+        self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
+
+    def test_november_18_fixing_i_matches_official_reference(self):
+        day = date(2026, 11, 18)
+        self.check_sessions(NOV_18_FIXTURES, [day.isoformat()])
+        manifest = NOV_18_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        _, _, rows = load_session(entry, NOV_18_FIXTURES)
+        self.assertEqual([row['period_start_utc'] for row in rows],
+                         [period.isoformat() for period in expected_periods(day)])
+        self.assertEqual(rows[0]['price_pln_mwh'], '619.88')
+        self.assertEqual(rows[-1]['price_pln_mwh'], '589.64')
         report = ingest_manifest(manifest)
         self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
 
@@ -443,6 +457,9 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
     def test_november_16_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_16_FIXTURES)
+
+    def test_november_18_manifest_is_archived_and_replayed_without_duplicate_rows(self):
+        self.check_manifest_archive_and_replay(NOV_18_FIXTURES)
 
     def test_november_17_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_17_FIXTURES)
