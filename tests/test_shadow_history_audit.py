@@ -154,6 +154,12 @@ class HistoryAuditTests(unittest.TestCase):
             self.assertEqual(day['after_cutoff_rows_by_field'], {
                 'publication_ts': 2, 'retrieved_at': 2, 'retrieval_completed_at': 3,
             })
+            periods = expected_periods(date.fromisoformat(delivery))
+            self.assertEqual(day['after_cutoff_periods_utc_by_field'], {
+                'publication_ts': [p.isoformat() for p in periods[2:4]],
+                'retrieved_at': [p.isoformat() for p in periods[1:3]],
+                'retrieval_completed_at': [p.isoformat() for p in periods[:3]],
+            })
         self.assertEqual(report['after_cutoff_rows_by_field'], {
             'publication_ts': 6, 'retrieved_at': 6, 'retrieval_completed_at': 9,
         })
@@ -183,6 +189,11 @@ class HistoryAuditTests(unittest.TestCase):
             self.assertEqual(summary['after_cutoff_rows_by_field'], {
                 'publication_ts': 1, 'retrieved_at': 1, 'retrieval_completed_at': 2,
             })
+        first, second, third = (row['period_start_utc'] for row in rows[:3])
+        self.assertEqual(day['after_cutoff_periods_utc_by_field'], {
+            'publication_ts': [second], 'retrieved_at': [first],
+            'retrieval_completed_at': [first, third],
+        })
 
     def test_counts_invalid_jwcd_fields_even_when_row_has_missing_fields(self):
         rows_by_day = []

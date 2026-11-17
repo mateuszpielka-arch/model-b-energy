@@ -2030,3 +2030,8 @@ Audyt CSV wskazuje okresy UTC, w których publikacja lub początek
 pobrania JWCD nastąpiły po końcu pobrania. Test doby 25h rozróżnia oba
 wystąpienia 02:00 i potwierdza, że wiersz z błędnym kluczem UTC liczy się
 w statystyce błędów bez przypisania do okresu dostawy.
+
+Audyt CSV pokazuje okresy UTC osobno dla publikacji, początku i końca
+pobrania JWCD po D−1 09:50 Europe/Warsaw. Testy obejmują doby 23h
+i 25h oraz ceny TGE z 13.11 i 16.11.2026. Rozróżniają znaczniki
+dokładnie na granicy, brakujące znaczniki czasu i sprzeczne aliasy.

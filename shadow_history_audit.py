@@ -56,6 +56,7 @@ def audit_rows(rows):
         invalid_retrieval_order = publication_after_completion = 0
         missing_timestamps = Counter(dict.fromkeys(missing_timestamp_totals, 0))
         late_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
+        late_periods = {field: set() for field in JWCD_TIMESTAMPS}
         invalid_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
         cutoff = cutoff_for_day(d)
         conflicting_price_periods = set()
@@ -146,6 +147,8 @@ def audit_rows(rows):
                 parsed_stamps[field] = stamp
                 if stamp > cutoff:
                     late_timestamps[field] += 1
+                    if p in expected:
+                        late_periods[field].add(p)
             pub, start, end = (parsed_stamps.get(field) for field in JWCD_TIMESTAMPS)
             start_after_end = start is not None and end is not None and start > end
             pub_after_end = pub is not None and end is not None and pub > end
@@ -242,6 +245,10 @@ def audit_rows(rows):
             ],
             availability_after_cutoff_rows=late_timing,
             after_cutoff_rows_by_field=dict(late_timestamps),
+            after_cutoff_periods_utc_by_field={
+                field: [period.isoformat() for period in sorted(periods)]
+                for field, periods in late_periods.items()
+            },
             model_ready=not issues,issues=sorted(issues)))
         if not issues:
             ready_at[d] = max(actual_times)
