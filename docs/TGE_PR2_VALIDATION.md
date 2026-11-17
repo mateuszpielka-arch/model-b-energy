@@ -1990,3 +1990,7 @@ i poprawny odczyt 24 cen z oryginalnej odpowiedzi.
 Parser odrzuca wiersze tabeli RDN osadzone poza thead, tbody lub tfoot.
 Test na kopii HTML TGE dla 17.11.2026 dodaje przed thead wiersz H01
 z inną ceną i potwierdza odrzucenie pakietu. Oryginał daje 24 ceny.
+
+Parser odrzuca godzinowe wiersze RDN umieszczone w stopce tabeli.
+Test na kopii HTML TGE dla 17.11.2026 sprawdza, że stopka z wierszem
+podsumowania zachowuje 24 ceny, a wpis H01 w stopce blokuje pakiet.

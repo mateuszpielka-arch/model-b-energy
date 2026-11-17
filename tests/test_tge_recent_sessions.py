@@ -253,6 +253,26 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'RDN row outside a table section'):
             prepare_session(entry, changed.encode('utf-8'), reference_rows)
 
+    def test_november_17_rejects_hourly_prices_in_rdn_footer(self):
+        entry, = json.loads((NOV_17_FIXTURES / 'manifest.json').read_text())['entries']
+        raw, _, rows = load_session(entry, NOV_17_FIXTURES)
+        source = raw.decode('utf-8')
+        day = entry['delivery_date']
+        expected = parse_complete_standard_day(source, day, exact=True)
+        table = re.search(r"""<table\b[^>]*\sid\s*=\s*(['"])rdn\1[^>]*>""", source, re.IGNORECASE)
+        self.assertIsNotNone(table)
+        body_end = re.search(r'</tbody\s*>', source[table.end():], re.IGNORECASE)
+        self.assertIsNotNone(body_end)
+        position = table.end() + body_end.end()
+        summary = '<tfoot><tr><td>Razem</td><td>99,00</td></tr></tfoot>'
+        with_summary = source[:position] + summary + source[position:]
+        self.assertEqual(parse_complete_standard_day(with_summary, day, exact=True), expected)
+
+        reference_rows = [(row['hour'], row['price_pln_mwh']) for row in rows]
+        with_hour = with_summary.replace(summary, summary.replace('Razem', f'{day}_H01'), 1)
+        with self.assertRaisesRegex(ValueError, 'Hourly RDN row found in tfoot'):
+            prepare_session(entry, with_hour.encode('utf-8'), reference_rows)
+
     def test_november_17_later_official_capture_keeps_all_fixing_i_prices(self):
         (original, original_raw), = load_batches(NOV_17_FIXTURES / 'manifest.json')
         (later, later_raw), = load_batches(NOV_17_FIXTURES / 'manifest_1726.json')

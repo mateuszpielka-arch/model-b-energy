@@ -156,6 +156,10 @@ class _FixingTable(_Rows):
                 self.header_rows.append((self.row, tuple(self.header_spans)))
             elif self.section == "tbody":
                 self.rows.append(self.row)
+            elif self.section == "tfoot" and self.row and re.fullmatch(
+                r"\d{4}-\d{2}-\d{2}_H\d{2}[Aa]?", self.row[0]
+            ):
+                raise ValueError("Hourly RDN row found in tfoot")
             self.row = None
             return
         if tag in ("td", "th"):
