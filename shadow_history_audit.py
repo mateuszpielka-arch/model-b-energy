@@ -58,6 +58,7 @@ def audit_rows(rows):
         late_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
         late_periods = {field: set() for field in JWCD_TIMESTAMPS}
         invalid_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
+        invalid_timestamp_periods = {field: set() for field in JWCD_TIMESTAMPS}
         cutoff = cutoff_for_day(d)
         conflicting_price_periods = set()
         fix1_values_by_period = defaultdict(set)
@@ -143,6 +144,8 @@ def audit_rows(rows):
                         raise ValueError('Conflicting retrieval timestamps')
                 except (ValueError, TypeError):
                     invalid_timestamps[field] += 1
+                    if p in expected:
+                        invalid_timestamp_periods[field].add(p)
                     continue
                 parsed_stamps[field] = stamp
                 if stamp > cutoff:
@@ -235,6 +238,10 @@ def audit_rows(rows):
             missing_timestamp_rows_by_field=dict(missing_timestamps),
             availability_invalid_timestamp_rows=invalid_timing,
             invalid_jwcd_timestamp_rows_by_field=dict(invalid_timestamps),
+            invalid_jwcd_timestamp_periods_utc_by_field={
+                field: [period.isoformat() for period in sorted(periods)]
+                for field, periods in invalid_timestamp_periods.items()
+            },
             retrieval_start_after_completion_rows=invalid_retrieval_order,
             publication_after_completion_rows=publication_after_completion,
             retrieval_start_after_completion_periods_utc=[

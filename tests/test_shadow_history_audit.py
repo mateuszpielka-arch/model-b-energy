@@ -221,6 +221,12 @@ class HistoryAuditTests(unittest.TestCase):
             self.assertEqual(day['invalid_jwcd_timestamp_rows_by_field'], {
                 'publication_ts': 1, 'retrieved_at': 1, 'retrieval_completed_at': 1,
             })
+            first, second, *_ = expected_periods(date.fromisoformat(day['day']))
+            self.assertEqual(day['invalid_jwcd_timestamp_periods_utc_by_field'], {
+                'publication_ts': [second.isoformat()],
+                'retrieved_at': [second.isoformat()],
+                'retrieval_completed_at': [first.isoformat()],
+            })
         self.assertEqual(report['invalid_jwcd_timestamp_rows_by_field'], {
             'publication_ts': 2, 'retrieved_at': 2, 'retrieval_completed_at': 2,
         })
