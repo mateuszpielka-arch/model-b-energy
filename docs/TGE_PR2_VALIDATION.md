@@ -2019,3 +2019,9 @@ Audyt CSV zachowuje prawidłowy okres UTC w inwentaryzacji, gdy jego
 etykieta godzinowa jest błędna. Taka doba nie kwalifikuje się do
 backtestu. Test na cenach TGE dla 17.11.2026 i syntetycznych danych
 JWCD rozróżnia błędną etykietę od brakującego okresu UTC.
+
+Audyt CSV liczy publikacje i początki pobrania JWCD późniejsze niż
+koniec pobrania także wtedy, gdy trzeci znacznik jest pusty lub błędny.
+Test na cenach TGE z 17.11.2026 i syntetycznych znacznikach sprawdza
+obie pary oraz brak rozstrzygnięcia przy nieznanym końcu pobrania.
+Klasyfikacja dostępności całego wiersza pozostaje taka sama.

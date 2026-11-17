@@ -275,6 +275,30 @@ class HistoryAuditTests(unittest.TestCase):
                 'publication_ts': 2, 'retrieved_at': 2, 'retrieval_completed_at': 0,
             })
 
+    def test_reports_jwcd_chronology_pairs_when_third_timestamp_is_unusable(self):
+        delivery = '2026-11-17'
+        fixture = Path(__file__).parent / 'fixtures' / f'tge_delivery_{delivery}' / f'tge_delivery_{delivery}.csv'
+        rows = self.rows(delivery)
+        cutoff = '2026-11-16T08:50:00Z'
+        after = '2026-11-16T08:50:00.000001Z'
+        for row, price in zip(rows, read_csv(fixture), strict=True):
+            row.update(fix1=price['price_pln_mwh'], publication_ts=cutoff,
+                       retrieved_at_utc=cutoff, retrieval_completed_at=cutoff)
+        self.assertTrue(audit_rows(rows)['days'][0]['model_ready'])
+        rows[0].update(publication_ts='', retrieved_at_utc=after)
+        rows[1].update(publication_ts=after, retrieved_at_utc='invalid')
+        rows[2].update(publication_ts=after, retrieved_at_utc=after, retrieval_completed_at='')
+
+        report = audit_rows(rows)
+        day, = report['days']
+        for summary in (day, report):
+            self.assertEqual(summary['retrieval_start_after_completion_rows'], 1)
+            self.assertEqual(summary['publication_after_completion_rows'], 1)
+        self.assertEqual(day['availability_missing_timestamp_rows'], 2)
+        self.assertEqual(day['availability_invalid_timestamp_rows'], 1)
+        self.assertEqual(day['availability_proven_rows'], 21)
+        self.assertFalse(day['model_ready'])
+
     def test_reports_periods_with_missing_values_separately_from_missing_rows(self):
         fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-14/tge_delivery_2026-11-14.csv'
         rows = read_csv(fixture)

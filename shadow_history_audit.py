@@ -144,6 +144,11 @@ def audit_rows(rows):
                 parsed_stamps[field] = stamp
                 if stamp > cutoff:
                     late_timestamps[field] += 1
+            pub, start, end = (parsed_stamps.get(field) for field in JWCD_TIMESTAMPS)
+            start_after_end = start is not None and end is not None and start > end
+            pub_after_end = pub is not None and end is not None and pub > end
+            invalid_retrieval_order += start_after_end
+            publication_after_completion += pub_after_end
             if missing_fields:
                 missing_timestamps.update(missing_fields)
                 missing_timing += 1
@@ -151,11 +156,8 @@ def audit_rows(rows):
             if len(parsed_stamps) != len(JWCD_TIMESTAMPS):
                 invalid_timing += 1
                 continue
-            pub, start, end = (parsed_stamps[field] for field in JWCD_TIMESTAMPS)
-            if start > end or pub > end:
+            if start_after_end or pub_after_end:
                 invalid_timing += 1
-                invalid_retrieval_order += start > end
-                publication_after_completion += pub > end
             elif end > cutoff:
                 late_timing += 1
             else:
