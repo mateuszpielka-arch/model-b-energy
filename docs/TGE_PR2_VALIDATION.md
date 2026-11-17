@@ -2079,3 +2079,8 @@ rachunku na ułamkach dla syntetycznej prognozy 650 PLN/MWh. Test PostgreSQL
 odrzuca ocenę mikrosekundę przed pobraniem Fix1 i przyjmuje ją dokładnie
 w chwili pobrania. Ścieżki z referencyjnym CSV i bez niego odtwarzają
 ten sam zapis MAE, MAPE, WAPE i bias bez powielenia wyniku.
+
+Walk-forward sprawdza wersje wszystkich modeli przed scoringiem doby.
+Brak wersji w prognozie dni podobnych level wyklucza tę dobę z porównania
+i pozwala kontynuować ocenę następnej. Test na syntetycznej historii
+potwierdza sześć wywołań scoringu wyłącznie dla poprawnej doby.

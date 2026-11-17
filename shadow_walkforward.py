@@ -16,7 +16,7 @@ from shadow_training import (
 from shadow_similar_consensus import MEDIAN_MEMBERS, median_consensus, predict_similar
 from shadow_scoring import (
     WARSAW, _SHADOW_DECIMAL_CONTEXT, _prices, _utc, expected_periods, score_day,
-    validate_forecast_timing,
+    validate_forecast_identity, validate_forecast_timing,
 )
 
 OLS_WINDOWS = (30, 60, 90)
@@ -183,6 +183,10 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         raise ValueError('Prediction does not use the selected target JWCD snapshot')
                 expected = set(expected_periods(day))
                 for scoring_model in MODELS:
+                    validate_forecast_identity(
+                        f'simulated:{day}:{scoring_model}',
+                        predictions[scoring_model].get('model_version'), 'SHADOW',
+                    )
                     if scoring_model not in forecast_prices:
                         prices = _prices(predictions[scoring_model]['prices'])
                         forecast_prices[scoring_model] = prices
