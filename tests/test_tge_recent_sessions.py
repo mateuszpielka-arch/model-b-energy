@@ -323,6 +323,28 @@ class RecentOfficialSessionsTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, f'Self-closing RDN table element: {tag}'):
                     prepare_session(entry, changed.encode('utf-8'), reference_rows)
 
+    def test_november_17_rejects_script_or_style_as_a_fixing_i_price(self):
+        entry, = json.loads((NOV_17_FIXTURES / 'manifest.json').read_text())['entries']
+        raw, _, rows = load_session(entry, NOV_17_FIXTURES)
+        source = raw.decode('utf-8')
+        day = entry['delivery_date']
+        expected = parse_complete_standard_day(source, day, exact=True)
+        self.assertEqual(expected[1], Decimal('738.93'))
+        row_start = source.index(f'{day}_H01')
+        row_end = source.index('</tr>', row_start)
+        price = '738,93'
+        price_start = source.index(price, row_start, row_end)
+        before, after = source[:price_start], source[price_start + len(price):]
+        with_span = f'{before}<span>{price}</span>{after}'
+        self.assertEqual(parse_complete_standard_day(with_span, day, exact=True), expected)
+
+        reference_rows = [(row['hour'], row['price_pln_mwh']) for row in rows]
+        for tag in ('script', 'style'):
+            with self.subTest(tag=tag):
+                changed = f'{before}<{tag}>{price}</{tag}>{after}'
+                with self.assertRaisesRegex(ValueError, f'Unexpected {tag} in RDN cell'):
+                    prepare_session(entry, changed.encode('utf-8'), reference_rows)
+
     def test_november_17_later_official_capture_keeps_all_fixing_i_prices(self):
         (original, original_raw), = load_batches(NOV_17_FIXTURES / 'manifest.json')
         (later, later_raw), = load_batches(NOV_17_FIXTURES / 'manifest_1726.json')

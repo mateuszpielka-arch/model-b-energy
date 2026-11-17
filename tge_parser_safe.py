@@ -101,6 +101,8 @@ class _FixingTable(_Rows):
             return
         if not self.active:
             return
+        if self.cell is not None and tag in ("script", "style"):
+            raise ValueError(f"Unexpected {tag} in RDN cell")
         if tag in self.SECTIONS:
             if self.section is not None or self.row is not None:
                 raise ValueError("Unclosed RDN table section")
