@@ -2009,3 +2009,8 @@ Parser odrzuca znaczniki script i style wewnątrz komórek tabeli RDN.
 Test na oficjalnym HTML TGE dla 17.11.2026 sprawdza, że tekst ukryty
 w tych znacznikach nie może zostać przyjęty jako cena H01. Cena w
 zwykłym znaczniku span nadal daje komplet tych samych 24 cen.
+
+Niezależny ekstraktor XPath odrzuca script i style w komórkach wiersza
+godzinowego Fixing I. Test na kopiach HTML TGE dla 17.11.2026 potwierdza,
+że narzędzie pobierające nie zapisuje HTML ani CSV dla obu wariantów.
+Referencja z ceną w zwykłym span nadal zgadza się z oryginałem.

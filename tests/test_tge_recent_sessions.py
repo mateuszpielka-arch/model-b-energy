@@ -337,6 +337,7 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         before, after = source[:price_start], source[price_start + len(price):]
         with_span = f'{before}<span>{price}</span>{after}'
         self.assertEqual(parse_complete_standard_day(with_span, day, exact=True), expected)
+        self.assertEqual(extract_reference(with_span.encode('utf-8'), day), extract_reference(raw, day))
 
         reference_rows = [(row['hour'], row['price_pln_mwh']) for row in rows]
         for tag in ('script', 'style'):
@@ -344,6 +345,14 @@ class RecentOfficialSessionsTests(unittest.TestCase):
                 changed = f'{before}<{tag}>{price}</{tag}>{after}'
                 with self.assertRaisesRegex(ValueError, f'Unexpected {tag} in RDN cell'):
                     prepare_session(entry, changed.encode('utf-8'), reference_rows)
+                with TemporaryDirectory() as tmp, patch(
+                    'tools.capture_tge_validation._fetch_session',
+                    return_value=(200, changed.encode('utf-8')),
+                ):
+                    output = Path(tmp)
+                    with self.assertRaisesRegex(ValueError, 'Unexpected script or style in Fix1 reference row'):
+                        capture(date.fromisoformat(day), output)
+                    self.assertEqual(list(output.iterdir()), [])
 
     def test_november_17_later_official_capture_keeps_all_fixing_i_prices(self):
         (original, original_raw), = load_batches(NOV_17_FIXTURES / 'manifest.json')

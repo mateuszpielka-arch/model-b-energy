@@ -56,6 +56,8 @@ def extract_reference(raw, day, *, autumn_25h=False):
         elements = row.xpath('./td')
         cells=[' '.join(c.text_content().split()) for c in elements]
         if not cells or not cells[0].startswith(day+'_H'): continue
+        if row.xpath('./td//script | ./td//style'):
+            raise ValueError(f'Unexpected script or style in Fix1 reference row {cells[0]}')
         if len(elements) != len(names) or any(
             cell.get('colspan', '1') != '1' or cell.get('rowspan', '1') != '1'
             for cell in elements
