@@ -1981,3 +1981,8 @@ Parser odrzuca tabelę RDN z dwoma atrybutami id, niezależnie
 od ich kolejności. Test na kopii HTML TGE z cenami dla 17.11.2026
 sprawdza, że taki układ blokuje przygotowanie pakietu do archiwizacji.
 Oryginalna odpowiedź nadal daje komplet 24 cen Fixing I.
+
+Parser blokuje archiwizację, gdy komórka tabeli RDN ma powtórzony
+colspan lub rowspan albo colspan bez wartości. Test na kopii HTML
+TGE dla 17.11.2026 sprawdza odrzucenie wszystkich trzech wariantów
+i poprawny odczyt 24 cen z oryginalnej odpowiedzi.

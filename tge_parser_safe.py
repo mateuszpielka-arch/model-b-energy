@@ -101,7 +101,6 @@ class _FixingTable(_Rows):
             return
         if not self.active:
             return
-        attrs = dict(attrs)
         if tag in self.SECTIONS:
             if self.section is not None or self.row is not None:
                 raise ValueError("Unclosed RDN table section")
@@ -115,13 +114,20 @@ class _FixingTable(_Rows):
                 raise ValueError("Unclosed RDN cell")
             if self.section == "tbody" and tag != "td":
                 raise ValueError("Expected td in RDN tbody")
+            span_names = [name for name, _ in attrs if name in ("colspan", "rowspan")]
+            if len(span_names) != len(set(span_names)):
+                raise ValueError("Ambiguous RDN cell span attributes")
+            attributes = dict(attrs)
+            try:
+                self.span = int(attributes.get("colspan", "1"))
+            except (TypeError, ValueError) as exc:
+                raise ValueError("Invalid RDN cell colspan") from exc
             self.cell_tag = tag
-            self.span = int(attrs.get("colspan", "1"))
-            if not 1 <= self.span <= 30 or attrs.get("rowspan", "1") != "1":
+            if not 1 <= self.span <= 30 or attributes.get("rowspan", "1") != "1":
                 raise ValueError("Unsupported RDN header span")
             if tag == "td" and self.span != 1:
                 raise ValueError("Unsupported RDN data cell colspan")
-        super().handle_starttag(tag, list(attrs.items()))
+        super().handle_starttag(tag, attrs)
 
     def handle_data(self, data):
         if self.active:

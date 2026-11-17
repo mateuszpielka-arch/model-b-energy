@@ -216,6 +216,28 @@ class RecentOfficialSessionsTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'Ambiguous id attributes on RDN table'):
                     prepare_session(entry, changed.encode('utf-8'), reference_rows)
 
+    def test_november_17_rejects_ambiguous_or_valueless_cell_spans(self):
+        manifest = NOV_17_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        raw, _, rows = load_session(entry, NOV_17_FIXTURES)
+        source = raw.decode('utf-8')
+        self.assertEqual(len(parse_complete_standard_day(source, entry['delivery_date'])), 24)
+        table = re.search(r"""<table\b[^>]*\sid\s*=\s*(['"])rdn\1[^>]*>""", source, re.IGNORECASE)
+        self.assertIsNotNone(table)
+        header = re.search(r'<th\b[^>]*>', source[table.end():], re.IGNORECASE)
+        self.assertIsNotNone(header)
+        start, end = (table.end() + offset for offset in header.span())
+        reference_rows = [(row['hour'], row['price_pln_mwh']) for row in rows]
+        for attrs, error in (
+            ('colspan="2" colspan="1"', 'Ambiguous RDN cell span attributes'),
+            ('rowspan="2" rowspan="1"', 'Ambiguous RDN cell span attributes'),
+            ('colspan', 'Invalid RDN cell colspan'),
+        ):
+            with self.subTest(attrs=attrs):
+                changed = source[:start] + f'<th {attrs}>' + source[end:]
+                with self.assertRaisesRegex(ValueError, error):
+                    prepare_session(entry, changed.encode('utf-8'), reference_rows)
+
     def test_november_17_later_official_capture_keeps_all_fixing_i_prices(self):
         (original, original_raw), = load_batches(NOV_17_FIXTURES / 'manifest.json')
         (later, later_raw), = load_batches(NOV_17_FIXTURES / 'manifest_1726.json')
