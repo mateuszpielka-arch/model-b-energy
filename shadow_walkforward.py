@@ -181,6 +181,16 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                 for scoring_model in MODELS:
                     if predictions[scoring_model].get('target_snapshot_id') != selected.snapshot_id:
                         raise ValueError('Prediction does not use the selected target JWCD snapshot')
+                expected = set(expected_periods(day))
+                for scoring_model in MODELS:
+                    if scoring_model not in forecast_prices:
+                        prices = _prices(predictions[scoring_model]['prices'])
+                        forecast_prices[scoring_model] = prices
+                        predictions[scoring_model] = {
+                            **predictions[scoring_model], 'prices': tuple(prices.items()),
+                        }
+                    if set(forecast_prices[scoring_model]) != expected:
+                        raise ValueError('Incomplete or mismatched prediction delivery periods')
                 publication = selected.latest_publication_ts_utc
                 retrieved = selected.retrieval_completed_at_utc
                 input_times = {}
@@ -245,10 +255,6 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                 scores = {}
                 for name, (latest_publication, latest_retrieval, latest_training_actual) in input_times.items():
                     scoring_model = name
-                    if name not in forecast_prices:
-                        prices = _prices(predictions[name]['prices'])
-                        forecast_prices[name] = prices
-                        predictions[name] = {**predictions[name], 'prices': tuple(prices.items())}
                     forecast = forecast_prices[name]
                     scores[name]=score_day(day=day,forecast=forecast.items(),actual=actual.items(),
                         forecast_id=f'simulated:{day}:{name}',model_version=predictions[name]['model_version'],

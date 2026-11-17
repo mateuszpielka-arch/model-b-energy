@@ -2056,3 +2056,8 @@ Walk-forward sprawdza dostępność wszystkich cen treningowych przed
 uruchomieniem scoringu któregokolwiek modelu. Rozszerzony test OLS 60D
 potwierdza, że dowód dostępności po D−1 09:50 blokuje scoring całej doby,
 również wcześniejszego w kolejności OLS 30D. Ranking pozostaje pusty.
+
+Walk-forward porównuje okresy UTC prognoz wszystkich sześciu modeli
+z kalendarzem dostawy przed pierwszym scoringiem. Test usuwa jeden okres
+z prognozy dni podobnych level i potwierdza brak scoringu całej doby oraz
+pusty wspólny ranking. Dane i prognoza w tym teście są syntetyczne.

@@ -824,6 +824,29 @@ class WalkforwardTests(unittest.TestCase):
             'reason': 'Training Fix1 prices unavailable at D-1 09:50',
         }])
 
+    def test_incomplete_similar_level_blocks_all_common_day_scoring(self):
+        args = self.args()
+        target = args['target_days'][-1]
+        args['target_days'] = [target]
+
+        def incomplete_level(**kwargs):
+            prediction = predict_similar(**kwargs)
+            if kwargs['mode'] == 'level':
+                prediction['prices'] = tuple(prediction['prices'])[:-1]
+            return prediction
+
+        with patch('shadow_walkforward.predict_similar', side_effect=incomplete_level), patch(
+            'shadow_walkforward.score_day', wraps=score_day,
+        ) as scoring:
+            result = run_walkforward(**args)
+        scoring.assert_not_called()
+        self.assertEqual(result['common_periods'], 0)
+        self.assertEqual(result['ranking'], [])
+        self.assertEqual(result['skipped'], [{
+            'day': target.isoformat(), 'stage': 'scoring', 'model': 'similar_level',
+            'reason': 'Incomplete or mismatched prediction delivery periods',
+        }])
+
     def test_ranked_day_identifies_actual_version_and_availability(self):
         args = self.args()
         target = args['history'][-1]
