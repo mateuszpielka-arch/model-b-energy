@@ -223,6 +223,8 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         available = timestamps['actual_available_at_utc']
                         if available <= training_cutoff:
                             raise ValueError(f'Training Fix1 available at or before its own D-1 09:50: {training_day}')
+                        if available > selected.cutoff_utc:
+                            raise ValueError('Training Fix1 prices unavailable at D-1 09:50')
                         training_actual_times.append(available)
                         published = timestamps['latest_publication_ts_utc']
                         started = timestamps['retrieved_at_utc']
@@ -243,8 +245,6 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                 scores = {}
                 for name, (latest_publication, latest_retrieval, latest_training_actual) in input_times.items():
                     scoring_model = name
-                    if latest_training_actual > selected.cutoff_utc:
-                        raise ValueError('Training Fix1 prices unavailable at D-1 09:50')
                     if name not in forecast_prices:
                         prices = _prices(predictions[name]['prices'])
                         forecast_prices[name] = prices

@@ -2051,3 +2051,8 @@ różne prognozy o tej samej tożsamości. Sprawdza jeden zapis wyniku,
 odrzucenie konkurencyjnego wejścia, REPLAY zwycięskiej prognozy
 i zachowanie skrótu oraz metryk po ponowieniu przegranej prognozy.
 Prognozy mają syntetyczne błędy +5 i +6 PLN/MWh względem cen fixture.
+
+Walk-forward sprawdza dostępność wszystkich cen treningowych przed
+uruchomieniem scoringu któregokolwiek modelu. Rozszerzony test OLS 60D
+potwierdza, że dowód dostępności po D−1 09:50 blokuje scoring całej doby,
+również wcześniejszego w kolejności OLS 30D. Ranking pozostaje pusty.

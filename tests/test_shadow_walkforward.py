@@ -812,8 +812,11 @@ class WalkforwardTests(unittest.TestCase):
                 ).isoformat()
             return prediction
 
-        with patch('shadow_walkforward.predict_ols', side_effect=late_training):
+        with patch('shadow_walkforward.predict_ols', side_effect=late_training), patch(
+            'shadow_walkforward.score_day', wraps=score_day,
+        ) as scoring:
             result = run_walkforward(**args)
+        scoring.assert_not_called()
         self.assertEqual(result['ranking'], [])
         self.assertEqual(result['common_periods'], 0)
         self.assertEqual(result['skipped'], [{
