@@ -133,6 +133,11 @@ class _FixingTable(_Rows):
                 raise ValueError("Unsupported RDN data cell colspan")
         super().handle_starttag(tag, attrs)
 
+    def handle_startendtag(self, tag, attrs):
+        if self.active and tag in (*self.SECTIONS, "tr", "td", "th"):
+            raise ValueError(f"Self-closing RDN table element: {tag}")
+        super().handle_startendtag(tag, attrs)
+
     def handle_data(self, data):
         if self.active:
             super().handle_data(data)

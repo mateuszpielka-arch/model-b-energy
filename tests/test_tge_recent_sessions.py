@@ -296,6 +296,33 @@ class RecentOfficialSessionsTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'RDN cell outside a row'):
                     prepare_session(entry, changed.encode('utf-8'), reference_rows)
 
+    def test_november_17_rejects_self_closing_rdn_structure(self):
+        entry, = json.loads((NOV_17_FIXTURES / 'manifest.json').read_text())['entries']
+        raw, _, rows = load_session(entry, NOV_17_FIXTURES)
+        source = raw.decode('utf-8')
+        day = entry['delivery_date']
+        expected = parse_complete_standard_day(source, day, exact=True)
+        table = re.search(r"""<table\b[^>]*\sid\s*=\s*(['"])rdn\1[^>]*>""", source, re.IGNORECASE)
+        self.assertIsNotNone(table)
+        position = source.index('</table>', table.end())
+        summary = '<tfoot><tr><td>Razem<br /></td></tr></tfoot>'
+        self.assertEqual(
+            parse_complete_standard_day(source[:position] + summary + source[position:], day, exact=True),
+            expected,
+        )
+
+        reference_rows = [(row['hour'], row['price_pln_mwh']) for row in rows]
+        for tag, markup in (
+            ('tfoot', '<tfoot />'),
+            ('tr', '<tfoot><tr /></tfoot>'),
+            ('td', '<tfoot><tr><td /></tr></tfoot>'),
+            ('th', '<tfoot><tr><th /></tr></tfoot>'),
+        ):
+            with self.subTest(tag=tag):
+                changed = source[:position] + markup + source[position:]
+                with self.assertRaisesRegex(ValueError, f'Self-closing RDN table element: {tag}'):
+                    prepare_session(entry, changed.encode('utf-8'), reference_rows)
+
     def test_november_17_later_official_capture_keeps_all_fixing_i_prices(self):
         (original, original_raw), = load_batches(NOV_17_FIXTURES / 'manifest.json')
         (later, later_raw), = load_batches(NOV_17_FIXTURES / 'manifest_1726.json')

@@ -1999,3 +1999,8 @@ Parser odrzuca komórki RDN umieszczone bezpośrednio w thead, tbody
 lub tfoot. Test na kopii oficjalnego HTML TGE dla 17.11.2026
 potwierdza blokadę przygotowania pakietu w każdym z tych przypadków.
 Oryginalna odpowiedź daje komplet 24 cen Fixing I.
+
+Parser odrzuca samozamykające się znaczniki sekcji, wierszy i komórek
+w tabeli RDN. Test na kopii oficjalnego HTML TGE dla 17.11.2026
+sprawdza cztery warianty w stopce i potwierdza zgodność kompletu 24 cen
+po dodaniu zwykłego podsumowania z łamaniem linii.
