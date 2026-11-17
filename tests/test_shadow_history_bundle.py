@@ -152,6 +152,24 @@ class HistoryBundleTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, error):
                     audit_bundle(path)
 
+    def test_rejects_ambiguous_manifest_metadata_before_reading_workbook(self):
+        for field, value, error in (
+            ("days", True, "days must be a positive integer"),
+            ("days", 0, "days must be a positive integer"),
+            ("hourly_rows", 24.0, "hourly_rows must be a positive integer"),
+            ("hourly_rows", "24", "hourly_rows must be a positive integer"),
+            ("sha256", None, "Expected a SHA-256 checksum object"),
+        ):
+            with self.subTest(field=field, value=value), TemporaryDirectory() as tmp:
+                path = Path(tmp) / "history.zip"
+                self.make_bundle(path, days=("2026-11-17",), manifest_changes={field: value})
+                before = path.read_bytes()
+                with patch("shadow_history_bundle.file_digest") as workbook_digest:
+                    with self.assertRaisesRegex(ValueError, error):
+                        audit_bundle(path)
+                    workbook_digest.assert_not_called()
+                self.assertEqual(path.read_bytes(), before)
+
     def test_rejects_duplicate_coverage_and_checksum_fields_in_history_manifest(self):
         for key, value in (("days", 99), (CSV_NAME, "0" * 64), ("test.xlsb", "0" * 64)):
             with self.subTest(key=key), TemporaryDirectory() as tmp:

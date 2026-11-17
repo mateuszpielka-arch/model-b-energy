@@ -1971,3 +1971,8 @@ Audyt CSV i importer referencji Fix1 wskazują linię, w której zaczyna
 się wadliwy rekord, również gdy pole w cudzysłowie zajmuje kilka linii.
 Test na kopii referencji TGE z 17.11.2026 potwierdza odrzucenie
 uszkodzonego CSV mimo zgodnej sumy SHA-256 w manifeście.
+
+Audyt ZIP sprawdza typ liczby wierszy, liczby dni i mapy sum
+SHA-256 przed odczytem arkusza. Test odrzuca m.in. wartość
+logiczną zamiast liczby dni i liczbę zmiennoprzecinkową zamiast
+liczby wierszy. Bajty badanego ZIP pozostają identyczne.

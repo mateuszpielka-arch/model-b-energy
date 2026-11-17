@@ -117,7 +117,15 @@ def audit_bundle(path, *, reference_paths=(), verify_workbook=False):
             raise ValueError("Expected exactly one workbook, CSV and manifest")
         workbook, = workbooks
         manifest = json.loads(archive.read("manifest.json"), object_pairs_hook=_unique_manifest_object)
-        checksums = manifest["sha256"]
+        if not isinstance(manifest, dict):
+            raise ValueError("Expected an object in history manifest")
+        for field in ("hourly_rows", "days"):
+            count = manifest.get(field)
+            if type(count) is not int or count <= 0:
+                raise ValueError(f"History manifest {field} must be a positive integer")
+        checksums = manifest.get("sha256")
+        if not isinstance(checksums, dict):
+            raise ValueError("Expected a SHA-256 checksum object in history manifest")
         with archive.open(workbook) as stream:
             workbook_digest = file_digest(stream, "sha256").hexdigest()
         csv_bytes = archive.read(CSV_NAME)
