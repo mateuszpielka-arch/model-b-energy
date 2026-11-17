@@ -79,7 +79,7 @@ class LayoutTests(unittest.TestCase):
         start = self.html.index('id="rdn"')
         for section, error in (
             ('thead', 'Expected two RDN header rows'),
-            ('tbody', 'Incomplete hourly Fixing I snapshot'),
+            ('tbody', 'Hourly RDN row found in tfoot'),
         ):
             with self.subTest(section=section):
                 rdn = self.html[start:]
