@@ -996,6 +996,51 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
             self.assertEqual(score_archived_day(conn, **inputs, evaluated_at=captured), ('REPLAY', score))
             self.assertEqual(conn.execute(count).fetchone(), (1,))
 
+    def test_score_november_18_matches_fraction_metrics_at_capture_boundary(self):
+        manifest = NOV_18_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        _, reference, _ = load_session(entry, NOV_18_FIXTURES)
+        day = date.fromisoformat(entry['delivery_date'])
+        cutoff = cutoff_for_day(day)
+        captured = datetime.fromisoformat(entry['retrieved_at_utc'])
+        inputs = dict(
+            day=day, forecast=[(period, Decimal('650')) for period in expected_periods(day)],
+            forecast_id='november-18-constant-650-test', model_version='synthetic-test',
+            forecast_status='SHADOW', issued_at=cutoff, publication_ts=cutoff,
+            retrieved_at=cutoff,
+        )
+        # Independent exact-fraction calculation from the official reference CSV.
+        expected = {
+            'mae': Decimal('109.965000000000'),
+            'mape_pct': Decimal('14.515065147030'),
+            'wape_pct': Decimal('15.519084553008'),
+            'bias': Decimal('-58.579166666667'),
+        }
+        query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            for supplied_reference in (reference, None):
+                with self.subTest(reference_csv=supplied_reference is not None):
+                    with self.assertRaisesRegex(ValueError, 'not yet available'):
+                        score_archived_day(
+                            conn, **inputs, reference_csv=supplied_reference,
+                            evaluated_at=captured - timedelta(microseconds=1),
+                        )
+                    self.assertEqual(conn.execute(query).fetchall(), [])
+            status, score = score_archived_day(
+                conn, **inputs, reference_csv=reference, evaluated_at=captured,
+            )
+            self.assertEqual((status, score.periods, score.mape_periods), ('INSERT', 24, 24))
+            for metric, value in expected.items():
+                self.assertEqual(getattr(score, metric).quantize(Decimal('1e-12')), value)
+            saved = conn.execute(query).fetchall()
+            for supplied_reference in (reference, None):
+                self.assertEqual(score_archived_day(
+                    conn, **inputs, reference_csv=supplied_reference, evaluated_at=captured,
+                ), ('REPLAY', score))
+            self.assertEqual(conn.execute(query).fetchall(), saved)
+
     def test_score_november_17_rejects_late_forecast_inputs_and_matches_reference_metrics(self):
         manifest = NOV_17_FIXTURES / 'manifest.json'
         entry, = json.loads(manifest.read_text())['entries']

@@ -2073,3 +2073,9 @@ o 22:11:47 Europe/Warsaw. Zapisano HTML gzip, CSV z okresami UTC i
 manifest SHA-256. Test porównuje 24 ceny parsera z ekstrakcją XPath
 tej samej odpowiedzi oraz sprawdza INSERT i REPLAY w izolowanym PostgreSQL.
 H01 wynosi 619,88, a H24 589,64 PLN/MWh.
+
+Scoring oficjalnych cen dla 18.11.2026 sprawdzono względem niezależnego
+rachunku na ułamkach dla syntetycznej prognozy 650 PLN/MWh. Test PostgreSQL
+odrzuca ocenę mikrosekundę przed pobraniem Fix1 i przyjmuje ją dokładnie
+w chwili pobrania. Ścieżki z referencyjnym CSV i bez niego odtwarzają
+ten sam zapis MAE, MAPE, WAPE i bias bez powielenia wyniku.
