@@ -190,7 +190,7 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                             **predictions[scoring_model], 'prices': tuple(prices.items()),
                         }
                     if set(forecast_prices[scoring_model]) != expected:
-                        raise ValueError('Incomplete or mismatched prediction delivery periods')
+                        raise ValueError('Incomplete or mismatched delivery periods')
                 publication = selected.latest_publication_ts_utc
                 retrieved = selected.retrieval_completed_at_utc
                 input_times = {}

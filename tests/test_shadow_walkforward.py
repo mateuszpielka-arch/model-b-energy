@@ -844,7 +844,7 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(result['ranking'], [])
         self.assertEqual(result['skipped'], [{
             'day': target.isoformat(), 'stage': 'scoring', 'model': 'similar_level',
-            'reason': 'Incomplete or mismatched prediction delivery periods',
+            'reason': 'Incomplete or mismatched delivery periods',
         }])
 
     def test_ranked_day_identifies_actual_version_and_availability(self):
