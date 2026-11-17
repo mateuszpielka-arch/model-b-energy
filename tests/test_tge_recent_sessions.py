@@ -273,6 +273,29 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Hourly RDN row found in tfoot'):
             prepare_session(entry, with_hour.encode('utf-8'), reference_rows)
 
+    def test_november_17_rejects_cells_without_a_row_in_rdn(self):
+        entry, = json.loads((NOV_17_FIXTURES / 'manifest.json').read_text())['entries']
+        raw, _, rows = load_session(entry, NOV_17_FIXTURES)
+        source = raw.decode('utf-8')
+        day = entry['delivery_date']
+        self.assertEqual(len(parse_complete_standard_day(source, day)), 24)
+        table = re.search(r"""<table\b[^>]*\sid\s*=\s*(['"])rdn\1[^>]*>""", source, re.IGNORECASE)
+        self.assertIsNotNone(table)
+        reference_rows = [(row['hour'], row['price_pln_mwh']) for row in rows]
+        for section, cell in (('thead', 'th'), ('tbody', 'td'), ('tfoot', 'td')):
+            with self.subTest(section=section):
+                if section == 'tfoot':
+                    position = source.index('</table>', table.end())
+                    orphan = f'<tfoot><{cell}>{day}_H01</{cell}></tfoot>'
+                else:
+                    opening = re.search(rf'<{section}\b[^>]*>', source[table.end():], re.IGNORECASE)
+                    self.assertIsNotNone(opening)
+                    position = table.end() + opening.end()
+                    orphan = f'<{cell}>{day}_H01</{cell}>'
+                changed = source[:position] + orphan + source[position:]
+                with self.assertRaisesRegex(ValueError, 'RDN cell outside a row'):
+                    prepare_session(entry, changed.encode('utf-8'), reference_rows)
+
     def test_november_17_later_official_capture_keeps_all_fixing_i_prices(self):
         (original, original_raw), = load_batches(NOV_17_FIXTURES / 'manifest.json')
         (later, later_raw), = load_batches(NOV_17_FIXTURES / 'manifest_1726.json')

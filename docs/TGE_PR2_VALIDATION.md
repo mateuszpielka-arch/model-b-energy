@@ -1994,3 +1994,8 @@ z inną ceną i potwierdza odrzucenie pakietu. Oryginał daje 24 ceny.
 Parser odrzuca godzinowe wiersze RDN umieszczone w stopce tabeli.
 Test na kopii HTML TGE dla 17.11.2026 sprawdza, że stopka z wierszem
 podsumowania zachowuje 24 ceny, a wpis H01 w stopce blokuje pakiet.
+
+Parser odrzuca komórki RDN umieszczone bezpośrednio w thead, tbody
+lub tfoot. Test na kopii oficjalnego HTML TGE dla 17.11.2026
+potwierdza blokadę przygotowania pakietu w każdym z tych przypadków.
+Oryginalna odpowiedź daje komplet 24 cen Fixing I.

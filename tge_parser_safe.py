@@ -112,6 +112,8 @@ class _FixingTable(_Rows):
                 raise ValueError("Unclosed RDN row")
             self.header_spans = []
         if tag in ("td", "th"):
+            if self.row is None:
+                raise ValueError("RDN cell outside a row")
             if self.cell is not None:
                 raise ValueError("Unclosed RDN cell")
             if self.section == "tbody" and tag != "td":
