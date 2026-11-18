@@ -2118,3 +2118,9 @@ Raport walk-forward wskazuje brakujące i nadmiarowe okresy UTC prognozy
 wykluczonej ze wspólnego scoringu. Testy obejmują brak ostatniego okresu
 w dobie 24h oraz przesunięty pierwszy okres doby 23h. Ranking uwzględnia
 wyłącznie kompletne doby. Historia w testach jest syntetyczna.
+
+Test wspólnego rankingu obejmuje błędny okres UTC w obu dobach zmiany
+czasu, 23h i 25h. Jesienią zastępuje drugie lokalne 02:00 kluczem spoza
+doby i sprawdza dokładne wskazanie brakującego oraz nadmiarowego okresu.
+W obu przypadkach wszystkie modele są oceniane tylko na poprawnej dobie.
+Historia i prognozy w teście są syntetyczne.

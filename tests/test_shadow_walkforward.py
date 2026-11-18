@@ -471,45 +471,52 @@ class WalkforwardTests(unittest.TestCase):
         for row in weekday:
             self.assertEqual(row['mae'], monday_result['scores'][row['model']].mae)
 
-    def test_wrong_utc_period_excludes_spring_dst_day_from_every_model(self):
-        history = fixtures.OLSTests().data(92, target=date(2026, 3, 30))['history']
-        target_days = [packet['day'] for packet in history[-2:]]
-        spring = date(2026, 3, 29)
+    def test_wrong_utc_period_excludes_both_dst_days_from_every_model(self):
+        for delivery, hours in ((date(2026, 3, 29), 23), (date(2026, 10, 25), 25)):
+            with self.subTest(delivery=delivery):
+                history = fixtures.OLSTests().data(92, target=delivery + timedelta(days=1))['history']
+                target_days = [packet['day'] for packet in history[-2:]]
 
-        def run():
-            return run_walkforward(
-                history=history, target_days=target_days,
-                evaluated_at=datetime(2026, 3, 31, tzinfo=timezone.utc),
-            )
+                def run():
+                    return run_walkforward(
+                        history=history, target_days=target_days,
+                        evaluated_at=datetime.combine(delivery + timedelta(days=2), datetime.min.time(), timezone.utc),
+                    )
 
-        baseline = run()
-        self.assertEqual(baseline['common_periods'], 47)
-        self.assertEqual(baseline['accepted'][-1]['day'], spring.isoformat())
-        self.assertEqual(len(baseline['accepted'][-1]['period_starts_utc']), 23)
+                baseline = run()
+                self.assertEqual(baseline['common_periods'], 24 + hours)
+                self.assertEqual(baseline['accepted'][-1]['day'], delivery.isoformat())
+                self.assertEqual(len(baseline['accepted'][-1]['period_starts_utc']), hours)
+                periods = expected_periods(delivery)
+                # On the autumn day, replace the second local 02:00 by an out-of-day key.
+                changed_index = 3 if hours == 25 else 0
+                missing = periods[changed_index]
+                unexpected = periods[0] - timedelta(hours=1)
 
-        def wrong_period(**kwargs):
-            prediction = predict_similar(**kwargs)
-            if kwargs['mode'] == 'level' and kwargs['target_day'] == spring:
-                first, *remaining = prediction['prices']
-                period, price = first
-                prediction['prices'] = [(period - timedelta(hours=1), price), *remaining]
-            return prediction
+                def wrong_period(**kwargs):
+                    prediction = predict_similar(**kwargs)
+                    if kwargs['mode'] == 'level' and kwargs['target_day'] == delivery:
+                        rows = list(prediction['prices'])
+                        period, price = rows[changed_index]
+                        self.assertEqual(period, missing)
+                        rows[changed_index] = (unexpected, price)
+                        prediction['prices'] = rows
+                    return prediction
 
-        with patch('shadow_walkforward.predict_similar', side_effect=wrong_period):
-            result = run()
-        self.assertEqual(result['common_periods'], 24)
-        self.assertEqual(result['common_days_by_hours'], {'23': 0, '24': 1, '25': 0})
-        self.assertEqual(result['ranking_by_hours'], {'23': [], '24': result['ranking'], '25': []})
-        self.assertEqual(result['skipped_days_by_stage'], {'scoring': [spring.isoformat()]})
-        self.assertEqual(result['skipped'][0]['model'], 'similar_level')
-        self.assertEqual(result['skipped'][0]['reason'], 'Incomplete or mismatched delivery periods')
-        first_period = expected_periods(spring)[0]
-        self.assertEqual(result['skipped'][0]['prediction_period_coverage'], {
-            'missing_periods_utc': [first_period.isoformat()],
-            'unexpected_periods_utc': [(first_period - timedelta(hours=1)).isoformat()],
-        })
-        self.assertEqual(len(result['ranking']), len(MODELS))
-        self.assertTrue(all(row['periods'] == 24 for row in result['ranking']))
+                with patch('shadow_walkforward.predict_similar', side_effect=wrong_period):
+                    result = run()
+                self.assertEqual(result['common_periods'], 24)
+                self.assertEqual(result['common_days_by_hours'], {'23': 0, '24': 1, '25': 0})
+                self.assertEqual(result['ranking_by_hours'], {'23': [], '24': result['ranking'], '25': []})
+                self.assertEqual(result['skipped_days_by_stage'], {'scoring': [delivery.isoformat()]})
+                self.assertEqual(result['skipped'][0]['model'], 'similar_level')
+                self.assertEqual(result['skipped'][0]['reason'], 'Incomplete or mismatched delivery periods')
+                self.assertEqual(result['skipped'][0]['prediction_period_coverage'], {
+                    'missing_periods_utc': [missing.isoformat()],
+                    'unexpected_periods_utc': [unexpected.isoformat()],
+                })
+                self.assertEqual(len(result['ranking']), len(MODELS))
+                self.assertTrue(all(row['periods'] == 24 for row in result['ranking']))
 
     def test_median_scoring_and_ranking_reuse_single_pass_forecast_prices(self):
         args = self.args()
