@@ -1121,6 +1121,82 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                 ), ('REPLAY', score))
             self.assertEqual(conn.execute(query).fetchall(), saved)
 
+    def test_november_19_quarantine_failure_rolls_back_conflicting_evidence(self):
+        from lxml import html
+        from psycopg.errors import CheckViolation
+
+        (original, raw), = load_batches(NOV_19_FIXTURES / 'manifest.json')
+        day = original.delivery_date
+        page = html.fromstring(raw)
+        cell, = page.xpath(
+            '//table[@id="rdn"]/tbody/tr[normalize-space(td[1])=$period]/td[3]',
+            period=f'{day.isoformat()}_H01',
+        )
+        # Only the conflicting revision and forecast are synthetic.
+        cell.text = format(original.rows[0][1] + Decimal('0.01'), 'f').replace('.', ',')
+        revised_raw = html.tostring(page, encoding='utf-8')
+        reference_rows = extract_reference(revised_raw, day.isoformat())
+        reference = '\n'.join(f'{label},{price}' for label, price in reference_rows).encode()
+        revised = prepare_batch(
+            raw=revised_raw, day=day.isoformat(), source_url=original.source_url,
+            retrieved_at=original.retrieved_at, reference_rows=reference_rows,
+            reference_sha256=sha256(reference).hexdigest(),
+        )
+        cutoff = cutoff_for_day(day)
+        inputs = dict(
+            day=day, forecast=[(period, Decimal('650')) for period, _ in original.rows],
+            forecast_id='november-19-quarantine-retry', model_version='synthetic-test',
+            forecast_status='SHADOW', issued_at=cutoff, publication_ts=cutoff,
+            retrieved_at=cutoff, evaluated_at=original.retrieved_at,
+        )
+        queries = [
+            'SELECT * FROM fix1_shadow_test.batches ORDER BY id',
+            'SELECT * FROM fix1_shadow_test.prices ORDER BY period_start_utc',
+            'SELECT * FROM fix1_shadow_test.quarantine ORDER BY batch_id',
+            'SELECT * FROM fix1_shadow_test.scores ORDER BY forecast_id',
+        ]
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(archive_batch(conn, original, raw), 'INSERT')
+            status, score = score_archived_day(conn, **inputs)
+            self.assertEqual(status, 'INSERT')
+            before = [conn.execute(query).fetchall() for query in queries]
+            conn.execute("""
+                CREATE FUNCTION pg_temp.fail_shadow_quarantine() RETURNS trigger
+                LANGUAGE plpgsql AS $$
+                BEGIN
+                    RAISE EXCEPTION 'injected quarantine failure' USING ERRCODE = '23514';
+                END
+                $$
+            """)
+            conn.execute("""
+                CREATE TRIGGER fail_shadow_quarantine AFTER INSERT ON fix1_shadow_test.quarantine
+                FOR EACH ROW EXECUTE FUNCTION pg_temp.fail_shadow_quarantine()
+            """)
+            try:
+                with self.assertRaisesRegex(CheckViolation, 'injected quarantine failure'):
+                    archive_batch(conn, revised, revised_raw)
+                self.assertEqual([conn.execute(query).fetchall() for query in queries], before)
+                self.assertEqual(score_archived_day(conn, **inputs), ('REPLAY', score))
+            finally:
+                conn.execute('DROP TRIGGER fail_shadow_quarantine ON fix1_shadow_test.quarantine')
+
+            self.assertEqual(archive_batch(conn, revised, revised_raw), 'QUARANTINE')
+            self.assertEqual(conn.execute(queries[1]).fetchall(), before[1])
+            self.assertEqual(conn.execute(queries[3]).fetchall(), before[3])
+            self.assertEqual(conn.execute(
+                'SELECT raw_sha256, raw_html FROM fix1_shadow_test.batches ORDER BY raw_sha256'
+            ).fetchall(), sorted(((original.raw_sha256, raw), (revised.raw_sha256, revised_raw))))
+            self.assertEqual(conn.execute(
+                'SELECT reason FROM fix1_shadow_test.quarantine'
+            ).fetchall(), [('Existing prices differ or day is partial',)])
+            saved = [conn.execute(query).fetchall() for query in queries]
+            for candidate, evidence in ((revised, revised_raw), (original, raw)):
+                self.assertEqual(archive_batch(conn, candidate, evidence), 'QUARANTINE')
+            with self.assertRaisesRegex(ValueError, 'Quarantined delivery day'):
+                score_archived_day(conn, **inputs)
+            self.assertEqual([conn.execute(query).fetchall() for query in queries], saved)
+
     def test_score_november_19_insert_failure_rolls_back_then_retries(self):
         from psycopg.errors import CheckViolation
 

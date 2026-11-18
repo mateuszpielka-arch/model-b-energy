@@ -2181,3 +2181,11 @@ Test scoringu cen TGE dla 19.11.2026 wymusza błąd PostgreSQL po INSERT
 wyniku. Sprawdza wycofanie wyniku i zachowanie cen oraz surowych dowodów.
 Po usunięciu testowego triggera ta sama prognoza daje INSERT i REPLAY.
 Całość działa w izolowanym PostgreSQL z syntetyczną prognozą 650 PLN/MWh.
+
+Test kwarantanny na bazie oficjalnego HTML dla 19.11.2026 wymusza błąd
+PostgreSQL po INSERT konfliktu. Potwierdza wycofanie nowych dowodów oraz
+zachowanie zaakceptowanych cen i wcześniejszego scoringu. Ponowienie zapisuje
+jedną kwarantannę z osobnym HTML konfliktu, bez zmiany cen ani wyniku.
+Kolejne próby nie powielają zapisów, a kwarantanna blokuje REPLAY scoringu.
+Konflikt ceny H01, prognoza 650 PLN/MWh i awaria triggera są syntetyczne;
+wszystkie operacje testu dotyczą wyłącznie izolowanego PostgreSQL.
