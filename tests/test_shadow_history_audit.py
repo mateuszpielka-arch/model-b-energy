@@ -265,6 +265,36 @@ class HistoryAuditTests(unittest.TestCase):
                                  [periods[first].isoformat()])
                 self.assertFalse(result['model_ready'])
 
+    def test_locates_missing_jwcd_and_fix1_timestamps_by_field(self):
+        for delivery, cutoff in (
+            ('2026-03-29', '2026-03-28T08:50:00Z'),
+            ('2026-10-25', '2026-10-24T07:50:00Z'),
+            ('2026-11-19', '2026-11-18T08:50:00Z'),
+        ):
+            with self.subTest(delivery=delivery):
+                rows = self.rows(delivery)
+                if delivery == '2026-11-19':
+                    fixture = Path(__file__).parent / 'fixtures' / f'tge_delivery_{delivery}' / f'tge_delivery_{delivery}.csv'
+                    for row, price in zip(rows, read_csv(fixture), strict=True):
+                        row['fix1'] = price['price_pln_mwh']
+                for row in rows:
+                    row.update(publication_ts=cutoff, retrieved_at_utc=cutoff, retrieval_completed_at=cutoff)
+                self.assertTrue(audit_rows(rows)['days'][0]['model_ready'])
+                rows[2]['publication_ts'] = ''
+                rows[3]['retrieved_at_utc'] = ''
+                rows[4]['retrieval_completed_at'] = ''
+                rows[5]['actual_available_at'] = ''
+                missing_row = rows.pop()
+                report, = audit_rows(rows)['days']
+                self.assertEqual(report['missing_timestamp_periods_utc_by_field'], {
+                    'publication_ts': [rows[2]['period_start_utc']],
+                    'retrieved_at': [rows[3]['period_start_utc']],
+                    'retrieval_completed_at': [rows[4]['period_start_utc']],
+                    'actual_available_at': [rows[5]['period_start_utc']],
+                })
+                self.assertEqual(report['missing_periods_utc'], [missing_row['period_start_utc']])
+                self.assertFalse(report['model_ready'])
+
     def test_reports_overlapping_jwcd_chronology_errors_on_real_fix1_prices(self):
         fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-14/tge_delivery_2026-11-14.csv'
         rows = self.rows('2026-11-14')

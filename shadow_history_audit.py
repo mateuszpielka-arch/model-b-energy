@@ -55,6 +55,7 @@ def audit_rows(rows):
         missing_timing = invalid_timing = late_timing = 0
         invalid_retrieval_order = publication_after_completion = 0
         missing_timestamps = Counter(dict.fromkeys(missing_timestamp_totals, 0))
+        missing_timestamp_periods = {field: set() for field in missing_timestamp_totals}
         late_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
         late_periods = {field: set() for field in JWCD_TIMESTAMPS}
         invalid_timestamps = Counter(dict.fromkeys(JWCD_TIMESTAMPS, 0))
@@ -115,6 +116,8 @@ def audit_rows(rows):
             raw_actual_time = r.get('actual_available_at')
             if raw_actual_time in (None, ''):
                 missing_timestamps['actual_available_at'] += 1
+                if p in expected:
+                    missing_timestamp_periods['actual_available_at'].add(p)
             else:
                 try:
                     actual_time = _stamp(raw_actual_time)
@@ -136,6 +139,8 @@ def audit_rows(rows):
             for field, raw_stamp in zip(JWCD_TIMESTAMPS, stamps):
                 if raw_stamp in (None, ''):
                     missing_fields.append(field)
+                    if p in expected:
+                        missing_timestamp_periods[field].add(p)
                     continue
                 try:
                     stamp = _stamp(raw_stamp)
@@ -236,6 +241,10 @@ def audit_rows(rows):
             availability_proven_rows=available,verified_actual_rows=verified,
             availability_missing_timestamp_rows=missing_timing,
             missing_timestamp_rows_by_field=dict(missing_timestamps),
+            missing_timestamp_periods_utc_by_field={
+                field: [period.isoformat() for period in sorted(periods)]
+                for field, periods in missing_timestamp_periods.items()
+            },
             availability_invalid_timestamp_rows=invalid_timing,
             invalid_jwcd_timestamp_rows_by_field=dict(invalid_timestamps),
             invalid_jwcd_timestamp_periods_utc_by_field={

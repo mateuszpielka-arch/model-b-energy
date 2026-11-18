@@ -2158,3 +2158,9 @@ Test granicy zapisu archiwum używa rzeczywistego HTML bez cen dla
 pobrania. Writer odrzuca taką spreparowaną paczkę przed blokadą doby.
 Test na izolowanym PostgreSQL sprawdza pustą i zapełnioną bazę, zachowanie
 wszystkich trzech tabel oraz REPLAY prawidłowej paczki.
+
+Audyt CSV wskazuje okresy UTC z brakującym znacznikiem publikacji,
+początku/końca pobrania JWCD oraz dostępności Fix1, osobno dla pól.
+Test obejmuje doby 23h i 25h oraz rzeczywiste ceny TGE dla 19.11.2026
+z syntetycznymi znacznikami JWCD. Odróżnia brak znacznika od braku
+całego wiersza i zachowuje wykluczenie niegotowej doby z backtestu.
