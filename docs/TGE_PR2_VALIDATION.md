@@ -2152,3 +2152,9 @@ i bias z niezależnym rachunkiem na ułamkach dla syntetycznej prognozy
 600, 610, ... 830 PLN/MWh. Sprawdza brak wyniku przed pobraniem cen,
 odrzucenie spóźnionych publikacji/pobrania prognozy oraz INSERT/REPLAY
 na granicy dostępności Fix1, z CSV i bez niego.
+
+Test granicy zapisu archiwum używa rzeczywistego HTML bez cen dla
+19.11.2026 i zgodnej z nim sumy SHA-256, połączonych z cenami późniejszego
+pobrania. Writer odrzuca taką spreparowaną paczkę przed blokadą doby.
+Test na izolowanym PostgreSQL sprawdza pustą i zapełnioną bazę, zachowanie
+wszystkich trzech tabel oraz REPLAY prawidłowej paczki.

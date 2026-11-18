@@ -510,6 +510,34 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
     def test_november_19_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_19_FIXTURES)
 
+    def test_november_19_unpriced_html_cannot_be_admitted_with_a_valid_raw_hash(self):
+        from dataclasses import replace
+
+        (accepted, priced_raw), = load_batches(NOV_19_FIXTURES / 'manifest.json')
+        directory = FIXTURES.with_name('tge_delivery_2026-11-19_unpriced')
+        metadata = json.loads((directory / 'capture.json').read_text())
+        unpriced_raw = gzip.decompress((directory / metadata['raw_file']).read_bytes())
+        self.assertEqual(sha256(unpriced_raw).hexdigest(), metadata['raw_sha256'])
+        # Simulate a caller binding accepted prices to the earlier unpriced HTML.
+        forged = replace(accepted, raw_sha256=sha256(unpriced_raw).hexdigest())
+        queries = (
+            'SELECT * FROM fix1_shadow_test.batches ORDER BY id',
+            'SELECT * FROM fix1_shadow_test.prices ORDER BY period_start_utc',
+            'SELECT * FROM fix1_shadow_test.quarantine ORDER BY batch_id',
+        )
+        with self.isolated_connection() as conn:
+            for populated in (False, True):
+                with self.subTest(populated=populated):
+                    if populated:
+                        self.assertEqual(archive_batch(conn, accepted, priced_raw), 'INSERT')
+                    before = [conn.execute(query).fetchall() for query in queries]
+                    with patch('shadow_postgres_archive._lock_delivery_day') as lock:
+                        with self.assertRaisesRegex(ValueError, r"Invalid Fixing I price for H01: '-'"):
+                            archive_batch(conn, forged, unpriced_raw)
+                        lock.assert_not_called()
+                    self.assertEqual([conn.execute(query).fetchall() for query in queries], before)
+            self.assertEqual(archive_batch(conn, accepted, priced_raw), 'REPLAY')
+
     def test_november_18_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_18_FIXTURES)
 
