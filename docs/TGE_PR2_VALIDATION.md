@@ -2135,3 +2135,8 @@ HTTP 200 i znak "-" we wszystkich 24 cenach Fixing I dla 19.11.2026.
 Zachowano surowy HTML gzip oraz metadane URL, czasu i SHA-256.
 Test sprawdza odrzucenie przez parser oraz brak zapisu paczki HTML/CSV
 przez narzędzie pobierające ceny.
+
+Raport walk-forward wskazuje daty bez dowodu czasowego treningu, gdy
+okno modelu jest niekompletne. Rozszerzony test OLS 60D sprawdza listę
+wszystkich 60 dat przy braku dowodów oraz pojedynczą brakującą datę.
+Brak dowodu nadal blokuje scoring całej doby. Historia jest syntetyczna.

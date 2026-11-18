@@ -137,6 +137,7 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
             stage='actual'
             scoring_model = None
             prediction_period_coverage = None
+            missing_training_timing_days = None
             try:
                 if day in unreadable_packets:
                     stage = 'packet'
@@ -268,6 +269,11 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         latest_publication = max(latest_publication, published)
                         latest_retrieval = max(latest_retrieval, completed)
                     if len(training_days) != window_days:
+                        missing_training_timing_days = [
+                            (window_start + timedelta(days=offset)).isoformat()
+                            for offset in range(window_days)
+                            if window_start + timedelta(days=offset) not in training_days
+                        ]
                         raise ValueError(f'Incomplete training timing evidence for the {window_days}D window')
                     input_times[name] = (latest_publication, latest_retrieval, max(training_actual_times))
                 scoring_model = 'median4'
@@ -286,6 +292,8 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         issued_at=selected.cutoff_utc,publication_ts=latest_publication,retrieved_at=latest_retrieval)
             except ValueError as exc:
                 rejection = dict(day=day.isoformat(), stage=stage, reason=str(exc))
+                if missing_training_timing_days is not None:
+                    rejection['missing_training_timing_days'] = missing_training_timing_days
                 if prediction_period_coverage is not None:
                     rejection['prediction_period_coverage'] = prediction_period_coverage
                 if isinstance(exc, IncompleteTrainingWindow):

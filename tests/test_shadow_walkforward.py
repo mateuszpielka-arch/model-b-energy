@@ -752,13 +752,14 @@ class WalkforwardTests(unittest.TestCase):
         args['target_days'] = [target]
         last_training_day = (target - timedelta(days=1)).isoformat()
         outside_window = (target - timedelta(days=61)).isoformat()
-        for change, reason in (
-            (lambda timing: None, 'Incomplete training timing evidence for the 60D window'),
-            (lambda timing: {'day': 'bad shape'}, 'Invalid training timing evidence collection'),
-            (lambda timing: timing[:-1], 'Incomplete training timing evidence for the 60D window'),
-            (lambda timing: (timing[-1], *timing[1:]), f'Duplicate training timing evidence: {last_training_day}'),
+        all_training_days = [(target - timedelta(days=offset)).isoformat() for offset in range(60, 0, -1)]
+        for change, reason, missing in (
+            (lambda timing: None, 'Incomplete training timing evidence for the 60D window', all_training_days),
+            (lambda timing: {'day': 'bad shape'}, 'Invalid training timing evidence collection', None),
+            (lambda timing: timing[:-1], 'Incomplete training timing evidence for the 60D window', [last_training_day]),
+            (lambda timing: (timing[-1], *timing[1:]), f'Duplicate training timing evidence: {last_training_day}', None),
             (lambda timing: ({**timing[0], 'day': outside_window}, *timing[1:]),
-             f'Training timing evidence outside the 60D window: {outside_window}'),
+             f'Training timing evidence outside the 60D window: {outside_window}', None),
         ):
             with self.subTest(reason=reason):
                 def change_training_timing(**kwargs):
@@ -774,9 +775,10 @@ class WalkforwardTests(unittest.TestCase):
 
                 scoring.assert_not_called()
                 self.assertEqual(result['ranking'], [])
-                self.assertEqual(result['skipped'], [{
-                    'day': target.isoformat(), 'stage': 'scoring', 'model': 'ols60', 'reason': reason,
-                }])
+                expected = dict(day=target.isoformat(), stage='scoring', model='ols60', reason=reason)
+                if missing is not None:
+                    expected['missing_training_timing_days'] = missing
+                self.assertEqual(result['skipped'], [expected])
 
     def test_malformed_training_timing_rejects_only_the_affected_target(self):
         args = self.args()
