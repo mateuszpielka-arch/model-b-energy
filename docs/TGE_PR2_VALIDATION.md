@@ -2113,3 +2113,8 @@ od znaczników pobrania. Publikacja dokładnie o D−1 09:50 doby treningowej
 dopuszcza wspólny ranking. Publikacja mikrosekundę późniejsza blokuje
 scoring całej doby także przy terminowych znacznikach pobrania.
 Historia i zmieniane dowody czasowe w teście są syntetyczne.
+
+Raport walk-forward wskazuje brakujące i nadmiarowe okresy UTC prognozy
+wykluczonej ze wspólnego scoringu. Testy obejmują brak ostatniego okresu
+w dobie 24h oraz przesunięty pierwszy okres doby 23h. Ranking uwzględnia
+wyłącznie kompletne doby. Historia w testach jest syntetyczna.

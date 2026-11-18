@@ -8,7 +8,7 @@ import test_shadow_ols as fixtures
 from shadow_walkforward import FROZEN_90D_VERSION, MODELS, run_walkforward
 from shadow_similar_consensus import median_consensus, predict_similar
 from shadow_asof import cutoff_for_day
-from shadow_scoring import score_day
+from shadow_scoring import expected_periods, score_day
 from shadow_ols import predict_ols
 
 class WalkforwardTests(unittest.TestCase):
@@ -503,6 +503,11 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(result['skipped_days_by_stage'], {'scoring': [spring.isoformat()]})
         self.assertEqual(result['skipped'][0]['model'], 'similar_level')
         self.assertEqual(result['skipped'][0]['reason'], 'Incomplete or mismatched delivery periods')
+        first_period = expected_periods(spring)[0]
+        self.assertEqual(result['skipped'][0]['prediction_period_coverage'], {
+            'missing_periods_utc': [first_period.isoformat()],
+            'unexpected_periods_utc': [(first_period - timedelta(hours=1)).isoformat()],
+        })
         self.assertEqual(len(result['ranking']), len(MODELS))
         self.assertTrue(all(row['periods'] == 24 for row in result['ranking']))
 
@@ -932,6 +937,10 @@ class WalkforwardTests(unittest.TestCase):
         self.assertEqual(result['skipped'], [{
             'day': target.isoformat(), 'stage': 'scoring', 'model': 'similar_level',
             'reason': 'Incomplete or mismatched delivery periods',
+            'prediction_period_coverage': {
+                'missing_periods_utc': [expected_periods(target)[-1].isoformat()],
+                'unexpected_periods_utc': [],
+            },
         }])
 
     def test_missing_model_version_excludes_only_the_affected_common_day(self):

@@ -136,6 +136,7 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
         for day in target_days:
             stage='actual'
             scoring_model = None
+            prediction_period_coverage = None
             try:
                 if day in unreadable_packets:
                     stage = 'packet'
@@ -201,7 +202,12 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         predictions[scoring_model] = {
                             **predictions[scoring_model], 'prices': tuple(prices.items()),
                         }
-                    if set(forecast_prices[scoring_model]) != expected:
+                    observed = set(forecast_prices[scoring_model])
+                    if observed != expected:
+                        prediction_period_coverage = {
+                            'missing_periods_utc': [period.isoformat() for period in sorted(expected - observed)],
+                            'unexpected_periods_utc': [period.isoformat() for period in sorted(observed - expected)],
+                        }
                         raise ValueError('Incomplete or mismatched delivery periods')
                 publication = selected.latest_publication_ts_utc
                 retrieved = selected.retrieval_completed_at_utc
@@ -274,6 +280,8 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         issued_at=selected.cutoff_utc,publication_ts=latest_publication,retrieved_at=latest_retrieval)
             except ValueError as exc:
                 rejection = dict(day=day.isoformat(), stage=stage, reason=str(exc))
+                if prediction_period_coverage is not None:
+                    rejection['prediction_period_coverage'] = prediction_period_coverage
                 if isinstance(exc, IncompleteTrainingWindow):
                     missing_days = [missing for missing in exc.missing_days
                                     if missing not in unreadable_packets]
