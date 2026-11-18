@@ -2107,3 +2107,9 @@ Walk-forward odrzuca wynik modelu, który nie jest obiektem z polami
 prognozy. Test zwraca None z dni podobnych shape i z mediany w pierwszej
 dobie. Każdy przypadek daje powód odrzucenia tej doby oraz wspólną ocenę
 sześciu modeli w następnej. Historia w teście jest syntetyczna.
+
+Test OLS 30D/60D/90D sprawdza publikację treningowego JWCD niezależnie
+od znaczników pobrania. Publikacja dokładnie o D−1 09:50 doby treningowej
+dopuszcza wspólny ranking. Publikacja mikrosekundę późniejsza blokuje
+scoring całej doby także przy terminowych znacznikach pobrania.
+Historia i zmieniane dowody czasowe w teście są syntetyczne.

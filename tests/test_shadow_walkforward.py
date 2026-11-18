@@ -833,6 +833,45 @@ class WalkforwardTests(unittest.TestCase):
                             'reason': 'Training Fix1 prices unavailable at D-1 09:50',
                         }])
 
+    def test_ols_training_publication_cutoff_for_all_windows(self):
+        args = self.args()
+        target = args['target_days'][-1]
+        args['target_days'] = [target]
+        training_day = target - timedelta(days=1)
+        for window in (30, 60, 90):
+            for delay in (timedelta(0), timedelta(microseconds=1)):
+                with self.subTest(window=window, delay=delay):
+                    def publication_at_boundary(**kwargs):
+                        prediction = predict_ols(**kwargs)
+                        if kwargs['window_days'] == window:
+                            evidence = prediction['training_timing'][-1]
+                            self.assertEqual(evidence['day'], training_day.isoformat())
+                            cutoff = cutoff_for_day(training_day)
+                            evidence.update(
+                                latest_publication_ts_utc=(cutoff + delay).isoformat(),
+                                retrieved_at_utc=cutoff.isoformat(),
+                                retrieval_completed_at_utc=cutoff.isoformat(),
+                            )
+                        return prediction
+
+                    with patch('shadow_walkforward.predict_ols', side_effect=publication_at_boundary), patch(
+                        'shadow_walkforward.score_day', wraps=score_day,
+                    ) as scoring:
+                        result = run_walkforward(**args)
+                    if not delay:
+                        self.assertEqual(result['common_days'], 1)
+                        self.assertEqual(scoring.call_count, len(MODELS))
+                        self.assertEqual(len(result['ranking']), len(MODELS))
+                        self.assertEqual(result['skipped'], [])
+                    else:
+                        scoring.assert_not_called()
+                        self.assertEqual(result['ranking'], [])
+                        self.assertEqual(result['common_periods'], 0)
+                        self.assertEqual(result['skipped'], [{
+                            'day': target.isoformat(), 'stage': 'scoring', 'model': f'ols{window}',
+                            'reason': f'Training JWCD chronology invalid at D-1 09:50: {training_day}',
+                        }])
+
     def test_similar_days_training_jwcd_cutoff_boundary(self):
         args = self.args()
         target = args['target_days'][-1]
