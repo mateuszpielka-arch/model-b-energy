@@ -179,6 +179,8 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                     models={m:predictions[m] for m in MEDIAN_MEMBERS})
                 stage='scoring'
                 for scoring_model in MODELS:
+                    if predictions[scoring_model].get('target_day') != day.isoformat():
+                        raise ValueError('Prediction delivery date does not match target delivery')
                     if predictions[scoring_model].get('target_snapshot_id') != selected.snapshot_id:
                         raise ValueError('Prediction does not use the selected target JWCD snapshot')
                 expected = set(expected_periods(day))

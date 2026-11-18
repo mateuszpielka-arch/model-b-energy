@@ -2090,3 +2090,9 @@ kolekcji cen. Wadliwa doba jest odrzucana z powodem w raporcie, a kolejna
 może zostać oceniona. Test usuwa prices z prognozy dni podobnych level
 i potwierdza wspólny ranking sześciu modeli tylko dla poprawnej doby.
 Historia i prognozy w teście są syntetyczne.
+
+Walk-forward sprawdza datę dostawy zadeklarowaną przez każdy model przed
+scoringiem. Test zmienia wyłącznie datę prognozy dni podobnych level przy
+poprawnych okresach UTC i identyfikatorze snapshotu. Wadliwa doba jest
+wykluczana, a następna otrzymuje wspólny ranking sześciu modeli.
+Test wykorzystuje syntetyczną historię.
