@@ -177,7 +177,10 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                 forecast_prices = {}
                 for name in MEDIAN_MEMBERS:
                     stage = name
-                    prices = _prices(predictions[name].get('prices'))
+                    try:
+                        prices = _prices(predictions[name].get('prices'))
+                    except (RuntimeError, OSError) as exc:
+                        raise ValueError('Unreadable price collection') from exc
                     forecast_prices[name] = prices
                     predictions[name] = {**predictions[name], 'prices': tuple(prices.items())}
                 stage='median4'; predictions[stage]=median_consensus(target_day=day,
@@ -197,7 +200,10 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         predictions[scoring_model].get('model_version'), 'SHADOW',
                     )
                     if scoring_model not in forecast_prices:
-                        prices = _prices(predictions[scoring_model].get('prices'))
+                        try:
+                            prices = _prices(predictions[scoring_model].get('prices'))
+                        except (RuntimeError, OSError) as exc:
+                            raise ValueError('Unreadable price collection') from exc
                         forecast_prices[scoring_model] = prices
                         predictions[scoring_model] = {
                             **predictions[scoring_model], 'prices': tuple(prices.items()),

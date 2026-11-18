@@ -2125,7 +2125,7 @@ doby i sprawdza dokładne wskazanie brakującego oraz nadmiarowego okresu.
 W obu przypadkach wszystkie modele są oceniane tylko na poprawnej dobie.
 Historia i prognozy w teście są syntetyczne.
 
-Walidacja cen zamienia przerwanie odczytu iteratora przez RuntimeError
-lub OSError na błąd walidacji. Test walk-forward przerywa strumień prognozy
+Walk-forward zamienia przerwanie odczytu iteratora cen prognozy przez
+RuntimeError lub OSError na błąd walidacji. Test walk-forward przerywa strumień prognozy
 po pierwszej cenie i potwierdza brak częściowego scoringu, odrzucenie
 wadliwej doby oraz wspólny ranking następnej. Dane są syntetyczne.
