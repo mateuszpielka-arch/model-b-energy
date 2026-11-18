@@ -396,6 +396,33 @@ class RecentOfficialSessionsTests(unittest.TestCase):
             )
             self.assertEqual(list(output.iterdir()), [])
 
+    def test_november_19_unpriced_session_cannot_create_a_price_package(self):
+        from lxml import html
+
+        day = date(2026, 11, 19)
+        directory = FIXTURES.with_name('tge_delivery_2026-11-19_unpriced')
+        metadata = json.loads((directory / 'capture.json').read_text())
+        raw = gzip.decompress((directory / metadata['raw_file']).read_bytes())
+        self.assertEqual(sha256(raw).hexdigest(), metadata['raw_sha256'])
+        self.assertEqual(len(raw), metadata['bytes'])
+        self.assertEqual(metadata['http_status'], 200)
+        self.assertLess(datetime.fromisoformat(metadata['retrieved_at_utc']), cutoff_for_day(day))
+        cells = html.fromstring(raw).xpath(
+            '//table[@id="rdn"]/tbody/tr[starts-with(normalize-space(td[1]), "2026-11-19_H")]/td[3]'
+        )
+        self.assertEqual([cell.text_content().strip() for cell in cells], ['-'] * 24)
+        self.assertEqual(metadata['missing_fixing_i_prices'], len(cells))
+        with self.assertRaisesRegex(ValueError, r"Invalid Fixing I price for H01: '-'"):
+            parse_complete_standard_day(raw.decode('utf-8'), day.isoformat(), exact=True)
+        with TemporaryDirectory() as tmp, patch(
+            'tools.capture_tge_validation._fetch_session', return_value=(200, raw),
+        ) as fetch:
+            output = Path(tmp)
+            with self.assertRaisesRegex(ValueError, 'Fixing I price unavailable for 2026-11-19_H01'):
+                capture(day, output)
+            fetch.assert_called_once_with(metadata['url'], day)
+            self.assertEqual(list(output.iterdir()), [])
+
     def check_sessions(self, directory, days):
         manifest = json.loads((directory / 'manifest.json').read_text())
         self.assertEqual(manifest['errors'], [])

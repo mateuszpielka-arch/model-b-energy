@@ -1,0 +1,13 @@
+{
+  "url": "https://tge.pl/energia-elektryczna-rdn?dateShow=18-11-2026",
+  "retrieved_at_utc": "2026-11-18T08:11:38.625620+00:00",
+  "http_status": 200,
+  "bytes": 258957,
+  "raw_sha256": "115e788ab5a0661c937b510338548cd88b9feee9339657df18ae7d96f0835e82",
+  "delivery_date": "2026-11-19",
+  "session_date": "2026-11-18",
+  "raw_file": "tge_delivery_2026-11-19_unpriced.html.gz",
+  "observed_hourly_rows": 24,
+  "missing_fixing_i_prices": 24,
+  "note": "Official HTTP 200 response with unavailable Fixing I prices. Retained for rejection regression only."
+}

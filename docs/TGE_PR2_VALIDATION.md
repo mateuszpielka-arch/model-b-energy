@@ -2129,3 +2129,9 @@ Walk-forward zamienia przerwanie odczytu iteratora cen prognozy przez
 RuntimeError lub OSError na błąd walidacji. Test walk-forward przerywa strumień prognozy
 po pierwszej cenie i potwierdza brak częściowego scoringu, odrzucenie
 wadliwej doby oraz wspólny ranking następnej. Dane są syntetyczne.
+
+Pobranie sesji TGE z 18.11.2026 o 09:11:38 Europe/Warsaw zwróciło
+HTTP 200 i znak "-" we wszystkich 24 cenach Fixing I dla 19.11.2026.
+Zachowano surowy HTML gzip oraz metadane URL, czasu i SHA-256.
+Test sprawdza odrzucenie przez parser oraz brak zapisu paczki HTML/CSV
+przez narzędzie pobierające ceny.
