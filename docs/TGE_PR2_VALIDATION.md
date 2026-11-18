@@ -2146,3 +2146,9 @@ zawiera 24 ceny Fixing I dla 19.11.2026. Zapisano HTML gzip, referencyjny
 CSV z okresami UTC i manifest SHA-256. Test wiąże oba pobrania z tym samym
 URL i sprawdza zgodność parsera z ekstrakcją XPath oraz INSERT/REPLAY
 w izolowanym PostgreSQL. H01 wynosi 623,98, a H24 765,41 PLN/MWh.
+
+Test scoringu oficjalnych cen dla 19.11.2026 porównuje MAE, MAPE, WAPE
+i bias z niezależnym rachunkiem na ułamkach dla syntetycznej prognozy
+600, 610, ... 830 PLN/MWh. Sprawdza brak wyniku przed pobraniem cen,
+odrzucenie spóźnionych publikacji/pobrania prognozy oraz INSERT/REPLAY
+na granicy dostępności Fix1, z CSV i bez niego.
