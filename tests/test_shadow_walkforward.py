@@ -989,6 +989,7 @@ class WalkforwardTests(unittest.TestCase):
                 })
             return dict(
                 model_version='test', training_timing=timing,
+                target_day=target['day'].isoformat(),
                 target_snapshot_id=target['snapshots'][0]['id'],
                 prices=[(period, price + error) for period, price in target['actual']],
             )
