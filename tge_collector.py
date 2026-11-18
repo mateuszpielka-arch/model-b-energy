@@ -2,24 +2,15 @@ import json, os, re
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 import requests, psycopg
+from tge_parser_safe import parse_complete_standard_day
 
 TGE_URL="https://tge.pl/energia-elektryczna-rdn"
 HEADERS={"User-Agent":"Mozilla/5.0 model-b-energy-tge/1.1","Accept-Language":"pl-PL,pl;q=0.9,en;q=0.8"}
 WARSAW=ZoneInfo("Europe/Warsaw")
 
-def _num(s): return float(s.replace("\xa0","").replace(" ","").replace("−","-").replace(",","."))
-
-def parse_fix1(html,day):
-    text=re.sub(r"<[^>]+>"," | ",html); text=re.sub(r"\s+"," ",text)
-    rows={}
-    for h in range(1,25):
-        key=f"{day}_H{h:02d}"
-        p=text.find(key)
-        if p<0: continue
-        # Hourly row is: delivery key | instrument type 60 | Fixing I price.
-        m=re.search(re.escape(key)+r"\s*\|?\s*60\s*\|?\s*([-−]?\d+(?:[ .]\d{3})*(?:,\d+)?)",text[p:p+500])
-        if m: rows[h]=_num(m.group(1))
-    return rows
+def parse_fix1(html, day):
+    """Only accept the verified RDN Fixing I column; fail closed."""
+    return parse_complete_standard_day(html, day, exact=True)
 
 def ensure_schema(conn):
     with conn.cursor() as c:
@@ -45,17 +36,22 @@ def score(conn,day):
     conn.commit(); return out
 
 def run_once(day):
-    now=datetime.now(timezone.utc); r=requests.get(TGE_URL,headers=HEADERS,timeout=30); r.raise_for_status(); rows=parse_fix1(r.text,day)
+    now=datetime.now(timezone.utc); r=requests.get(TGE_URL,headers=HEADERS,timeout=30); r.raise_for_status()
+    try:
+        rows=parse_fix1(r.text,day)
+    except ValueError as exc:
+        print(json.dumps({'event':'tge_fix1','delivery_date':day,'status':'REJECTED','reason':str(exc),'retrieved_at_utc':now.isoformat()}),flush=True)
+        return
     import hashlib; raw_hash=hashlib.sha256(r.content).hexdigest(); db=os.environ['DATABASE_URL']
     with psycopg.connect(db) as conn:
         ensure_schema(conn)
         with conn.cursor() as c:
             status='COMPLETE' if len(rows)==24 else 'WAITING'; c.execute("INSERT INTO actual.tge_poll_log(delivery_date,retrieved_at_utc,row_count,status,detail) VALUES(%s,%s,%s,%s,%s)",(day,now,len(rows),status,f'HTTP {r.status_code}'))
             if len(rows)==24:
-                # Correct any prior collector value only when current page is a complete official 24/24 snapshot.
+                # Insert new rows only; never overwrite historic actuals pending reconciliation.
                 for h,v in sorted(rows.items()):
-                    c.execute("""INSERT INTO actual.tge_fix1(delivery_date,hour,price_pln_mwh,source_url,first_seen_at_utc,retrieved_at_utc,raw_hash) VALUES(%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(delivery_date,hour) DO UPDATE SET price_pln_mwh=EXCLUDED.price_pln_mwh,retrieved_at_utc=EXCLUDED.retrieved_at_utc,raw_hash=EXCLUDED.raw_hash""",(day,h,v,TGE_URL,now,now,raw_hash))
-        conn.commit(); metrics=score(conn,day) if len(rows)==24 else None
+                    c.execute("""INSERT INTO actual.tge_fix1(delivery_date,hour,price_pln_mwh,source_url,first_seen_at_utc,retrieved_at_utc,raw_hash) VALUES(%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(delivery_date,hour) DO NOTHING""",(day,h,v,TGE_URL,now,now,raw_hash))
+        conn.commit(); metrics=None  # scoring disabled pending independent price verification
     print(json.dumps({'event':'tge_fix1','delivery_date':day,'rows':len(rows),'status':'COMPLETE' if len(rows)==24 else 'WAITING','sample':rows,'score':metrics,'retrieved_at_utc':now.isoformat()}),flush=True)
 
 def main():
