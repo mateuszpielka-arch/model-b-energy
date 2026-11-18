@@ -2189,3 +2189,11 @@ jedną kwarantannę z osobnym HTML konfliktu, bez zmiany cen ani wyniku.
 Kolejne próby nie powielają zapisów, a kwarantanna blokuje REPLAY scoringu.
 Konflikt ceny H01, prognoza 650 PLN/MWh i awaria triggera są syntetyczne;
 wszystkie operacje testu dotyczą wyłącznie izolowanego PostgreSQL.
+
+Walidator read-only shadow_tge_candidate zwraca teraz listę 24 okresów UTC
+z etykietami TGE i dokładnymi cenami, zachowując dotychczasowy słownik prices.
+Test porównuje cały raport z referencyjnym CSV oficjalnego pobrania dla
+19.11.2026, sprawdza SHA-256 surowych bajtów i serializację JSON. Dodatkowe
+testy odrzucają wcześniejsze rzeczywiste pobranie bez cen i obie doby DST
+2026 (23/25h). Raport potwierdza wyłącznie układ i kompletność; nie stanowi
+dowodu dostępności o 09:50 ani zgody na zapis archiwum lub scoring.

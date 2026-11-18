@@ -9,6 +9,7 @@ import json
 from datetime import date
 from pathlib import Path
 from tge_parser_safe import parse_complete_standard_day
+from shadow_scoring import expected_periods
 
 
 def validate_candidate(day: str, html: bytes) -> dict:
@@ -20,6 +21,11 @@ def validate_candidate(day: str, html: bytes) -> dict:
         "row_count": len(prices),
         "sha256": hashlib.sha256(html).hexdigest(),
         "prices": {f"H{h:02d}": str(v) for h, v in sorted(prices.items())},
+        "periods": [
+            {"tge_hour_label": f"H{hour:02d}", "period_start_utc": period.isoformat(),
+             "price_pln_mwh": str(prices[hour])}
+            for hour, period in enumerate(expected_periods(date.fromisoformat(day)), 1)
+        ],
         "archive_written": False,
         "scoring_written": False,
     }
