@@ -3,7 +3,7 @@
 import argparse
 from collections import Counter, defaultdict
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from hashlib import file_digest, sha256
 from io import BytesIO, StringIO
 import json
@@ -12,7 +12,7 @@ from zipfile import ZipFile
 from shadow_history_audit import (
     FIX1_COLUMNS, _number, _stamp, audit_rows, missing_delivery_ranges, read_csv, read_csv_rows,
 )
-from shadow_scoring import expected_periods
+from shadow_scoring import _SHADOW_DECIMAL_CONTEXT, expected_periods
 
 CSV_NAME = "fix1_jwcd_standard_days.csv"
 WORKBOOK_COLUMNS = {"delivery_date": "B", "hour": "C", "jwcd_mw": "J", "fix1_pln_mwh": "V"}
@@ -246,12 +246,27 @@ def compare_fix1_reference(rows, audit, reference_rows, *, history_range=None, i
     reference = prices_by_day(reference_rows, reference_days)
     compared = []
     for day in sorted(history):
-        different = [
-            period.isoformat() for period, price in sorted(reference[day].items())
-            if history[day][period] != price
-        ]
+        differences = []
+        for period, reference_price in sorted(reference[day].items()):
+            history_price = history[day][period]
+            if history_price != reference_price:
+                with localcontext(_SHADOW_DECIMAL_CONTEXT) as context:
+                    # Keep subtraction exact even if the caller uses low precision.
+                    context.prec = max(
+                        context.prec,
+                        max(history_price.adjusted(), reference_price.adjusted())
+                        - min(history_price.as_tuple().exponent, reference_price.as_tuple().exponent) + 2,
+                    )
+                    delta = history_price - reference_price
+                differences.append({
+                    "period_start_utc": period.isoformat(),
+                    "reference_price_pln_mwh": str(reference_price),
+                    "history_price_pln_mwh": str(history_price),
+                    "history_minus_reference_pln_mwh": str(delta),
+                })
         compared.append({"day": day, "periods": len(reference[day]),
-                         "different_periods_utc": different})
+                         "different_periods_utc": [row["period_start_utc"] for row in differences],
+                         "price_differences": differences})
     unmatched = reference_days - history.keys()
     observed_history_days = {day['day'] for day in audit['days']} | invalid_period_days
     invalid_history_days = unmatched & observed_history_days

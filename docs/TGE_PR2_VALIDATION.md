@@ -2231,3 +2231,12 @@ Test porównuje parser i ekstrakcję XPath z referencją. Test PostgreSQL
 sprawdza obie kolejności importu: INSERT/REPLAY, dwa niezmienne dowody,
 24 ceny wskazujące pierwsze zaakceptowane pobranie i brak kwarantanny.
 Jest to ponowne pobranie tej samej sesji, nie nowy niezależny dzień obserwacji.
+
+Porównanie historii Fix1 z referencją pokazuje price_differences dla każdego
+rozbieżnego okresu UTC: reference_price_pln_mwh, history_price_pln_mwh oraz
+history_minus_reference_pln_mwh. Różnica ma znak historia minus referencja;
+wartości są tekstami Decimal i nie zależą od precyzji ustawionej przez wywołującego.
+Test na referencji TGE dla 19.11.2026 wprowadza syntetyczne różnice +0.01/-0.01,
+sprawdza dokładne kwoty przy precyzji 2 i aktywnej pułapce Inexact oraz
+niezmienność wejścia. Test ZIP sprawdza również różnicę przy cenach ujemnych.
+Nie zmieniono istniejących cen ani dowodów; to rozszerzenie raportu read-only.

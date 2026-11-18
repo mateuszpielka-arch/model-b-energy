@@ -1,5 +1,5 @@
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, Inexact, localcontext
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -16,6 +16,35 @@ from shadow_scoring import expected_periods
 
 
 class HistoryBundleTests(unittest.TestCase):
+    def test_reference_reports_exact_price_deltas_for_official_november_19(self):
+        fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-19/tge_delivery_2026-11-19.csv'
+        reference = read_csv(fixture)
+        history = [dict(row) for row in reference]
+        history[0]['price_pln_mwh'] = '623.99'
+        history[1]['price_pln_mwh'] = '589.99'
+        before = [dict(row) for row in history]
+        # Faults are synthetic; reference values come from the saved official capture.
+        with localcontext() as context:
+            context.prec = 2
+            context.traps[Inexact] = True
+            result = compare_fix1_reference(iter(history), audit_rows(history), reference)
+        self.assertEqual((result['compared_periods'], result['different_periods']), (24, 2))
+        self.assertEqual(result['matched_days'], 0)
+        day, = result['compared_days']
+        self.assertEqual(day['different_periods_utc'],
+                         ['2026-11-18T23:00:00+00:00', '2026-11-19T00:00:00+00:00'])
+        self.assertEqual(day['price_differences'], [
+            dict(period_start_utc='2026-11-18T23:00:00+00:00',
+                 reference_price_pln_mwh='623.98', history_price_pln_mwh='623.99',
+                 history_minus_reference_pln_mwh='0.01'),
+            dict(period_start_utc='2026-11-19T00:00:00+00:00',
+                 reference_price_pln_mwh='590.00', history_price_pln_mwh='589.99',
+                 history_minus_reference_pln_mwh='-0.01'),
+        ])
+        self.assertEqual(history, before)
+        unchanged = compare_fix1_reference(reference, audit_rows(reference), reference)
+        self.assertEqual(unchanged['compared_days'][0]['price_differences'], [])
+
     def test_official_reference_iterator_preserves_hourly_comparison(self):
         fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-09/tge_delivery_2026-11-09.csv'
         history = list(read_csv(fixture))
@@ -296,6 +325,11 @@ class HistoryBundleTests(unittest.TestCase):
             self.assertEqual(comparison["matched_days"], 1)
             self.assertEqual(comparison["compared_periods"], 48)
             self.assertEqual(comparison["different_periods"], 1)
+            self.assertEqual(comparison["compared_days"][1]["price_differences"], [
+                dict(period_start_utc="2026-10-26T22:00:00+00:00",
+                     reference_price_pln_mwh="-9", history_price_pln_mwh="-10",
+                     history_minus_reference_pln_mwh="-1"),
+            ])
             self.assertEqual(comparison["compared_days"][1]["different_periods_utc"],
                              ["2026-10-26T22:00:00+00:00"])
             self.assertEqual(comparison["missing_or_invalid_history_days"], ["2026-10-25", "2026-10-27"])
