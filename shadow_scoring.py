@@ -44,25 +44,28 @@ def _prices(rows):
         records = iter(rows)
     except TypeError as exc:
         raise ValueError('Invalid price collection') from exc
-    for record in records:
-        if isinstance(record, (Mapping, str, bytes)):
-            raise ValueError('Invalid price row')
-        try:
-            period, price = record
-        except (TypeError, ValueError) as exc:
-            raise ValueError('Invalid price row') from exc
-        key = _utc(period)
-        if key in out:
-            raise ValueError('Duplicate UTC delivery period')
-        try:
-            if isinstance(price, bool):
-                raise ValueError('Boolean is not a price')
-            value = Decimal(str(price))
-        except (InvalidOperation, TypeError) as exc:
-            raise ValueError('Invalid price') from exc
-        if not value.is_finite():
-            raise ValueError('Non-finite price')
-        out[key] = value
+    try:
+        for record in records:
+            if isinstance(record, (Mapping, str, bytes)):
+                raise ValueError('Invalid price row')
+            try:
+                period, price = record
+            except (TypeError, ValueError) as exc:
+                raise ValueError('Invalid price row') from exc
+            key = _utc(period)
+            if key in out:
+                raise ValueError('Duplicate UTC delivery period')
+            try:
+                if isinstance(price, bool):
+                    raise ValueError('Boolean is not a price')
+                value = Decimal(str(price))
+            except (InvalidOperation, TypeError) as exc:
+                raise ValueError('Invalid price') from exc
+            if not value.is_finite():
+                raise ValueError('Non-finite price')
+            out[key] = value
+    except (RuntimeError, OSError) as exc:
+        raise ValueError('Unreadable price collection') from exc
     return out
 
 

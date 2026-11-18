@@ -1050,6 +1050,37 @@ class WalkforwardTests(unittest.TestCase):
                     'reason': 'Invalid model prediction object',
                 }])
 
+    def test_unreadable_forecast_iterator_excludes_only_affected_common_day(self):
+        args = self.args()
+        first, second = args['target_days']
+        for failure in (RuntimeError, OSError):
+            with self.subTest(failure=failure):
+                def unreadable_level_prices(**kwargs):
+                    prediction = predict_similar(**kwargs)
+                    if kwargs['mode'] == 'level' and kwargs['target_day'] == first:
+                        first_price = prediction['prices'][0]
+
+                        def prices():
+                            yield first_price
+                            raise failure('forecast stream interrupted')
+
+                        prediction['prices'] = prices()
+                    return prediction
+
+                with patch('shadow_walkforward.predict_similar', side_effect=unreadable_level_prices), patch(
+                    'shadow_walkforward.score_day', wraps=score_day,
+                ) as scoring:
+                    result = run_walkforward(**args)
+                self.assertEqual(scoring.call_count, len(MODELS))
+                self.assertEqual({call.kwargs['day'] for call in scoring.call_args_list}, {second})
+                self.assertEqual(result['common_days'], 1)
+                self.assertEqual(result['common_periods'], 24)
+                self.assertEqual(len(result['ranking']), len(MODELS))
+                self.assertEqual(result['skipped'], [{
+                    'day': first.isoformat(), 'stage': 'scoring', 'model': 'similar_level',
+                    'reason': 'Unreadable price collection',
+                }])
+
     def test_ranked_day_identifies_actual_version_and_availability(self):
         args = self.args()
         target = args['history'][-1]
