@@ -2221,3 +2221,13 @@ jesiennej zmianie czasu. Nowy test używa rzeczywistych cen TGE dla 19.11.2026
 oraz syntetycznych wierszy skoroszytu i usterek; nie jest nowym audytem
 rzeczywistego XLSB. Istniejący test ZIP potwierdza zachowanie pliku bajtowo.
 Okresy pominiętych dób DST nadal nie są mapowane z niezweryfikowanych etykiet.
+
+Późne pobranie oficjalnej sesji 18.11 dla dostawy 19.11.2026 o
+23:11:43 Europe/Warsaw zwróciło nowy HTML (425987 bajtów), ale identyczny
+referencyjny CSV wszystkich 24 cen względem pobrania o 11:18. Zapisano osobno
+HTML gzip, CSV i manifest w tge_delivery_2026-11-19_late. SHA-256 HTML:
+2ff5b758c36378a8cb48e314e7cc00bac26fbeb8c5d9e47d9616bf62a6e61c03.
+Test porównuje parser i ekstrakcję XPath z referencją. Test PostgreSQL
+sprawdza obie kolejności importu: INSERT/REPLAY, dwa niezmienne dowody,
+24 ceny wskazujące pierwsze zaakceptowane pobranie i brak kwarantanny.
+Jest to ponowne pobranie tej samej sesji, nie nowy niezależny dzień obserwacji.
