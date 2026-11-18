@@ -2176,3 +2176,8 @@ Testy dób 23h i 25h oraz cen TGE dla 19.11.2026 sprawdzają czas bez
 strefy, błędny tekst i wiersz bez prawidłowego klucza UTC. Licznik
 uwzględnia wszystkie wadliwe znaczniki, a lista okresów tylko znane klucze.
 Znaczniki czasu i JWCD w testach są syntetyczne.
+
+Test scoringu cen TGE dla 19.11.2026 wymusza błąd PostgreSQL po INSERT
+wyniku. Sprawdza wycofanie wyniku i zachowanie cen oraz surowych dowodów.
+Po usunięciu testowego triggera ta sama prognoza daje INSERT i REPLAY.
+Całość działa w izolowanym PostgreSQL z syntetyczną prognozą 650 PLN/MWh.

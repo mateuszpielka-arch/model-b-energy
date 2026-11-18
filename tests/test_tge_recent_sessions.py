@@ -1121,6 +1121,52 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                 ), ('REPLAY', score))
             self.assertEqual(conn.execute(query).fetchall(), saved)
 
+    def test_score_november_19_insert_failure_rolls_back_then_retries(self):
+        from psycopg.errors import CheckViolation
+
+        manifest = NOV_19_FIXTURES / 'manifest.json'
+        (batch, _), = load_batches(manifest)
+        cutoff = cutoff_for_day(batch.delivery_date)
+        inputs = dict(
+            day=batch.delivery_date,
+            forecast=[(period, Decimal('650')) for period, _ in batch.rows],
+            forecast_id='november-19-retry-after-failure', model_version='synthetic-test',
+            forecast_status='SHADOW', issued_at=cutoff, publication_ts=cutoff,
+            retrieved_at=cutoff, evaluated_at=batch.retrieved_at,
+        )
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            evidence_query = 'SELECT * FROM fix1_shadow_test.batches ORDER BY id'
+            prices_query = 'SELECT * FROM fix1_shadow_test.prices ORDER BY period_start_utc'
+            before = (conn.execute(evidence_query).fetchall(), conn.execute(prices_query).fetchall())
+            conn.execute("""
+                CREATE FUNCTION pg_temp.fail_shadow_score() RETURNS trigger
+                LANGUAGE plpgsql AS $$
+                BEGIN
+                    RAISE EXCEPTION 'injected scoring failure' USING ERRCODE = '23514';
+                END
+                $$
+            """)
+            conn.execute("""
+                CREATE TRIGGER fail_shadow_score AFTER INSERT ON fix1_shadow_test.scores
+                FOR EACH ROW EXECUTE FUNCTION pg_temp.fail_shadow_score()
+            """)
+            try:
+                with self.assertRaisesRegex(CheckViolation, 'injected scoring failure'):
+                    score_archived_day(conn, **inputs)
+                self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.scores').fetchone(), (0,))
+                self.assertEqual(
+                    (conn.execute(evidence_query).fetchall(), conn.execute(prices_query).fetchall()),
+                    before,
+                )
+            finally:
+                conn.execute('DROP TRIGGER fail_shadow_score ON fix1_shadow_test.scores')
+            status, score = score_archived_day(conn, **inputs)
+            self.assertEqual((status, score.periods), ('INSERT', 24))
+            self.assertEqual(score_archived_day(conn, **inputs), ('REPLAY', score))
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.scores').fetchone(), (1,))
+
     def test_score_november_19_ramp_forecast_matches_fraction_metrics(self):
         manifest = NOV_19_FIXTURES / 'manifest.json'
         entry, = json.loads(manifest.read_text())['entries']
