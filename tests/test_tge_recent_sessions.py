@@ -1197,6 +1197,59 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                 score_archived_day(conn, **inputs)
             self.assertEqual([conn.execute(query).fetchall() for query in queries], saved)
 
+    def test_score_november_19_lock_timeout_preserves_insert_and_replay_state(self):
+        from psycopg.errors import LockNotAvailable
+
+        manifest = NOV_19_FIXTURES / 'manifest.json'
+        (batch, _), = load_batches(manifest)
+        cutoff = cutoff_for_day(batch.delivery_date)
+        inputs = dict(
+            day=batch.delivery_date,
+            forecast=[(period, Decimal('650')) for period, _ in batch.rows],
+            forecast_id='november-19-lock-timeout', model_version='synthetic-test',
+            forecast_status='SHADOW', issued_at=cutoff, publication_ts=cutoff,
+            retrieved_at=cutoff, evaluated_at=batch.retrieved_at,
+        )
+        queries = [
+            'SELECT * FROM fix1_shadow_test.batches ORDER BY id',
+            'SELECT * FROM fix1_shadow_test.prices ORDER BY period_start_utc',
+            'SELECT * FROM fix1_shadow_test.quarantine ORDER BY batch_id',
+            'SELECT * FROM fix1_shadow_test.scores ORDER BY forecast_id',
+        ]
+        with self.isolated_connection() as holder:
+            initialize_scores(holder)
+            self.assertEqual(ingest_manifest(manifest, conn=holder)['inserted_periods'], 24)
+            with connect_test_database(DSN) as worker:
+                worker.execute("SET lock_timeout = '100ms'")
+                # A separate upper bound prevents a regression from hanging the test.
+                worker.execute("SET statement_timeout = '2s'")
+                for expected_status in ('INSERT', 'REPLAY'):
+                    with self.subTest(expected_status=expected_status):
+                        before = [holder.execute(query).fetchall() for query in queries]
+                        with holder.transaction():
+                            holder.execute(
+                                'SELECT pg_advisory_xact_lock(716101, %s)',
+                                (batch.delivery_date.toordinal(),),
+                            )
+                            with self.assertRaises(LockNotAvailable) as caught:
+                                score_archived_day(worker, **inputs)
+                            self.assertEqual(caught.exception.sqlstate, '55P03')
+                            self.assertEqual(
+                                [worker.execute(query).fetchall() for query in queries], before,
+                            )
+                            self.assertEqual(worker.execute(
+                                "SELECT setting::int FROM pg_settings WHERE name = 'lock_timeout'"
+                            ).fetchone(), (100,))
+                        status, score = score_archived_day(worker, **inputs)
+                        self.assertEqual((status, score.periods), (expected_status, 24))
+                        self.assertEqual(worker.execute(
+                            'SELECT count(*) FROM fix1_shadow_test.scores'
+                        ).fetchone(), (1,))
+                self.assertEqual(score_archived_day(worker, **inputs), ('REPLAY', score))
+                self.assertEqual(worker.execute(
+                    "SELECT setting::int FROM pg_settings WHERE name = 'lock_timeout'"
+                ).fetchone(), (100,))
+
     def test_score_november_19_insert_failure_rolls_back_then_retries(self):
         from psycopg.errors import CheckViolation
 

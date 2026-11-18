@@ -2205,3 +2205,11 @@ bez dopisywania ich do rankingu. Test łączy brak paczki doby 25h, brak
 kwalifikowanego JWCD doby 23h i poprawną dobę 24h: 72 żądane okresy,
 24 wspólne, 48 wykluczonych. Sprawdza też powtórzoną datę, pełne pokrycie
 i pusty backtest. Historia w tych testach jest syntetyczna.
+
+Test scoringu oficjalnych cen dla 19.11.2026 zajmuje rzeczywistą blokadę
+advisory doby w osobnym połączeniu izolowanego PostgreSQL. Zarówno przed
+pierwszym INSERT wyniku, jak i przed REPLAY wymusza lock_timeout 100ms.
+Sprawdza SQLSTATE 55P03, niezmienność czterech tabel, zachowanie krótszego
+limitu sesji i przydatność tego samego połączenia po rollbacku. Po zwolnieniu
+blokady ponowienie daje odpowiednio INSERT/REPLAY i jeden wynik.
+Prognoza 650 PLN/MWh i zajęcie blokady są syntetyczne; produkcji nie dotyczy.
