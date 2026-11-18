@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -202,9 +203,46 @@ class HistoryBundleTests(unittest.TestCase):
         self.assertEqual(report["workbook_comparison"], {
             "csv_rows": 24, "matched_rows": 20, "missing_workbook_rows": 1,
             "duplicate_workbook_keys": 1, "jwcd_differences": 1, "fix1_differences": 1,
+            "issue_periods_utc": {
+                "missing_workbook_rows": ["2026-10-24T21:00:00+00:00"],
+                "duplicate_workbook_keys": ["2026-10-24T00:00:00+00:00"],
+                "jwcd_differences": ["2026-10-23T22:00:00+00:00"],
+                "fix1_differences": ["2026-10-23T23:00:00+00:00"],
+            },
             "omitted_dst_days": [],
         })
         self.assertEqual(report["model_ready_days"], 0)
+
+    def test_workbook_issues_identify_utc_periods_with_official_november_19_prices(self):
+        fixture = Path(__file__).parent / 'fixtures/tge_delivery_2026-11-19/tge_delivery_2026-11-19.csv'
+        references = read_csv(fixture)
+        rows = [
+            dict(delivery_date=row['delivery_date'], hour=row['hour'],
+                 period_start_utc=row['period_start_utc'], jwcd_mw='1200',
+                 fix1_pln_mwh=row['price_pln_mwh'])
+            for row in references
+        ]
+        before = [dict(row) for row in rows]
+        serial = (date(2026, 11, 19) - date(1899, 12, 30)).days
+        cells = [
+            (serial, index, Decimal('1200'), Decimal(row['price_pln_mwh']))
+            for index, row in enumerate(references, 1)
+        ]
+        # Workbook rows and their injected faults are synthetic.
+        cells[0] = serial, 1, Decimal('1201'), cells[0][3]
+        cells[1] = serial, 2, Decimal('1200'), cells[1][3] + Decimal('0.01')
+        cells = [*cells[:-1], cells[2]]
+        report = compare_workbook_rows(iter(reversed(cells)), rows)
+        self.assertEqual(report['matched_rows'], 20)
+        self.assertEqual(report['issue_periods_utc'], {
+            'missing_workbook_rows': ['2026-11-19T22:00:00+00:00'],
+            'duplicate_workbook_keys': ['2026-11-19T01:00:00+00:00'],
+            'jwcd_differences': ['2026-11-18T23:00:00+00:00'],
+            'fix1_differences': ['2026-11-19T00:00:00+00:00'],
+        })
+        for issue, periods in report['issue_periods_utc'].items():
+            self.assertEqual(report[issue], len(periods))
+        self.assertEqual(rows, before)
 
     def test_audit_counts_workbook_labels_for_dst_dates_omitted_from_csv(self):
         spring, autumn = date(2026, 3, 29), date(2026, 10, 25)

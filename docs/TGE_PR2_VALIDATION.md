@@ -2213,3 +2213,11 @@ Sprawdza SQLSTATE 55P03, niezmienność czterech tabel, zachowanie krótszego
 limitu sesji i przydatność tego samego połączenia po rollbacku. Po zwolnieniu
 blokady ponowienie daje odpowiednio INSERT/REPLAY i jeden wynik.
 Prognoza 650 PLN/MWh i zajęcie blokady są syntetyczne; produkcji nie dotyczy.
+
+Opcjonalne porównanie XLSB z CSV wskazuje issue_periods_utc osobno dla
+brakujących i powielonych kluczy skoroszytu oraz rozbieżności JWCD/Fix1.
+Liczniki pozostają zachowane. Testy sprawdzają mapowanie do UTC przed i po
+jesiennej zmianie czasu. Nowy test używa rzeczywistych cen TGE dla 19.11.2026
+oraz syntetycznych wierszy skoroszytu i usterek; nie jest nowym audytem
+rzeczywistego XLSB. Istniejący test ZIP potwierdza zachowanie pliku bajtowo.
+Okresy pominiętych dób DST nadal nie są mapowane z niezweryfikowanych etykiet.

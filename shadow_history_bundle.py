@@ -86,13 +86,27 @@ def compare_workbook_rows(cells, csv_rows, *, omitted_dst_days=None):
             fix1_differences.add(key)
 
     duplicates = {key for key, count in seen.items() if count > 1}
+    missing_keys = expected.keys() - seen.keys()
+    issue_periods = {
+        name: [
+            periods_by_day[epoch + timedelta(days=int(serial))][int(hour) - 1].isoformat()
+            for serial, hour in sorted(keys)
+        ]
+        for name, keys in (
+            ("missing_workbook_rows", missing_keys),
+            ("duplicate_workbook_keys", duplicates),
+            ("jwcd_differences", jwcd_differences),
+            ("fix1_differences", fix1_differences),
+        )
+    }
     return {
         "csv_rows": len(expected),
         "matched_rows": len(seen.keys() - duplicates - jwcd_differences - fix1_differences),
-        "missing_workbook_rows": len(expected.keys() - seen.keys()),
+        "missing_workbook_rows": len(missing_keys),
         "duplicate_workbook_keys": len(duplicates),
         "jwcd_differences": len(jwcd_differences),
         "fix1_differences": len(fix1_differences),
+        "issue_periods_utc": issue_periods,
         "omitted_dst_days": [
             {
                 "day": day.isoformat(),
