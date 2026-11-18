@@ -2164,3 +2164,9 @@ początku/końca pobrania JWCD oraz dostępności Fix1, osobno dla pól.
 Test obejmuje doby 23h i 25h oraz rzeczywiste ceny TGE dla 19.11.2026
 z syntetycznymi znacznikami JWCD. Odróżnia brak znacznika od braku
 całego wiersza i zachowuje wykluczenie niegotowej doby z backtestu.
+
+Audyt CSV wskazuje okresy UTC z czasem dostępności Fix1 równym
+D−1 09:50 lub wcześniejszym. Testy rozróżniają granicę i czas wcześniejszy
+w dobie 24h oraz lokalizują drugie jesienne 02:00 w dobie 25h.
+Wiersz z błędnym kluczem UTC liczy się bez przypisania do okresu.
+Dane w tych testach są syntetyczne.

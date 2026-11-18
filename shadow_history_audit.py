@@ -49,6 +49,7 @@ def audit_rows(rows):
         good_prices=good_jwcd=available=verified=0
         actual_times = []
         invalid_actual_timestamps = premature_actual_timestamps = 0
+        premature_actual_periods = set()
         actual_versions = set()
         retrieval_windows = set()
         snapshot_ids = set()
@@ -126,6 +127,8 @@ def audit_rows(rows):
                 else:
                     if actual_time <= cutoff:
                         premature_actual_timestamps += 1
+                        if p in expected:
+                            premature_actual_periods.add(p)
                     else:
                         actual_times.append(actual_time)
                         post_cutoff_fix1_periods.add(p)
@@ -238,6 +241,9 @@ def audit_rows(rows):
             actual_after_issuance_rows=len(actual_times),
             actual_availability_invalid_timestamp_rows=invalid_actual_timestamps,
             actual_availability_at_or_before_cutoff_rows=premature_actual_timestamps,
+            actual_availability_at_or_before_cutoff_periods_utc=[
+                period.isoformat() for period in sorted(premature_actual_periods)
+            ],
             availability_proven_rows=available,verified_actual_rows=verified,
             availability_missing_timestamp_rows=missing_timing,
             missing_timestamp_rows_by_field=dict(missing_timestamps),

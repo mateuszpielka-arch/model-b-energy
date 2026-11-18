@@ -437,11 +437,30 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(day['missing_timestamp_rows_by_field']['actual_available_at'], 1)
         self.assertEqual(day['actual_availability_invalid_timestamp_rows'], 1)
         self.assertEqual(day['actual_availability_at_or_before_cutoff_rows'], 2)
+        self.assertEqual(day['actual_availability_at_or_before_cutoff_periods_utc'], [
+            rows[0]['period_start_utc'], rows[3]['period_start_utc'],
+        ])
         self.assertEqual(report['actual_availability_invalid_timestamp_rows'], 1)
         self.assertEqual(report['actual_availability_at_or_before_cutoff_rows'], 2)
         self.assertIn('ACTUAL_AVAILABILITY_NOT_PROVEN', day['issues'])
         self.assertFalse(day['model_ready'])
 
+
+    def test_locates_premature_fix1_capture_in_second_autumn_02_hour(self):
+        rows = self.rows('2026-10-25')
+        cutoff = '2026-10-24T07:50:00Z'
+        for row in rows:
+            row.update(publication_ts=cutoff, retrieved_at_utc=cutoff, retrieval_completed_at=cutoff)
+        self.assertTrue(audit_rows(rows)['days'][0]['model_ready'])
+        second_02 = rows[3]
+        self.assertEqual(second_02['period_start_utc'], '2026-10-25T01:00:00+00:00')
+        second_02['actual_available_at'] = cutoff
+        invalid_period = {**second_02, 'period_start_utc': 'invalid'}
+        day, = audit_rows([*rows, invalid_period])['days']
+        self.assertEqual(day['actual_availability_at_or_before_cutoff_rows'], 2)
+        self.assertEqual(day['actual_availability_at_or_before_cutoff_periods_utc'],
+                         [second_02['period_start_utc']])
+        self.assertFalse(day['model_ready'])
 
     def test_missing_or_mixed_fix1_versions_block_coverage(self):
         rows = self.rows()
