@@ -436,6 +436,8 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(day['actual_after_issuance_rows'], 20)
         self.assertEqual(day['missing_timestamp_rows_by_field']['actual_available_at'], 1)
         self.assertEqual(day['actual_availability_invalid_timestamp_rows'], 1)
+        self.assertEqual(day['actual_availability_invalid_timestamp_periods_utc'],
+                         [rows[2]['period_start_utc']])
         self.assertEqual(day['actual_availability_at_or_before_cutoff_rows'], 2)
         self.assertEqual(day['actual_availability_at_or_before_cutoff_periods_utc'], [
             rows[0]['period_start_utc'], rows[3]['period_start_utc'],
@@ -461,6 +463,24 @@ class HistoryAuditTests(unittest.TestCase):
         self.assertEqual(day['actual_availability_at_or_before_cutoff_periods_utc'],
                          [second_02['period_start_utc']])
         self.assertFalse(day['model_ready'])
+
+    def test_locates_invalid_fix1_availability_timestamps(self):
+        for delivery in ('2026-03-29', '2026-10-25', '2026-11-19'):
+            with self.subTest(delivery=delivery):
+                rows = self.rows(delivery)
+                if delivery == '2026-11-19':
+                    fixture = Path(__file__).parent / 'fixtures' / f'tge_delivery_{delivery}' / f'tge_delivery_{delivery}.csv'
+                    for row, price in zip(rows, read_csv(fixture), strict=True):
+                        row['fix1'] = price['price_pln_mwh']
+                rows[2]['actual_available_at'] = delivery + 'T12:00:00'
+                rows[3]['actual_available_at'] = 'invalid'
+                unknown_period = {**rows[2], 'period_start_utc': 'invalid'}
+                day, = audit_rows([*rows, unknown_period])['days']
+                self.assertEqual(day['actual_availability_invalid_timestamp_rows'], 3)
+                self.assertEqual(day['actual_availability_invalid_timestamp_periods_utc'], [
+                    rows[2]['period_start_utc'], rows[3]['period_start_utc'],
+                ])
+                self.assertFalse(day['model_ready'])
 
     def test_missing_or_mixed_fix1_versions_block_coverage(self):
         rows = self.rows()

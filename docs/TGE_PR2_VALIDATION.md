@@ -2170,3 +2170,9 @@ D−1 09:50 lub wcześniejszym. Testy rozróżniają granicę i czas wcześniejs
 w dobie 24h oraz lokalizują drugie jesienne 02:00 w dobie 25h.
 Wiersz z błędnym kluczem UTC liczy się bez przypisania do okresu.
 Dane w tych testach są syntetyczne.
+
+Audyt CSV wskazuje okresy UTC z niepoprawnym czasem dostępności Fix1.
+Testy dób 23h i 25h oraz cen TGE dla 19.11.2026 sprawdzają czas bez
+strefy, błędny tekst i wiersz bez prawidłowego klucza UTC. Licznik
+uwzględnia wszystkie wadliwe znaczniki, a lista okresów tylko znane klucze.
+Znaczniki czasu i JWCD w testach są syntetyczne.
