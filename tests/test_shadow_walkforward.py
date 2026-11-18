@@ -396,6 +396,42 @@ class WalkforwardTests(unittest.TestCase):
             context.traps[Inexact] = True
             self.assertEqual(run_walkforward(**args), expected)
 
+    def test_requested_coverage_accounts_for_missing_and_rejected_dst_targets(self):
+        spring = date(2026, 3, 29)
+        autumn = date(2026, 10, 25)
+        ordinary = autumn - timedelta(days=1)
+        history = (
+            fixtures.OLSTests().data(92, target=spring + timedelta(days=1))['history']
+            + fixtures.OLSTests().data(92, target=autumn + timedelta(days=1))['history']
+        )
+        # Missing target and unavailable JWCD are excluded for different reasons.
+        history = [packet for packet in history if packet['day'] != autumn]
+        next(packet for packet in history if packet['day'] == spring)['snapshots'] = []
+        result = run_walkforward(
+            history=history, target_days=[autumn, ordinary, spring, spring],
+            evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
+        )
+        self.assertEqual((result['requested_days'], result['requested_periods']), (3, 72))
+        self.assertEqual((result['common_days'], result['common_periods']), (1, 24))
+        self.assertEqual(result['excluded_periods'], 48)
+        self.assertEqual(result['coverage_by_hours'], {
+            '23': dict(requested_days=1, common_days=0, excluded_days=1,
+                       requested_periods=23, common_periods=0, excluded_periods=23),
+            '24': dict(requested_days=1, common_days=1, excluded_days=0,
+                       requested_periods=24, common_periods=24, excluded_periods=0),
+            '25': dict(requested_days=1, common_days=0, excluded_days=1,
+                       requested_periods=25, common_periods=0, excluded_periods=25),
+        })
+        self.assertEqual({day['day'] for day in result['skipped']}, {spring.isoformat(), autumn.isoformat()})
+        self.assertEqual([day['day'] for day in result['accepted']], [ordinary.isoformat()])
+        self.assertEqual(len(result['ranking']), len(MODELS))
+        self.assertEqual({(row['days'], row['periods']) for row in result['ranking']}, {(1, 24)})
+        self.assertEqual(sum(row['excluded_days'] for row in result['coverage_by_hours'].values()), len(result['skipped']))
+        self.assertEqual(
+            sum(row['common_periods'] for row in result['coverage_by_hours'].values()),
+            result['common_periods'],
+        )
+
     def test_ranking_reports_common_coverage_across_all_delivery_day_lengths(self):
         spring = date(2026, 3, 29)
         autumn = date(2026, 10, 25)
@@ -415,6 +451,9 @@ class WalkforwardTests(unittest.TestCase):
             evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
         )
         self.assertEqual(result['common_days_by_hours'], {'23': 1, '24': 1, '25': 1})
+        self.assertEqual(result['requested_periods'], 72)
+        self.assertEqual(result['excluded_periods'], 0)
+        self.assertTrue(all(row['excluded_days'] == 0 for row in result['coverage_by_hours'].values()))
         self.assertEqual(result['common_periods'], 72)
         self.assertEqual(result['skipped'], [])
         self.assertEqual([day['periods'] for day in result['accepted']], [23, 24, 25])
@@ -591,6 +630,11 @@ class WalkforwardTests(unittest.TestCase):
     def test_empty_run_does_not_manufacture_winner(self):
         out=run_walkforward(history=[],target_days=[],evaluated_at=datetime(2026,11,5,tzinfo=timezone.utc))
         self.assertEqual(out['ranking'],[]);self.assertEqual(out['common_days'],0)
+        self.assertEqual((out['requested_periods'], out['excluded_periods']), (0, 0))
+        self.assertTrue(all(
+            all(value == 0 for value in coverage.values())
+            for coverage in out['coverage_by_hours'].values()
+        ))
 
     def test_target_snapshot_conflict_is_reported_before_model_fitting(self):
         args = self.args()

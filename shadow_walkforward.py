@@ -79,6 +79,8 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
     evaluated = _utc(evaluated_at)
     target_days = sorted(set(target_days))
     max_window_days = max(TRAINING_WINDOWS.values())
+    requested_days_by_hours = Counter(len(expected_periods(day)) for day in target_days)
+    requested_periods = sum(hours * count for hours, count in requested_days_by_hours.items())
     target_ordinals = [day.toordinal() for day in target_days]
     elapsed_targets = bisect_right(target_days, evaluated, key=cutoff_for_day)
     packets = {}
@@ -419,7 +421,19 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
     for entry in skipped:
         skipped_days_by_stage.setdefault(entry['stage'], []).append(entry['day'])
     report = dict(skipped_days_by_stage=skipped_days_by_stage,simulation=True,evaluated_at=evaluated.isoformat(),requested_days=len(target_days),
-        common_days=len(accepted),
+        common_days=len(accepted), requested_periods=requested_periods,
+        excluded_periods=requested_periods - sum(day["periods"] for day in accepted),
+        coverage_by_hours={
+            str(hours): dict(
+                requested_days=requested_days_by_hours[hours],
+                common_days=common_days_by_hours[hours],
+                excluded_days=requested_days_by_hours[hours] - common_days_by_hours[hours],
+                requested_periods=hours * requested_days_by_hours[hours],
+                common_periods=hours * common_days_by_hours[hours],
+                excluded_periods=hours * (requested_days_by_hours[hours] - common_days_by_hours[hours]),
+            )
+            for hours in (23, 24, 25)
+        },
         common_days_by_hours={str(hours): common_days_by_hours[hours] for hours in (23, 24, 25)},
         common_periods=sum(day["periods"] for day in accepted),accepted=accepted,skipped=skipped,
         unreadable_packets={day.isoformat(): unreadable_packets[day] for day in sorted(unreadable_packets)},

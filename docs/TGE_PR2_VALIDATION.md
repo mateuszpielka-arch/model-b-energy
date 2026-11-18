@@ -2197,3 +2197,11 @@ Test porównuje cały raport z referencyjnym CSV oficjalnego pobrania dla
 testy odrzucają wcześniejsze rzeczywiste pobranie bez cen i obie doby DST
 2026 (23/25h). Raport potwierdza wyłącznie układ i kompletność; nie stanowi
 dowodu dostępności o 09:50 ani zgody na zapis archiwum lub scoring.
+
+Raport walk-forward podaje requested_periods i excluded_periods oraz
+coverage_by_hours: żądane, wspólne i wykluczone doby/okresy osobno dla
+23/24/25h. Pokrycie liczy unikalne żądane daty również bez paczki danych,
+bez dopisywania ich do rankingu. Test łączy brak paczki doby 25h, brak
+kwalifikowanego JWCD doby 23h i poprawną dobę 24h: 72 żądane okresy,
+24 wspólne, 48 wykluczonych. Sprawdza też powtórzoną datę, pełne pokrycie
+i pusty backtest. Historia w tych testach jest syntetyczna.
