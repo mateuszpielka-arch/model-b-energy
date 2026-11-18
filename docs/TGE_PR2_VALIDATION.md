@@ -2140,3 +2140,9 @@ Raport walk-forward wskazuje daty bez dowodu czasowego treningu, gdy
 okno modelu jest niekompletne. Rozszerzony test OLS 60D sprawdza listę
 wszystkich 60 dat przy braku dowodów oraz pojedynczą brakującą datę.
 Brak dowodu nadal blokuje scoring całej doby. Historia jest syntetyczna.
+
+Drugie pobranie sesji TGE z 18.11.2026 o 11:18:01 Europe/Warsaw
+zawiera 24 ceny Fixing I dla 19.11.2026. Zapisano HTML gzip, referencyjny
+CSV z okresami UTC i manifest SHA-256. Test wiąże oba pobrania z tym samym
+URL i sprawdza zgodność parsera z ekstrakcją XPath oraz INSERT/REPLAY
+w izolowanym PostgreSQL. H01 wynosi 623,98, a H24 765,41 PLN/MWh.
