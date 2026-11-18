@@ -880,6 +880,30 @@ class WalkforwardTests(unittest.TestCase):
             'reason': 'Explicit forecast/model/actual identities required',
         }])
 
+    def test_missing_prediction_prices_excludes_only_the_affected_common_day(self):
+        args = self.args()
+        first, second = args['target_days']
+
+        def missing_level_prices(**kwargs):
+            prediction = predict_similar(**kwargs)
+            if kwargs['mode'] == 'level' and kwargs['target_day'] == first:
+                del prediction['prices']
+            return prediction
+
+        with patch('shadow_walkforward.predict_similar', side_effect=missing_level_prices), patch(
+            'shadow_walkforward.score_day', wraps=score_day,
+        ) as scoring:
+            result = run_walkforward(**args)
+        self.assertEqual(scoring.call_count, len(MODELS))
+        self.assertEqual({call.kwargs['day'] for call in scoring.call_args_list}, {second})
+        self.assertEqual(result['common_days'], 1)
+        self.assertEqual(result['common_periods'], 24)
+        self.assertEqual(len(result['ranking']), len(MODELS))
+        self.assertEqual(result['skipped'], [{
+            'day': first.isoformat(), 'stage': 'scoring', 'model': 'similar_level',
+            'reason': 'Invalid price collection',
+        }])
+
     def test_ranked_day_identifies_actual_version_and_availability(self):
         args = self.args()
         target = args['history'][-1]

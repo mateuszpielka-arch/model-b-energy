@@ -2084,3 +2084,9 @@ Walk-forward sprawdza wersje wszystkich modeli przed scoringiem doby.
 Brak wersji w prognozie dni podobnych level wyklucza tę dobę z porównania
 i pozwala kontynuować ocenę następnej. Test na syntetycznej historii
 potwierdza sześć wywołań scoringu wyłącznie dla poprawnej doby.
+
+Walk-forward przekazuje brak pola cen prognozy do istniejącej walidacji
+kolekcji cen. Wadliwa doba jest odrzucana z powodem w raporcie, a kolejna
+może zostać oceniona. Test usuwa prices z prognozy dni podobnych level
+i potwierdza wspólny ranking sześciu modeli tylko dla poprawnej doby.
+Historia i prognozy w teście są syntetyczne.
