@@ -833,6 +833,45 @@ class WalkforwardTests(unittest.TestCase):
                             'reason': 'Training Fix1 prices unavailable at D-1 09:50',
                         }])
 
+    def test_similar_days_training_jwcd_cutoff_boundary(self):
+        args = self.args()
+        target = args['target_days'][-1]
+        args['target_days'] = [target]
+        training_day = target - timedelta(days=1)
+        for mode in ('shape', 'level'):
+            for delay in (timedelta(0), timedelta(microseconds=1)):
+                with self.subTest(mode=mode, delay=delay):
+                    def training_jwcd_at_boundary(**kwargs):
+                        prediction = predict_similar(**kwargs)
+                        if kwargs['mode'] == mode:
+                            evidence = prediction['training_timing'][-1]
+                            self.assertEqual(evidence['day'], training_day.isoformat())
+                            stamp = (cutoff_for_day(training_day) + delay).isoformat()
+                            for field in (
+                                'latest_publication_ts_utc', 'retrieved_at_utc',
+                                'retrieval_completed_at_utc',
+                            ):
+                                evidence[field] = stamp
+                        return prediction
+
+                    with patch('shadow_walkforward.predict_similar', side_effect=training_jwcd_at_boundary), patch(
+                        'shadow_walkforward.score_day', wraps=score_day,
+                    ) as scoring:
+                        result = run_walkforward(**args)
+                    if not delay:
+                        self.assertEqual(result['common_days'], 1)
+                        self.assertEqual(result['common_periods'], 24)
+                        self.assertEqual(scoring.call_count, len(MODELS))
+                        self.assertEqual(len(result['ranking']), len(MODELS))
+                        self.assertEqual(result['skipped'], [])
+                    else:
+                        scoring.assert_not_called()
+                        self.assertEqual(result['ranking'], [])
+                        self.assertEqual(result['skipped'], [{
+                            'day': target.isoformat(), 'stage': 'scoring', 'model': f'similar_{mode}',
+                            'reason': f'Training JWCD chronology invalid at D-1 09:50: {training_day}',
+                        }])
+
     def test_incomplete_similar_level_blocks_all_common_day_scoring(self):
         args = self.args()
         target = args['target_days'][-1]

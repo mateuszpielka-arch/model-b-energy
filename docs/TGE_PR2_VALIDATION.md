@@ -2096,3 +2096,9 @@ scoringiem. Test zmienia wyłącznie datę prognozy dni podobnych level przy
 poprawnych okresach UTC i identyfikatorze snapshotu. Wadliwa doba jest
 wykluczana, a następna otrzymuje wspólny ranking sześciu modeli.
 Test wykorzystuje syntetyczną historię.
+
+Test walk-forward sprawdza znaczniki publikacji, początku i zakończenia
+pobrania treningowego JWCD w obu wariantach dni podobnych, shape i level.
+Znaczniki dokładnie na granicy D−1 09:50 doby treningowej dopuszczają
+wspólną ocenę. Spóźnienie o mikrosekundę blokuje scoring wszystkich modeli.
+Test wykorzystuje syntetyczną historię i dowody czasowe.
