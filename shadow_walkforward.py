@@ -169,6 +169,10 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                 for mode in ('shape','level'):
                     stage='similar_'+mode
                     predictions[stage]=predict_similar(**common,window_days=SIMILAR_WINDOW,k=5,mode=mode)
+                for name in MODELS[:-1]:
+                    if not isinstance(predictions[name], Mapping):
+                        stage = name
+                        raise ValueError('Invalid model prediction object')
                 forecast_prices = {}
                 for name in MEDIAN_MEMBERS:
                     stage = name
@@ -177,6 +181,8 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                     predictions[name] = {**predictions[name], 'prices': tuple(prices.items())}
                 stage='median4'; predictions[stage]=median_consensus(target_day=day,
                     models={m:predictions[m] for m in MEDIAN_MEMBERS})
+                if not isinstance(predictions['median4'], Mapping):
+                    raise ValueError('Invalid model prediction object')
                 stage='scoring'
                 for scoring_model in MODELS:
                     if predictions[scoring_model].get('target_day') != day.isoformat():

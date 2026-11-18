@@ -2102,3 +2102,8 @@ pobrania treningowego JWCD w obu wariantach dni podobnych, shape i level.
 Znaczniki dokładnie na granicy D−1 09:50 doby treningowej dopuszczają
 wspólną ocenę. Spóźnienie o mikrosekundę blokuje scoring wszystkich modeli.
 Test wykorzystuje syntetyczną historię i dowody czasowe.
+
+Walk-forward odrzuca wynik modelu, który nie jest obiektem z polami
+prognozy. Test zwraca None z dni podobnych shape i z mediany w pierwszej
+dobie. Każdy przypadek daje powód odrzucenia tej doby oraz wspólną ocenę
+sześciu modeli w następnej. Historia w teście jest syntetyczna.

@@ -967,6 +967,34 @@ class WalkforwardTests(unittest.TestCase):
             'reason': 'Prediction delivery date does not match target delivery',
         }])
 
+    def test_invalid_prediction_object_skips_only_affected_common_day(self):
+        args = self.args()
+        first, second = args['target_days']
+        for broken in ('similar_shape', 'median4'):
+            with self.subTest(model=broken):
+                def similar_prediction(**kwargs):
+                    if broken == 'similar_shape' and kwargs['mode'] == 'shape' and kwargs['target_day'] == first:
+                        return None
+                    return predict_similar(**kwargs)
+
+                def median_prediction(**kwargs):
+                    if broken == 'median4' and kwargs['target_day'] == first:
+                        return None
+                    return median_consensus(**kwargs)
+
+                with patch('shadow_walkforward.predict_similar', side_effect=similar_prediction), patch(
+                    'shadow_walkforward.median_consensus', side_effect=median_prediction,
+                ), patch('shadow_walkforward.score_day', wraps=score_day) as scoring:
+                    result = run_walkforward(**args)
+                self.assertEqual(scoring.call_count, len(MODELS))
+                self.assertEqual({call.kwargs['day'] for call in scoring.call_args_list}, {second})
+                self.assertEqual(result['common_days'], 1)
+                self.assertEqual(len(result['ranking']), len(MODELS))
+                self.assertEqual(result['skipped'], [{
+                    'day': first.isoformat(), 'stage': broken,
+                    'reason': 'Invalid model prediction object',
+                }])
+
     def test_ranked_day_identifies_actual_version_and_availability(self):
         args = self.args()
         target = args['history'][-1]
