@@ -52,7 +52,7 @@ def run_once(day):
                 for h,v in sorted(rows.items()):
                     c.execute("""INSERT INTO actual.tge_fix1(delivery_date,hour,price_pln_mwh,source_url,first_seen_at_utc,retrieved_at_utc,raw_hash) VALUES(%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(delivery_date,hour) DO NOTHING""",(day,h,v,TGE_URL,now,now,raw_hash))
         conn.commit(); metrics=None  # scoring disabled pending independent price verification
-    print(json.dumps({'event':'tge_fix1','delivery_date':day,'rows':len(rows),'status':'COMPLETE' if len(rows)==24 else 'WAITING','sample':rows,'score':metrics,'retrieved_at_utc':now.isoformat()}),flush=True)
+    print(json.dumps({'event':'tge_fix1','delivery_date':day,'rows':len(rows),'status':'COMPLETE' if len(rows)==24 else 'WAITING','sample':{str(h):str(v) for h,v in sorted(rows.items())},'score':metrics,'retrieved_at_utc':now.isoformat()}),flush=True)
 
 def main():
     day=os.environ.get('DELIVERY_DATE') or (datetime.now(WARSAW).date()+timedelta(days=1)).isoformat(); local=datetime.now(WARSAW)
