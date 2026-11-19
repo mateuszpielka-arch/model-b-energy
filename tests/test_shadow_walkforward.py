@@ -108,6 +108,43 @@ class WalkforwardTests(unittest.TestCase):
         ):
             self.assertLess(abs(frozen[metric] - expected), Decimal('1e-24'), metric)
 
+    def test_overflowing_frozen_benchmark_preserves_all_shadow_results(self):
+        autumn = date(2026, 10, 25)
+        history = fixtures.OLSTests().data(92, target=autumn + timedelta(days=1))['history']
+        earlier, autumn_packet = history[-2:]
+        args = dict(history=history, target_days=[earlier['day'], autumn],
+                    evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc))
+        baseline = run_walkforward(**args)
+        records = {}
+        for packet in (earlier, autumn_packet):
+            day = packet['day']
+            cutoff = cutoff_for_day(day)
+            records[day] = dict(
+                forecast_id=f'synthetic-frozen:{day}', model_version=FROZEN_90D_VERSION,
+                forecast_status='FROZEN', issued_at=cutoff,
+                publication_ts=cutoff - timedelta(minutes=1), retrieved_at=cutoff,
+                prices=list(packet['actual']),
+            )
+        # A finite synthetic forecast makes the benchmark's error sum overflow.
+        records[autumn]['prices'] = [
+            (period, Decimal('9E999999')) for period, _ in autumn_packet['actual']
+        ]
+        before = deepcopy(records)
+        result = run_walkforward(**args, frozen_90d_by_day=records)
+        benchmark = result.pop('frozen_90d_benchmark')
+        self.assertEqual(result, baseline)
+        self.assertEqual(records, before)
+        self.assertEqual(benchmark['excluded_days'], {
+            autumn.isoformat(): 'Numeric computation failed: Overflow',
+        })
+        self.assertEqual([pair['day'] for pair in benchmark['paired_days']],
+                         [earlier['day'].isoformat()])
+        self.assertEqual({(row['days'], row['periods']) for row in benchmark['ranking']}, {(1, 24)})
+        self.assertEqual(benchmark['coverage_by_hours']['25'], {
+            'shadow_days': 1, 'paired_days': 0, 'unpaired_days': 1, 'paired_periods': 0,
+        })
+        self.assertEqual(benchmark['coverage_by_hours']['24']['paired_periods'], 24)
+
     def test_interrupted_frozen_prices_preserve_shadow_ranking_and_other_benchmark_day(self):
         autumn = date(2026, 10, 25)
         history = fixtures.OLSTests().data(92, target=autumn + timedelta(days=1))['history']

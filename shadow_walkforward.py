@@ -351,8 +351,10 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         actual_verified=True, issued_at=record.get('issued_at'),
                         publication_ts=record.get('publication_ts'), retrieved_at=record.get('retrieved_at'),
                     )
-                except ValueError as exc:
-                    benchmark['excluded_days'][label] = str(exc)
+                except (ValueError, DecimalException) as exc:
+                    reason = (f'Numeric computation failed: {type(exc).__name__}'
+                              if isinstance(exc, DecimalException) else str(exc))
+                    benchmark['excluded_days'][label] = reason
                 else:
                     benchmark['paired_days'].append(dict(day=label, frozen_90d=frozen_score, ols90=scores['ols90']))
                     for name, prices in (('frozen_90d', frozen_prices), ('ols90', forecast_prices['ols90'])):

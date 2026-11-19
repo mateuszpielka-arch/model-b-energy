@@ -2272,3 +2272,12 @@ przebiegu przez Overflow w OLS 30D dla skończonego syntetycznego JWCD 9E999999.
 Po poprawce doba 23h jest wykluczona przed scoringiem, a niezależna doba 25h
 zachowuje identyczne prognozy i wyniki oraz sześć wywołań scoringu.
 Nie zmieniono reguł dostępności danych, modeli ani parametrów obliczeń.
+
+Opcjonalny benchmark FROZEN 90D w offline walk-forward izoluje również
+błędy Decimal podczas oceny syntetycznego rekordu porównawczego.
+Test odtworzył przerwanie całego raportu przez Overflow przy sumie błędów
+prognozy 9E999999. Po poprawce tylko ta para benchmarku jest wykluczona
+z podaniem przyczyny; pełne 49 okresów i wszystkie wyniki SHADOW pozostają
+identyczne z przebiegiem bez benchmarku. Wcześniejsza poprawna para 24h
+pozostaje w rankingu porównawczym. Test potwierdza niezmienność rekordów.
+Historia i rekordy benchmarku są syntetyczne; produkcyjnego FROZEN nie zmieniano.
