@@ -2496,3 +2496,21 @@ zwraca kod 2 i pusty stdout. Lokalnie 17/17 testów test_shadow_source_history
 przeszło. Raport jest read-only i nie zapisuje plików ani bazy; hashe i spójność
 nie uwierzytelniają niezależnie podanych czasów pobrania. Nie dodano dób
 treningowych, prognoz ani rankingu.
+
+
+## Checkpoint 2026-11-19 — atomowe dodawanie doby do rankingu SHADOW
+
+Walk-forward przygotowuje teraz sumy wspólnego rankingu na odłączonej kopii:
+ogółem, według 23/24/25h, typu dnia oraz lokalnej godziny/fold. Dopiero po
+powodzeniu wszystkich okresów i sześciu modeli publikuje sumy oraz liczniki.
+DecimalException na tym etapie wyklucza całą dobę ze stage=aggregation i
+numeric_error, bez częściowego rankingu, po czym przebieg kontynuuje kolejne dni.
+Parowanie opcjonalnego benchmarku odbywa się dopiero po udanej agregacji SHADOW.
+
+Nowa regresja odtworzyła wcześniejsze przerwanie całego przebiegu przez Overflow
+wstrzyknięty po częściowej aktualizacji ostatniego modelu doby 25h. Po poprawce
+wcześniejsza i następna doba 24h zachowują dokładnie te same accepted oraz
+rankingi ogólny, 23/24/25h, weekday/weekend i lokalnej godziny jak przebieg bez
+wadliwej doby. Wykluczono dokładnie 25 okresów; historia pozostaje niezmieniona.
+Lokalnie 67/67 testów test_shadow_walkforward przeszło. Historia i wstrzyknięta
+awaria są syntetyczne; produkcyjnych prognoz i FROZEN nie zmieniano.

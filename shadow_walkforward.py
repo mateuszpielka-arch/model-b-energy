@@ -4,6 +4,7 @@ Simulates issuance at each D-1 09:50; never creates real FROZEN forecasts.
 No I/O. Verified canonical history is a prerequisite, not produced by this module.
 """
 from bisect import bisect_left, bisect_right
+from copy import deepcopy
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, timedelta
@@ -48,6 +49,31 @@ def _accumulate(totals, error, actual):
         if absolute_actual:
             total['nz'] += 1
             total['ape'] += absolute_error / absolute_actual
+
+
+def _stage_common_day(*, day, forecast_prices, actual, totals, totals_by_hours,
+                      totals_by_day_type, totals_by_local_hour):
+    """Accumulate a whole common day on detached sums before committing any."""
+    staged = deepcopy((totals, totals_by_hours, totals_by_day_type, totals_by_local_hour))
+    overall, by_hours, by_day_type, by_local_hour = staged
+    periods = sorted(actual)
+    day_type = 'weekend' if day.weekday() >= 5 else 'weekday'
+    hourly_totals = {}
+    local_hours = []
+    for period in periods:
+        local = period.astimezone(WARSAW)
+        hour = local.strftime('%H:%M')
+        if local.fold:
+            hour += '[fold=1]'
+        hourly_totals[period] = by_local_hour[hour]
+        local_hours.append(hour)
+    for name in MODELS:
+        predicted = forecast_prices[name]
+        model_totals = (overall[name], by_hours[len(periods)][name], by_day_type[day_type][name])
+        for period in periods:
+            value = actual[period]
+            _accumulate((*model_totals, hourly_totals[period][name]), predicted[period] - value, value)
+    return (*staged, local_hours)
 
 
 def _rank(totals, days):
@@ -327,6 +353,19 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                 skipped.append(rejection)
                 continue
             periods = sorted(actual)
+            try:
+                staged_totals = _stage_common_day(
+                    day=day, forecast_prices=forecast_prices, actual=actual, totals=totals,
+                    totals_by_hours=totals_by_hours, totals_by_day_type=totals_by_day_type,
+                    totals_by_local_hour=totals_by_local_hour,
+                )
+            except DecimalException as exc:
+                skipped.append(dict(
+                    day=day.isoformat(), stage='aggregation',
+                    reason=f'Numeric computation failed: {type(exc).__name__}',
+                    numeric_error=type(exc).__name__,
+                ))
+                continue
             if frozen_90d_by_day is not None:
                 label = day.isoformat()
                 record = frozen_90d_by_day.get(day)
@@ -361,25 +400,12 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         for period in periods:
                             value = actual[period]
                             _accumulate((benchmark_totals[name],), prices[period] - value, value)
-            # Accumulate only after ALL models and scores have passed for the day.
+            # Publish sums and counters only after the entire day has accumulated.
+            (totals, totals_by_hours, totals_by_day_type, totals_by_local_hour,
+             local_hours) = staged_totals
             day_type = 'weekend' if day.weekday() >= 5 else 'weekday'
             common_days_by_day_type[day_type] += 1
-            hourly_totals = {}
-            for period in periods:
-                local = period.astimezone(WARSAW)
-                hour = local.strftime('%H:%M')
-                if local.fold:
-                    hour += '[fold=1]'
-                hourly_totals[period] = totals_by_local_hour[hour]
-                common_periods_by_local_hour[hour] += 1
-            for name in MODELS:
-                predicted = forecast_prices[name]
-                model_totals = (totals[name], totals_by_hours[len(periods)][name],
-                                totals_by_day_type[day_type][name])
-                for p in periods:
-                    y = actual[p]
-                    error = predicted[p] - y
-                    _accumulate((*model_totals, hourly_totals[p][name]), error, y)
+            common_periods_by_local_hour.update(local_hours)
             accepted.append(dict(day=day.isoformat(),periods=len(actual),
                 period_starts_utc=[period.isoformat() for period in periods],
                 target_snapshot_id=selected.snapshot_id,

@@ -1,10 +1,11 @@
 from copy import deepcopy
 from datetime import date,datetime,timedelta,timezone
-from decimal import Decimal, Inexact, ROUND_UP, localcontext
+from decimal import Decimal, Inexact, Overflow, ROUND_UP, localcontext
 from fractions import Fraction
 import unittest
 from unittest.mock import patch
 import test_shadow_ols as fixtures
+import shadow_walkforward as walkforward
 from shadow_walkforward import FROZEN_90D_VERSION, MODELS, run_walkforward
 from shadow_similar_consensus import median_consensus, predict_similar
 from shadow_asof import cutoff_for_day
@@ -16,6 +17,42 @@ class WalkforwardTests(unittest.TestCase):
         history=fixtures.OLSTests().data(92)['history']
         return dict(history=history,target_days=[p['day'] for p in history[-2:]],
                     evaluated_at=datetime(2026,11,5,tzinfo=timezone.utc))
+
+    def test_ranking_accumulation_failure_discards_whole_day_and_continues(self):
+        history = fixtures.OLSTests().data(94, target=date(2026, 10, 27))['history']
+        first, broken, last = [packet['day'] for packet in history[-3:]]
+        args = dict(history=history, target_days=[first, broken, last],
+                    evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc))
+        baseline = run_walkforward(**{**args, 'target_days': [first, last]})
+        before = deepcopy(history)
+        accumulate = walkforward._accumulate
+        calls = 0
+        # Fail after earlier models and one period of the final model have accumulated.
+        fail_at = len(MODELS) * len(expected_periods(first)) + (
+            len(MODELS) - 1) * len(expected_periods(broken)) + 2
+
+        def interrupt(totals, error, actual):
+            nonlocal calls
+            calls += 1
+            accumulate(totals, error, actual)
+            if calls == fail_at:
+                raise Overflow('Synthetic failure after partial ranking accumulation')
+
+        with patch('shadow_walkforward._accumulate', side_effect=interrupt):
+            report = run_walkforward(**args)
+        self.assertGreater(calls, fail_at)
+        self.assertEqual(report['skipped'], [
+            dict(day=broken.isoformat(), stage='aggregation',
+                 reason='Numeric computation failed: Overflow', numeric_error='Overflow'),
+        ])
+        for key in (
+            'accepted', 'ranking', 'ranking_by_hours', 'ranking_by_day_type',
+            'ranking_by_local_hour', 'common_days', 'common_periods', 'common_days_by_hours',
+        ):
+            self.assertEqual(report[key], baseline[key], key)
+        self.assertEqual(report['excluded_periods'], 25)
+        self.assertEqual(report['coverage_by_hours']['25']['common_periods'], 0)
+        self.assertEqual(history, before)
 
     def test_decimal_overflow_rejects_only_affected_day_before_scoring(self):
         spring, autumn = date(2026, 3, 29), date(2026, 10, 25)
