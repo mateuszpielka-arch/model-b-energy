@@ -2532,3 +2532,20 @@ trzy doby, 73 okresy. Ranking par ma wyłącznie wcześniejszą i następną dob
 pozostają niezmienione. Lokalnie 68/68 testów test_shadow_walkforward przeszło.
 Historia, rekordy porównawcze i awaria są syntetyczne. Produkcyjnych modeli,
 FROZEN i istniejących archiwów nie zmieniano.
+
+
+## Checkpoint 2026-11-20 — procenty rankingu bez przepełnienia wyniku pośredniego
+
+Ranking oblicza MAPE/WAPE z dwoma dodatkowymi pozycjami wykładnika wyłącznie
+na czas mnożenia przez 100 i dzielenia. Precyzja pozostaje bez zmian, a wynik
+końcowy ponownie podlega pierwotnemu kontekstowi Decimal. Usuwa to fałszywy
+Overflow dla skończonych sum i procentów mieszczących się w dotychczasowym
+zakresie. Nie zmieniono definicji MAE/MAPE/WAPE/bias ani wspólnej próby.
+
+Trzy nowe testy obejmują naturalny Overflow przy syntetycznych dużych sumach,
+który przed poprawką przerywał _rank mimo końcowego WAPE=50 oraz skończonego
+MAPE. Potwierdzają dokładne metryki, niezmienność sum i kontekstu wywołującego,
+zachowanie Overflow dla rzeczywiście zbyt dużego procentu oraz None przy
+zerowych mianownikach i jawne zero_actual_periods. Lokalnie 3/3 nowe testy
+i 68/68 testów test_shadow_walkforward przeszło. To testy granic arytmetyki
+na syntetycznych sumach, nie wyniki modeli ani nowe dane historyczne.

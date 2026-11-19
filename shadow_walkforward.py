@@ -76,14 +76,23 @@ def _stage_common_day(*, day, forecast_prices, actual, totals, totals_by_hours,
     return (*staged, local_hours)
 
 
+def _ranking_percentage(numerator, denominator):
+    # Multiplication by 100 needs two extra exponent positions, not extra precision.
+    # Apply the original context to the final result so real range failures remain errors.
+    with localcontext() as context:
+        context.Emax += 2
+        result = 100 * numerator / denominator
+    return +result
+
+
 def _rank(totals, days):
     if not days:
         return []
     ranking = [
         dict(model=name, days=days, periods=t['n'], mape_periods=t['nz'],
              zero_actual_periods=t['n'] - t['nz'], mae=t['ae'] / t['n'], bias=t['err'] / t['n'],
-             mape_pct=100 * t['ape'] / t['nz'] if t['nz'] else None,
-             wape_pct=100 * t['ae'] / t['denom'] if t['denom'] else None)
+             mape_pct=_ranking_percentage(t['ape'], t['nz']) if t['nz'] else None,
+             wape_pct=_ranking_percentage(t['ae'], t['denom']) if t['denom'] else None)
         for name, t in totals.items()
     ]
     ranking.sort(key=lambda row: (row['mae'], row['model']))
