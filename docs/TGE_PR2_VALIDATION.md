@@ -2352,3 +2352,13 @@ bez wierszy żądanej dostawy. Wspólny test potwierdza identyczne klucze UTC
 rzeczywistego PK5 pobranego o 09:15 i Fix1 pobranego po cutoff, bez użycia
 późnego PK5. Test PostgreSQL sprawdza INSERT/REPLAY, niezmienne dowody i 24 ceny.
 To walidacja źródeł i ich osi czasu, nie wynik prognozy ani historyczny ranking.
+
+Test scoringu dla 20.11.2026 łączy rzeczywisty PK5 pobrany o 09:15 z
+rzeczywistym Fix1 pobranym o 11:17. Prognoza kontrolna to wyłącznie syntetyczny
+stały wzór JWCD / 20, nie model uczony ani rzeczywiście wydana prognoza.
+Niezależny rachunek Fraction według etykiet PSE i referencyjnego CSV daje:
+MAE 331.522083333333; MAPE 35.005439476079%; WAPE 35.172766527800%;
+bias -331.522083333333 PLN/MWh. Test PostgreSQL sprawdza te metryki,
+brak zapisu mikrosekundę przed pobraniem Fix1, INSERT dokładnie w chwili
+jego dostępności oraz REPLAY z CSV i bez niego przy jednym trwałym wyniku.
+To dowód poprawności scoringu i czasu dostępności, nie ocena skuteczności modeli.

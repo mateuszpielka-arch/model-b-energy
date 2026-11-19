@@ -1376,6 +1376,64 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                 score_archived_day(conn, **inputs)
             self.assertEqual([conn.execute(query).fetchall() for query in queries], saved)
 
+    def test_score_november_20_real_pk5_inputs_match_fraction_oracle(self):
+        from shadow_asof import select_snapshot
+        from shadow_pk5_snapshot import prepare_pk5_snapshot
+
+        day = date(2026, 11, 20)
+        manifest = NOV_20_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        _, reference, _ = load_session(entry, NOV_20_FIXTURES)
+        captured = datetime.fromisoformat(entry['retrieved_at_utc'])
+        directory = FIXTURES.with_name('pse_pk5_delivery_2026-11-20_second')
+        metadata = json.loads((directory / 'capture.json').read_text())
+        raw = gzip.decompress((directory / metadata['raw_file']).read_bytes())
+        snapshot = prepare_pk5_snapshot(
+            raw=raw, day=day.isoformat(), source_url=metadata['url'],
+            retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
+            retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']),
+        )
+        selected = select_snapshot(day, [snapshot])
+        self.assertIsNotNone(selected.snapshot_id)
+        # Fixed synthetic test formula, not a trained or issued market forecast.
+        inputs = dict(
+            day=day, forecast=[(period, jwcd * Decimal('0.05')) for period, jwcd in selected.rows],
+            forecast_id=f'synthetic-five-percent:{snapshot["id"]}',
+            model_version='synthetic-jwcd-five-percent-test-v1', forecast_status='SHADOW',
+            issued_at=cutoff_for_day(day), publication_ts=selected.latest_publication_ts_utc,
+            retrieved_at=selected.retrieval_completed_at_utc,
+        )
+        # Independent Fraction oracle: PSE period-label JWCD / 20 versus official CSV prices.
+        expected = {
+            'mae': Decimal('331.522083333333'),
+            'mape_pct': Decimal('35.005439476079'),
+            'wape_pct': Decimal('35.172766527800'),
+            'bias': Decimal('-331.522083333333'),
+        }
+        query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
+        with self.isolated_connection() as conn:
+            initialize_scores(conn)
+            self.assertEqual(ingest_manifest(manifest, conn=conn)['inserted_periods'], 24)
+            with self.assertRaisesRegex(ValueError, 'not yet available'):
+                score_archived_day(
+                    conn, **inputs, reference_csv=reference,
+                    evaluated_at=captured - timedelta(microseconds=1),
+                )
+            self.assertEqual(conn.execute(query).fetchall(), [])
+            status, score = score_archived_day(
+                conn, **inputs, reference_csv=reference, evaluated_at=captured,
+            )
+            self.assertEqual((status, score.periods, score.mape_periods), ('INSERT', 24, 24))
+            for metric, value in expected.items():
+                self.assertEqual(getattr(score, metric).quantize(Decimal('1e-12')), value)
+            saved = conn.execute(query).fetchall()
+            for supplied_reference in (reference, None):
+                self.assertEqual(score_archived_day(
+                    conn, **inputs, reference_csv=supplied_reference, evaluated_at=captured,
+                ), ('REPLAY', score))
+            self.assertEqual(conn.execute(query).fetchall(), saved)
+            self.assertEqual(len(saved), 1)
+
     def test_score_november_19_lock_timeout_preserves_insert_and_replay_state(self):
         from psycopg.errors import LockNotAvailable
 
