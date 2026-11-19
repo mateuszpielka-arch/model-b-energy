@@ -4,6 +4,7 @@ Supports legacy H01..H24 ONLY on standard days; DST needs explicit UTC periods.
 A structurally complete price day alone never means model-ready history.
 """
 import csv
+import re
 from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -22,8 +23,14 @@ def _number(value):
 
 
 def _stamp(value):
-    if isinstance(value,datetime): return _utc(value)
-    return _utc(datetime.fromisoformat(str(value).replace('Z','+00:00')))
+    if isinstance(value, datetime):
+        return _utc(value)
+    # CSV admission must not silently move evidence across a cutoff or UTC period.
+    if (not isinstance(value, str) or not re.fullmatch(
+            r'\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}'
+            r'(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})', value)):
+        raise ValueError('Full aware timestamp with at most six fractional digits required')
+    return _utc(datetime.fromisoformat(value))
 
 
 def audit_rows(rows):

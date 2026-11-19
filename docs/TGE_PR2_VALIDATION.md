@@ -2458,3 +2458,22 @@ odtworzono ignorowanie pierwszego argumentu i eksport starszej publikacji,
 gdy jej plik był ostatni. Usterki i konflikt są syntetyczne; oryginalne źródła
 pozostają zachowane. Lokalnie 15/15 testów test_shadow_source_history przeszło.
 To obsługa jednej doby i jej rewizji, nie nowe historyczne okna ani ranking.
+
+
+## Checkpoint 2026-11-19 — precyzja czasu w audycie CSV i dopuszczeniu walk-forward
+
+Parser czasu _stamp w read-only shadow_history_audit wymaga teraz pełnego
+tekstu daty/czasu z sekundami, jawną strefą i najwyżej sześcioma cyframi ułamka.
+Zachowuje wsparcie aware datetime oraz równoważnych zapisów UTC/Warsaw.
+Nie obcina ułamków ani nie dopisuje brakujących sekund. To bramka offline;
+produkcja i istniejące archiwa nie są modyfikowane.
+
+Trzy nowe testy odtworzyły wcześniejsze przyjęcie syntetycznego czasu
+09:50:00.0000001 jako dokładnego cutoff. Osobno dla publication_ts, retrieved_at
+i retrieval_completed_at w dobach 23/24/25h audyt wskazuje wadliwy znacznik
+i właściwy okres UTC, a evaluate_csv_rows wyklucza dobę bez dopisania rankingu.
+Testy odrzucają również nadmiarową precyzję actual_available_at i klucza UTC
+oraz czas bez sekund; poprawny dokładny cutoff nadal przechodzi.
+Sprawdzono niezmienność wejścia. Lokalnie 3/3 testy nowego modułu
+test_shadow_history_timestamp_precision przeszły. Dane są syntetyczne,
+nie stanowią nowej walidacji historycznej dostępności ani mapowania źródłowego DST.
