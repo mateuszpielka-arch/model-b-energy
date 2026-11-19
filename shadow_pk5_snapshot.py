@@ -5,7 +5,7 @@ from hashlib import sha256
 import json
 from urllib.parse import parse_qs, urlsplit
 
-from shadow_asof import select_snapshot
+from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_scoring import WARSAW, _utc, expected_periods
 
 
@@ -51,6 +51,14 @@ def prepare_pk5_snapshot(*, raw, day, source_url, retrieved_at, retrieval_comple
         raise ValueError('Unexpected PK5 source URL or delivery filter')
     if not isinstance(raw, bytes) or not raw or len(raw) > 8 * 1024 * 1024:
         raise ValueError('Nonempty PK5 JSON bytes up to 8 MiB required')
+    started, completed = _utc(retrieved_at), _utc(retrieval_completed_at)
+    cutoff = cutoff_for_day(delivery)
+    if started > completed:
+        raise ValueError('PK5 snapshot rejected: INVALID_RETRIEVAL_ORDER')
+    if started > cutoff:
+        raise ValueError('PK5 snapshot rejected: RETRIEVAL_STARTED_AFTER_CUTOFF')
+    if completed > cutoff:
+        raise ValueError('PK5 snapshot rejected: RETRIEVAL_COMPLETED_AFTER_CUTOFF')
     payload = json.loads(raw, parse_float=Decimal, object_pairs_hook=_unique_object)
     if (not isinstance(payload, dict) or payload.get('nextLink') or payload.get('@odata.nextLink')
             or not isinstance(payload.get('value'), list) or len(payload['value']) != 24):
@@ -77,7 +85,6 @@ def prepare_pk5_snapshot(*, raw, day, source_url, retrieved_at, retrieval_comple
         rows.append(dict(period_start_utc=period, publication_ts=published,
                          jwcd_mw=row.get('fcst_gen_unit_stor_prov')))
     raw_hash = sha256(raw).hexdigest()
-    started, completed = _utc(retrieved_at), _utc(retrieval_completed_at)
     capture_identity = dict(
         raw_sha256=raw_hash, retrieved_at_utc=started.isoformat(),
         retrieval_completed_at_utc=completed.isoformat(),

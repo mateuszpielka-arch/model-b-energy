@@ -2332,3 +2332,13 @@ kolizję na rzeczywistych bajtach z syntetycznie zmienionym czasem, a po poprawc
 potwierdza wybór późniejszego pobrania i stabilne ID dla tej samej obserwacji,
 także przy równoważnym zapisie czasu w strefie Warsaw. Reguły cutoff i konfliktów
 publikacji nie zostały poluzowane. To dwie obserwacje jednej doby, nie nowe okna treningu.
+
+Adapter PK5 sprawdza teraz kolejność i termin rozpoczęcia/zakończenia pobrania
+przed dekodowaniem JSON. Testy potwierdzają brak wywołania dekodera dla początku
+lub końca pobrania mikrosekundę po 09:50 oraz odwróconej kolejności czasów.
+Zachowano też rzeczywiste pobranie dla 20.11 zakończone 19.11 o 10:12:58.490960
+Europe/Warsaw (publikacja 10:03:21.316), SHA-256:
+98d6dca193c83caeb70caf44325671b04936a4800abbda87ec86520f1cd22c7c.
+Test tego zapisu potwierdza odrzucenie po czasie pobrania bez dekodowania cen.
+Plik jest wyłącznie negatywnym dowodem walidacyjnym, nie kandydatem do prognozy
+09:50. Dwa wcześniejsze rzeczywiste snapshoty pozostają niezmienione.

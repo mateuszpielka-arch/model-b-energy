@@ -6,6 +6,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_scoring import WARSAW
@@ -67,6 +68,32 @@ class PK5SnapshotTests(unittest.TestCase):
             self.assertEqual(selected.rows, late_selection.rows)
             self.assertEqual(selected.rejected, ((early['id'], 'SUPERSEDED_JWCD_PUBLICATIONS'),))
         self.assertEqual((early, late), before)
+
+    def test_invalid_capture_timing_is_rejected_before_json_decode(self):
+        inputs = self.inputs()
+        cutoff = cutoff_for_day(date(2026, 11, 20))
+        cases = (
+            (cutoff + timedelta(microseconds=1), cutoff + timedelta(microseconds=1),
+             'RETRIEVAL_STARTED_AFTER_CUTOFF'),
+            (cutoff, cutoff + timedelta(microseconds=1), 'RETRIEVAL_COMPLETED_AFTER_CUTOFF'),
+            (cutoff, cutoff - timedelta(microseconds=1), 'INVALID_RETRIEVAL_ORDER'),
+        )
+        for started, completed, reason in cases:
+            with self.subTest(reason=reason):
+                with patch('shadow_pk5_snapshot.json.loads') as decode:
+                    with self.assertRaisesRegex(ValueError, reason):
+                        prepare_pk5_snapshot(**{
+                            **inputs, 'retrieved_at': started, 'retrieval_completed_at': completed,
+                        })
+                    decode.assert_not_called()
+
+    def test_real_after_cutoff_capture_is_rejected_before_json_decode(self):
+        inputs = self.inputs(FIXTURE.with_name('pse_pk5_delivery_2026-11-20_after_cutoff'))
+        self.assertGreater(inputs['retrieved_at'], cutoff_for_day(date(2026, 11, 20)))
+        with patch('shadow_pk5_snapshot.json.loads') as decode:
+            with self.assertRaisesRegex(ValueError, 'RETRIEVAL_STARTED_AFTER_CUTOFF'):
+                prepare_pk5_snapshot(**inputs)
+            decode.assert_not_called()
 
     def test_real_capture_is_complete_and_available_before_cutoff(self):
         inputs = self.inputs()
