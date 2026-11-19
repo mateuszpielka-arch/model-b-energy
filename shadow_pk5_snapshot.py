@@ -76,10 +76,19 @@ def prepare_pk5_snapshot(*, raw, day, source_url, retrieved_at, retrieval_comple
             raise ValueError('PK5 local publication disagrees with UTC')
         rows.append(dict(period_start_utc=period, publication_ts=published,
                          jwcd_mw=row.get('fcst_gen_unit_stor_prov')))
+    raw_hash = sha256(raw).hexdigest()
+    started, completed = _utc(retrieved_at), _utc(retrieval_completed_at)
+    capture_identity = dict(
+        raw_sha256=raw_hash, retrieved_at_utc=started.isoformat(),
+        retrieval_completed_at_utc=completed.isoformat(),
+    )
+    capture_hash = sha256(json.dumps(
+        capture_identity, sort_keys=True, separators=(',', ':'),
+    ).encode()).hexdigest()
     snapshot = dict(
-        id='pk5-sha256:' + sha256(raw).hexdigest(), delivery_date=delivery,
-        retrieved_at=_utc(retrieved_at), retrieval_completed_at=_utc(retrieval_completed_at),
-        rows=tuple(rows), raw_sha256=sha256(raw).hexdigest(), source_url=source_url,
+        id='pk5-capture-sha256:' + capture_hash, delivery_date=delivery,
+        retrieved_at=started, retrieval_completed_at=completed,
+        rows=tuple(rows), raw_sha256=raw_hash, source_url=source_url,
     )
     selection = select_snapshot(delivery, [snapshot])
     if selection.snapshot_id is None:

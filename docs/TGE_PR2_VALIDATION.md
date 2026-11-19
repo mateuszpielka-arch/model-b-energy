@@ -2318,3 +2318,17 @@ Cztery testy obejmują rzeczywisty zapis, dokładną granicę i mikrosekundę
 spóźnienia oraz syntetyczne braki, konflikty dat/okresów, paginację i duplikaty
 pól JSON. Adapter nie czyta bazy ani sieci i nie zapisuje prognoz. To jeden
 rzeczywisty kandydat JWCD, nie komplet historycznych okien 30/60/90D.
+
+Drugie rzeczywiste pobranie PK5 dla dostawy 20.11.2026 zakończono 19.11
+o 09:15:43.960574 Europe/Warsaw; publikacja 09:12:42.315, nadal przed 09:50.
+Zachowano osobno JSON gzip i metadane (SHA-256:
+dc2a104bc21897d58fff74b60cf7f5e59546b911ec3b75fbacc13762289aab3b).
+Test obu kolejności wybiera nową publikację i nie modyfikuje obserwacji.
+
+Poprawiono identyfikator adaptera PK5: obejmuje teraz hash bajtów oraz początek
+i koniec pobrania w UTC. Sam hash treści zlewał dwie różne obserwacje tych samych
+bajtów, co uruchamiało blokadę powielonych ID w selektorze. Test odtworzył
+kolizję na rzeczywistych bajtach z syntetycznie zmienionym czasem, a po poprawce
+potwierdza wybór późniejszego pobrania i stabilne ID dla tej samej obserwacji,
+także przy równoważnym zapisie czasu w strefie Warsaw. Reguły cutoff i konfliktów
+publikacji nie zostały poluzowane. To dwie obserwacje jednej doby, nie nowe okna treningu.

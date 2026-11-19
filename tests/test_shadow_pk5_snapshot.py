@@ -8,6 +8,7 @@ from pathlib import Path
 import unittest
 
 from shadow_asof import cutoff_for_day, select_snapshot
+from shadow_scoring import WARSAW
 from shadow_pk5_snapshot import prepare_pk5_snapshot
 
 
@@ -15,14 +16,57 @@ FIXTURE = Path(__file__).parent / 'fixtures/pse_pk5_delivery_2026-11-20'
 
 
 class PK5SnapshotTests(unittest.TestCase):
-    def inputs(self):
-        metadata = json.loads((FIXTURE / 'capture.json').read_text())
-        raw = gzip.decompress((FIXTURE / metadata['raw_file']).read_bytes())
+    def inputs(self, directory=FIXTURE):
+        metadata = json.loads((directory / 'capture.json').read_text())
+        raw = gzip.decompress((directory / metadata['raw_file']).read_bytes())
         self.assertEqual(sha256(raw).hexdigest(), metadata['raw_sha256'])
         self.assertEqual(len(raw), metadata['bytes'])
         return dict(raw=raw, day=metadata['delivery_date'], source_url=metadata['url'],
                     retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
                     retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']))
+
+    def test_repeated_payload_has_distinct_capture_identity_and_stable_utc_identity(self):
+        inputs = self.inputs()
+        first = prepare_pk5_snapshot(**inputs)
+        # Same official bytes, synthetically shifted capture times before cutoff.
+        later_inputs = {
+            **inputs, 'retrieved_at': inputs['retrieved_at'] + timedelta(minutes=2),
+            'retrieval_completed_at': inputs['retrieval_completed_at'] + timedelta(minutes=2),
+        }
+        second = prepare_pk5_snapshot(**later_inputs)
+        self.assertEqual(first['raw_sha256'], second['raw_sha256'])
+        self.assertNotEqual(first['id'], second['id'])
+        for candidates in ([first, second], [second, first]):
+            selected = select_snapshot(date(2026, 11, 20), candidates)
+            self.assertEqual(selected.snapshot_id, second['id'])
+            self.assertEqual(selected.rows, select_snapshot(date(2026, 11, 20), [first]).rows)
+            self.assertEqual(selected.rejected, ())
+        equivalent = prepare_pk5_snapshot(**{
+            **later_inputs, 'retrieved_at': later_inputs['retrieved_at'].astimezone(WARSAW),
+            'retrieval_completed_at': later_inputs['retrieval_completed_at'].astimezone(WARSAW),
+        })
+        self.assertEqual(equivalent['id'], second['id'])
+        self.assertEqual(prepare_pk5_snapshot(**later_inputs)['id'], second['id'])
+
+    def test_two_real_pre_cutoff_revisions_select_latest_publication_in_both_orders(self):
+        early_inputs = self.inputs()
+        late_inputs = self.inputs(FIXTURE.with_name('pse_pk5_delivery_2026-11-20_second'))
+        early = prepare_pk5_snapshot(**early_inputs)
+        late = prepare_pk5_snapshot(**late_inputs)
+        before = deepcopy((early, late))
+        day = date(2026, 11, 20)
+        early_selection = select_snapshot(day, [early])
+        late_selection = select_snapshot(day, [late])
+        self.assertGreater(late_selection.latest_publication_ts_utc,
+                           early_selection.latest_publication_ts_utc)
+        self.assertLess(late_selection.retrieval_completed_at_utc, cutoff_for_day(day))
+        self.assertNotEqual(early['raw_sha256'], late['raw_sha256'])
+        for candidates in ([early, late], [late, early]):
+            selected = select_snapshot(day, candidates)
+            self.assertEqual(selected.snapshot_id, late['id'])
+            self.assertEqual(selected.rows, late_selection.rows)
+            self.assertEqual(selected.rejected, ((early['id'], 'SUPERSEDED_JWCD_PUBLICATIONS'),))
+        self.assertEqual((early, late), before)
 
     def test_real_capture_is_complete_and_available_before_cutoff(self):
         inputs = self.inputs()
