@@ -95,6 +95,36 @@ class PK5SnapshotTests(unittest.TestCase):
                 prepare_pk5_snapshot(**inputs)
             decode.assert_not_called()
 
+    def test_submicrosecond_publication_cannot_be_truncated_into_cutoff(self):
+        inputs = self.inputs()
+        cutoff = cutoff_for_day(date(2026, 11, 20))
+        for fraction, valid in (('000000', True), ('0000001', False)):
+            payload = json.loads(inputs['raw'])
+            payload['value'][0]['publication_ts_utc'] = '2026-11-19 08:50:00.' + fraction
+            payload['value'][0]['publication_ts'] = '2026-11-19 09:50:00.' + fraction
+            supplied = {**inputs, 'raw': json.dumps(payload).encode(),
+                        'retrieved_at': cutoff, 'retrieval_completed_at': cutoff}
+            with self.subTest(fraction=fraction):
+                if valid:
+                    self.assertEqual(len(prepare_pk5_snapshot(**supplied)['rows']), 24)
+                else:
+                    with self.assertRaisesRegex(ValueError, 'timestamp'):
+                        prepare_pk5_snapshot(**supplied)
+
+    def test_source_timestamps_require_full_time_and_supported_precision(self):
+        inputs = self.inputs()
+        cases = (
+            ('plan_dtime_utc', '2026-11-20'),
+            ('plan_dtime_utc', '2026-11-20 00:00:00.0000001'),
+            ('publication_ts', '2026-11-19 08:12:42.3280001'),
+        )
+        for field, value in cases:
+            with self.subTest(field=field, value=value):
+                payload = json.loads(inputs['raw'])
+                payload['value'][0][field] = value
+                with self.assertRaisesRegex(ValueError, 'timestamp'):
+                    prepare_pk5_snapshot(**{**inputs, 'raw': json.dumps(payload).encode()})
+
     def test_real_capture_is_complete_and_available_before_cutoff(self):
         inputs = self.inputs()
         snapshot = prepare_pk5_snapshot(**inputs)

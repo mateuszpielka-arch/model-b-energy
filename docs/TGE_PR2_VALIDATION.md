@@ -2385,3 +2385,12 @@ nie odczytuje DATABASE_URL i nie zmienia plików wejściowych.
 Test subprocess na rzeczywistych źródłach 20.11 potwierdza zgodność eksportu
 z funkcją i niezmienność plików. Błędny hash, HTTP, URL odpowiedzi i powielony
 znacznik pobrania kończą się kodem 2 i pustym stdout, bez częściowego CSV.
+
+Naprawiono obcinanie precyzji czasu w adapterze PK5: datetime.fromisoformat
+przyjmował syntetyczną publikację 09:50:00.0000001 jako 09:50:00 i dopuszczał
+ją na granicy cutoff. Adapter wymaga teraz pełnej daty i czasu z sekundami
+oraz najwyżej sześcioma cyframi ułamkowymi, zarówno w polach UTC, jak i
+lokalnej publikacji. Znaczniki date-only nie są uzupełniane domyślną północą.
+Test odtworzył wcześniejsze błędne przyjęcie, potwierdza odrzucenie nadmiarowej
+precyzji i niepełnego czasu oraz akceptację dokładnego 09:50:00.000000.
+Rzeczywiste zapisane formaty PSE nadal przechodzą walidację. Zmiany dotyczą SHADOW.

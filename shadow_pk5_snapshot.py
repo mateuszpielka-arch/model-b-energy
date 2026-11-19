@@ -3,10 +3,15 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from hashlib import sha256
 import json
+import re
 from urllib.parse import parse_qs, urlsplit
 
 from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_scoring import WARSAW, _utc, expected_periods
+
+
+# datetime.fromisoformat silently truncates fractional digits beyond microseconds.
+_FULL_TIMESTAMP = r'\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?'
 
 
 def _unique_object(pairs):
@@ -21,6 +26,8 @@ def _unique_object(pairs):
 def _explicit_utc(value):
     if not isinstance(value, str):
         raise ValueError('Missing explicit PK5 UTC timestamp')
+    if not re.fullmatch(_FULL_TIMESTAMP + r'(?:Z|[+-]\d{2}:\d{2})?', value):
+        raise ValueError('Full explicit PK5 UTC timestamp with at most six fractional digits required')
     parsed = datetime.fromisoformat(value)
     # PSE *_utc fields explicitly declare UTC even when their text has no suffix.
     if parsed.tzinfo is None:
@@ -80,6 +87,8 @@ def prepare_pk5_snapshot(*, raw, day, source_url, retrieved_at, retrieval_comple
         local_publication = row.get('publication_ts')
         if not isinstance(local_publication, str):
             raise ValueError('Missing PK5 local publication timestamp')
+        if not re.fullmatch(_FULL_TIMESTAMP, local_publication):
+            raise ValueError('Full PK5 local publication timestamp with at most six fractional digits required')
         if datetime.fromisoformat(local_publication) != published.astimezone(WARSAW).replace(tzinfo=None):
             raise ValueError('PK5 local publication disagrees with UTC')
         rows.append(dict(period_start_utc=period, publication_ts=published,
