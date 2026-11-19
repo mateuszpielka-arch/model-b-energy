@@ -1,5 +1,6 @@
 """Deterministic JWCD nearest days and fixed-member median; SHADOW only."""
 from collections import defaultdict
+from collections.abc import Mapping
 from decimal import Decimal, localcontext
 from shadow_training import prepare_training
 from shadow_scoring import WARSAW, _SHADOW_DECIMAL_CONTEXT, _prices, expected_periods
@@ -48,15 +49,28 @@ MEDIAN_MEMBERS=('ols30','ols60','ols90','similar_shape')
 
 def median_consensus(*,target_day,models):
     """All four fixed members required; no partial-consensus fallback."""
-    if set(models)!=set(MEDIAN_MEMBERS): raise ValueError('Exactly four fixed median members required')
-    snapshots={m.get('target_snapshot_id') for m in models.values()}
-    if len(snapshots)!=1 or None in snapshots: raise ValueError('Target snapshots differ or missing')
+    if not isinstance(models, Mapping) or set(models)!=set(MEDIAN_MEMBERS):
+        raise ValueError('Exactly four fixed median members required')
+    snapshots = set()
+    # Validate every member's provenance before consuming any price iterator.
+    for name in MEDIAN_MEMBERS:
+        member = models[name]
+        if not isinstance(member, Mapping):
+            raise ValueError('Invalid median member prediction object')
+        version = member.get('model_version')
+        if (member.get('target_day') != target_day.isoformat()
+                or not isinstance(version, str) or not version.strip()):
+            raise ValueError('Member day/version mismatch')
+        snapshot = member.get('target_snapshot_id')
+        if not isinstance(snapshot, str) or not snapshot.strip():
+            raise ValueError('Target snapshots differ or missing')
+        snapshots.add(snapshot)
+    if len(snapshots)!=1:
+        raise ValueError('Target snapshots differ or missing')
     expected=set(expected_periods(target_day)); member_prices=[]
     for name in MEDIAN_MEMBERS:
         m=models[name]
-        if m.get('target_day')!=target_day.isoformat() or not m.get('model_version'):
-            raise ValueError('Member day/version mismatch')
-        prices=_prices(m['prices'])
+        prices=_prices(m.get('prices'))
         if set(prices)!=expected: raise ValueError('Incomplete median member periods')
         member_prices.append(prices)
     with localcontext(_SHADOW_DECIMAL_CONTEXT):

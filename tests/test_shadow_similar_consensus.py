@@ -103,6 +103,48 @@ class MedianTests(unittest.TestCase):
                 self.assertEqual(len(result['prices']), 25)
                 self.assertEqual(result, models[name])
 
+    def test_invalid_member_metadata_is_rejected_before_any_price_read(self):
+        day, valid = self.models()
+
+        def unreadable_prices():
+            self.fail('Prices consumed before all median metadata passed validation')
+            yield
+
+        cases = [
+            ('model_version', value, 'Member day/version mismatch')
+            for value in (True, 42, ['version'], {'version': 'v1'}, ' ', None)
+        ] + [
+            ('target_snapshot_id', value, 'Target snapshots differ or missing')
+            for value in (True, 42, ['snapshot'], {'id': 'snapshot'}, ' ', None, 'other')
+        ] + [('target_day', '2026-11-04', 'Member day/version mismatch')]
+        for name in MEDIAN_MEMBERS:
+            for field, value, reason in cases:
+                with self.subTest(member=name, field=field, value=value):
+                    models = {
+                        key: {**member, 'prices': unreadable_prices()}
+                        for key, member in valid.items()
+                    }
+                    models[name][field] = value
+                    with self.assertRaisesRegex(ValueError, reason):
+                        median_consensus(target_day=day, models=models)
+
+    def test_invalid_member_objects_and_missing_prices_raise_validation_errors(self):
+        day, valid = self.models()
+        for collection in (None, [], list(MEDIAN_MEMBERS)):
+            with self.subTest(collection=collection), self.assertRaises(ValueError):
+                median_consensus(target_day=day, models=collection)
+        for name in MEDIAN_MEMBERS:
+            for invalid in (None, [], 'prediction'):
+                models = {**valid, name: invalid}
+                with self.subTest(member=name, invalid=invalid), self.assertRaisesRegex(
+                    ValueError, 'Invalid median member prediction object'
+                ):
+                    median_consensus(target_day=day, models=models)
+            models = {key: dict(member) for key, member in valid.items()}
+            models[name].pop('prices')
+            with self.subTest(member=name, missing_prices=True), self.assertRaises(ValueError):
+                median_consensus(target_day=day, models=models)
+
     def test_four_member_median_rejects_outlier(self):
         day,models=self.models();out=median_consensus(target_day=day,models=models)
         self.assertTrue(all(v==30 for _,v in out['prices']))

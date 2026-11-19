@@ -2249,3 +2249,11 @@ Testy pustych trzydniowych zakresów wokół obu zmian czasu potwierdzają
 71 okresów wiosną i 73 jesienią. Test rzeczywistych cen TGE z 17.11 bez JWCD
 rozróżnia jedną dobę wykluczoną przez audyt i dwie nieobecne, łącznie 72
 nieocenione okresy. Braki nie są dopisywane do rankingu ani historii.
+
+Samodzielna mediana sprawdza teraz obiekt kolekcji, obiekty wszystkich
+czterech prognoz, daty dostawy, niepuste tekstowe model_version i wspólny
+niepusty tekstowy target_snapshot_id przed odczytem cen któregokolwiek członka.
+Nie przyjmuje już bool/liczb/list/słowników jako wersji lub identyfikatora.
+Brak prices zgłasza błąd walidacji zamiast KeyError. Testy sprawdzają każdy
+z czterech modeli i iteratory cen, których nie wolno odczytać przy wadliwych
+metadanych. Dane są syntetyczne. Skład i obliczanie poprawnej mediany bez zmian.
