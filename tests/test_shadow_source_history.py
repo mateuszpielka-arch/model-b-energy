@@ -20,7 +20,9 @@ from shadow_ingest_manifest import ingest_manifest
 from shadow_archive_batch import read_reference_csv, prepare_batch
 from shadow_asof import cutoff_for_day
 from shadow_history_audit import read_csv
-from shadow_source_history import prepare_history_rows, prepare_history_rows_from_captures
+from shadow_source_history import (
+    prepare_history_rows, prepare_history_rows_from_captures, prepare_history_report_from_captures,
+)
 from shadow_walkforward_csv import evaluate_csv_rows
 
 
@@ -179,6 +181,63 @@ class SourceHistoryTests(unittest.TestCase):
                         self.assertEqual(completed.returncode, 2, completed.stderr)
                         self.assertEqual(completed.stdout, '')
                         self.assertIn(error, completed.stderr)
+
+    def test_history_report_preserves_selected_and_superseded_evidence(self):
+        actual, captures = self.candidate_inputs()
+        before = deepcopy((actual, captures))
+        report = prepare_history_report_from_captures(pk5_captures=captures, **actual)
+        self.assertEqual(report, prepare_history_report_from_captures(
+            pk5_captures=list(reversed(captures)), **actual))
+        self.assertEqual(report['rows'], prepare_history_rows(**self.inputs()))
+        self.assertEqual(report['periods'], 24)
+        self.assertEqual(report['delivery_date'], '2026-11-20')
+        self.assertEqual(report['cutoff_utc'], '2026-11-19T08:50:00+00:00')
+        evidence = {item['raw_sha256']: item for item in report['pk5_captures']}
+        self.assertEqual(len(evidence), 2)
+        for capture in captures:
+            item = evidence[sha256(capture['raw']).hexdigest()]
+            self.assertEqual(item['retrieved_at_utc'], capture['retrieved_at'].isoformat())
+            self.assertEqual(item['retrieval_completed_at_utc'],
+                             capture['retrieval_completed_at'].isoformat())
+            self.assertEqual(item['source_url'], capture['source_url'])
+            self.assertEqual(item['periods'], 24)
+        latest = evidence[sha256(captures[1]['raw']).hexdigest()]
+        early = evidence[sha256(captures[0]['raw']).hexdigest()]
+        self.assertTrue(latest['selected'])
+        self.assertFalse(early['selected'])
+        self.assertEqual(latest['latest_publication_ts_utc'], '2026-11-19T08:12:42.315000+00:00')
+        self.assertEqual(report['selected_snapshot_id'], latest['snapshot_id'])
+        self.assertEqual(report['rejected_captures'], [
+            dict(snapshot_id=early['snapshot_id'], reason='SUPERSEDED_JWCD_PUBLICATIONS'),
+        ])
+        self.assertEqual(report['fix1_evidence']['raw_sha256'], sha256(actual['actual_raw']).hexdigest())
+        self.assertEqual(report['fix1_evidence']['reference_sha256'],
+                         sha256(actual['actual_reference']).hexdigest())
+        self.assertEqual(report['fix1_evidence']['retrieved_at_utc'],
+                         actual['actual_batch'].retrieved_at.isoformat())
+        self.assertEqual(report['fix1_evidence']['actual_version'],
+                         report['rows'][0]['actual_version'])
+        self.assertEqual(json.loads(json.dumps(report))['rows'], list(report['rows']))
+        self.assertEqual((actual, captures), before)
+
+    def test_cli_json_reports_selection_and_returns_no_partial_report_on_conflict(self):
+        early = FIXTURES / 'pse_pk5_delivery_2026-11-20/capture.json'
+        latest = FIXTURES / 'pse_pk5_delivery_2026-11-20_second/capture.json'
+        actual, captures = self.candidate_inputs()
+        expected = prepare_history_report_from_captures(pk5_captures=captures, **actual)
+        for first, second in ((early, latest), (latest, early)):
+            command = self.command(first)
+            command[-1:-1] = ['--pk5-capture', str(second), '--format', 'json']
+            completed = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(completed.stderr, '')
+            self.assertEqual(json.loads(completed.stdout), json.loads(json.dumps(expected)))
+        command = self.command(latest)
+        command[-1:-1] = ['--pk5-capture', str(latest), '--format', 'json']
+        completed = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(completed.returncode, 2)
+        self.assertEqual(completed.stdout, '')
+        self.assertIn('MISSING_OR_DUPLICATE_SNAPSHOT_ID', completed.stderr)
 
     def command(self, metadata):
         return [

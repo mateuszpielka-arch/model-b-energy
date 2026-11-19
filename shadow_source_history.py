@@ -31,6 +31,19 @@ def prepare_history_rows_from_captures(*, pk5_captures, actual_batch, actual_raw
     All supplied captures must pass source validation and their own cutoff;
     invalid or late evidence is never silently ignored. No periods are blended.
     """
+    return prepare_history_report_from_captures(
+        pk5_captures=pk5_captures, actual_batch=actual_batch,
+        actual_raw=actual_raw, actual_reference=actual_reference,
+    )['rows']
+
+
+def prepare_history_report_from_captures(*, pk5_captures, actual_batch, actual_raw,
+                                        actual_reference):
+    """Return rows and JSON-safe evidence of whole-capture selection; no I/O.
+
+    Hashes and consistency checks do not independently authenticate capture times.
+    Superseded observations remain visible in the report, without blending rows.
+    """
     fields = {'raw', 'source_url', 'retrieved_at', 'retrieval_completed_at'}
     if not isinstance(pk5_captures, (list, tuple)) or not pk5_captures:
         raise ValueError('Nonempty list or tuple of PK5 captures required')
@@ -61,7 +74,7 @@ def prepare_history_rows_from_captures(*, pk5_captures, actual_batch, actual_raw
     actual = dict(batch.rows)
     version = ':'.join((batch.delivery_date.isoformat(), batch.raw_sha256,
                         batch.reference_sha256, batch.parser_version))
-    return tuple(
+    rows = tuple(
         dict(
             delivery_date=batch.delivery_date.isoformat(), hour=f'H{index:02d}',
             period_start_utc=row['period_start_utc'].isoformat(),
@@ -73,6 +86,34 @@ def prepare_history_rows_from_captures(*, pk5_captures, actual_batch, actual_raw
             retrieval_completed_at=snapshot['retrieval_completed_at'].isoformat(),
         )
         for index, row in enumerate(sorted(snapshot['rows'], key=lambda row: row['period_start_utc']), 1)
+    )
+    return dict(
+        delivery_date=batch.delivery_date.isoformat(), periods=len(rows),
+        cutoff_utc=selected.cutoff_utc.isoformat(), selected_snapshot_id=selected.snapshot_id,
+        pk5_captures=[
+            dict(
+                snapshot_id=candidate['id'], raw_sha256=candidate['raw_sha256'],
+                source_url=candidate['source_url'],
+                retrieved_at_utc=candidate['retrieved_at'].isoformat(),
+                retrieval_completed_at_utc=candidate['retrieval_completed_at'].isoformat(),
+                latest_publication_ts_utc=max(
+                    row['publication_ts'] for row in candidate['rows']
+                ).isoformat(),
+                periods=len(candidate['rows']),
+                selected=candidate['id'] == selected.snapshot_id,
+            )
+            for candidate in sorted(snapshots, key=lambda candidate: candidate['id'])
+        ],
+        rejected_captures=[
+            dict(snapshot_id=identifier, reason=reason)
+            for identifier, reason in sorted(selected.rejected)
+        ],
+        fix1_evidence=dict(
+            raw_sha256=batch.raw_sha256, reference_sha256=batch.reference_sha256,
+            parser_version=batch.parser_version, source_url=batch.source_url,
+            retrieved_at_utc=batch.retrieved_at.isoformat(), actual_version=version,
+        ),
+        rows=rows,
     )
 
 
@@ -96,6 +137,8 @@ def main():
     parser.add_argument('--pk5-capture', required=True, type=Path, action='append',
                         help='Saved PK5 capture.json alongside original JSON gzip; repeat for candidate captures')
     parser.add_argument('actual_manifest', type=Path, help='One-day verified Fixing I manifest')
+    parser.add_argument('--format', choices=('csv', 'json'), default='csv',
+                        help='CSV rows (default) or rows with capture-selection evidence as JSON')
     args = parser.parse_args()
     try:
         batches = load_batches(args.actual_manifest)
@@ -143,12 +186,16 @@ def main():
         reference_path = _inside(args.actual_manifest.parent, entries[0]['reference_file'])
         with reference_path.open('rb') as stream:
             reference = stream.read(MAX_REFERENCE_BYTES + 1)
-        rows = prepare_history_rows_from_captures(
+        report = prepare_history_report_from_captures(
             pk5_captures=captures,
             actual_batch=batch, actual_raw=actual_raw, actual_reference=reference,
         )
     except (OSError, EOFError, ZlibError, ValueError, TypeError, KeyError) as exc:
         parser.error(str(exc))
+    if args.format == 'json':
+        sys.stdout.write(json.dumps(report, indent=2) + '\n')
+        return
+    rows = report['rows']
     output = io.StringIO(newline='')
     writer = csv.DictWriter(output, fieldnames=rows[0], lineterminator='\n')
     writer.writeheader()

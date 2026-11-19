@@ -2477,3 +2477,22 @@ oraz czas bez sekund; poprawny dokładny cutoff nadal przechodzi.
 Sprawdzono niezmienność wejścia. Lokalnie 3/3 testy nowego modułu
 test_shadow_history_timestamp_precision przeszły. Dane są syntetyczne,
 nie stanowią nowej walidacji historycznej dostępności ani mapowania źródłowego DST.
+
+
+## Checkpoint 2026-11-19 — raport dowodów wyboru źródeł historii
+
+Dodano czyste prepare_history_report_from_captures oraz opcję --format json
+lokalnego CLI shadow_source_history.py. Domyślny CSV i API zwracające wiersze
+zachowują dotychczasowy wynik. JSON zawiera te same wiersze oraz cutoff,
+wybrane snapshot ID, metadane/hash obu pobrań PK5, oznaczenie wybranego,
+powody odrzucenia starszych kandydatów i hashe/referencję/parser/czas pobrania
+Fix1. Kolejność kandydatów w raporcie jest deterministyczna.
+
+Dwa nowe testy na zapisanych rzeczywistych pobraniach 20.11 porównują cały
+raport w obu kolejnościach wejścia, SHA-256 z oryginalnymi bajtami, wybraną
+publikację 09:12 i pominiętą starszą obserwację. Potwierdzają JSON round-trip,
+niezmienność wejścia oraz subprocess --format json, który przy duplikacie
+zwraca kod 2 i pusty stdout. Lokalnie 17/17 testów test_shadow_source_history
+przeszło. Raport jest read-only i nie zapisuje plików ani bazy; hashe i spójność
+nie uwierzytelniają niezależnie podanych czasów pobrania. Nie dodano dób
+treningowych, prognoz ani rankingu.
