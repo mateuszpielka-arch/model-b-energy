@@ -2362,3 +2362,16 @@ bias -331.522083333333 PLN/MWh. Test PostgreSQL sprawdza te metryki,
 brak zapisu mikrosekundę przed pobraniem Fix1, INSERT dokładnie w chwili
 jego dostępności oraz REPLAY z CSV i bez niego przy jednym trwałym wyniku.
 To dowód poprawności scoringu i czasu dostępności, nie ocena skuteczności modeli.
+
+Nowy czysty moduł shadow_source_history.py przygotowuje kanoniczne wiersze
+historii CSV z oryginalnych bajtów PK5 i Fix1 oraz referencji CSV z UTC.
+Ponownie waliduje paczkę actual, hash i zgodność referencji z surowym HTML,
+a następnie bramkę PK5. Zachowuje rzeczywiste publication_ts i czasy pobrania
+JWCD oraz konserwatywny czas dostępności Fix1 z zakończenia pobrania.
+Nie czyta plików/bazy/sieci i nie dopisuje prognoz ani brakujących dat.
+
+Cztery testy obejmują rzeczywistą dobę 20.11, round-trip przez CSV i audyt,
+odrzucenie zmienionych bajtów oraz zmian ceny/UTC nawet przy dopasowanym hashu
+referencji i spóźnionego PK5. Audyt dopuszcza 24 pary jako jedną dobę, ale
+walk-forward zachowuje pusty ranking i jawnie wykazuje brak 30/60/90 dób CSV.
+To przygotowanie danych do backtestu, nie dowód gotowości historycznych okien.
