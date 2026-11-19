@@ -2342,3 +2342,13 @@ Europe/Warsaw (publikacja 10:03:21.316), SHA-256:
 Test tego zapisu potwierdza odrzucenie po czasie pobrania bez dekodowania cen.
 Plik jest wyłącznie negatywnym dowodem walidacyjnym, nie kandydatem do prognozy
 09:50. Dwa wcześniejsze rzeczywiste snapshoty pozostają niezmienione.
+
+Pobranie oficjalnej sesji TGE 19.11 dla dostawy 20.11.2026 zakończono
+o 11:17:54.057511 Europe/Warsaw. Zapisano HTML gzip, CSV z UTC i manifest;
+SHA-256 HTML: 6ab99a8520bc0414f84c6be6f3a6fc71536b28e4640d680a26ddc231b34f3b66.
+H01: 716.72, H24: 655.39 PLN/MWh. Test porównuje wszystkie 24 ceny parsera
+z ekstrakcją XPath i zachowanym CSV oraz wiąże URL z wcześniejszą odpowiedzią
+bez wierszy żądanej dostawy. Wspólny test potwierdza identyczne klucze UTC
+rzeczywistego PK5 pobranego o 09:15 i Fix1 pobranego po cutoff, bez użycia
+późnego PK5. Test PostgreSQL sprawdza INSERT/REPLAY, niezmienne dowody i 24 ceny.
+To walidacja źródeł i ich osi czasu, nie wynik prognozy ani historyczny ranking.

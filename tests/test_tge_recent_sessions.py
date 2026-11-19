@@ -39,6 +39,7 @@ NOV_17_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-17')
 NOV_18_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-18')
 NOV_19_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-19')
 NOV_19_LATE_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-19_late')
+NOV_20_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-20')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
@@ -207,6 +208,52 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         self.assertEqual(parsed, {index: price for index, (_, price) in enumerate(independent, 1)})
         self.assertEqual(prepare_session(late, raw, independent).rows,
                          load_batches(NOV_19_FIXTURES / 'manifest.json')[0][0].rows)
+
+    def test_november_20_official_fix1_matches_reference_and_pre_cutoff_pk5_periods(self):
+        from shadow_asof import select_snapshot
+        from shadow_pk5_snapshot import prepare_pk5_snapshot
+
+        day = date(2026, 11, 20)
+        self.check_sessions(NOV_20_FIXTURES, [day.isoformat()])
+        manifest = NOV_20_FIXTURES / 'manifest.json'
+        entry, = json.loads(manifest.read_text())['entries']
+        raw, reference, rows = load_session(entry, NOV_20_FIXTURES)
+        self.assertEqual(sha256(raw).hexdigest(), entry['raw_sha256'])
+        self.assertEqual(sha256(reference).hexdigest(), entry['reference_sha256'])
+        independent = extract_reference(raw, day.isoformat())
+        self.assertEqual(independent, [
+            (row['hour'], Decimal(row['price_pln_mwh'])) for row in rows
+        ])
+        batch = prepare_session(entry, raw, independent)
+        self.assertEqual([period.isoformat() for period, _ in batch.rows],
+                         [row['period_start_utc'] for row in rows])
+        self.assertEqual(rows[0]['price_pln_mwh'], '716.72')
+        self.assertEqual(rows[-1]['price_pln_mwh'], '655.39')
+        earlier = json.loads((
+            FIXTURES.with_name('tge_delivery_2026-11-20_prepublication') / 'capture.json'
+        ).read_text())
+        self.assertEqual(entry['url'], earlier['url'])
+        self.assertGreater(batch.retrieved_at, datetime.fromisoformat(earlier['retrieved_at_utc']))
+
+        directory = FIXTURES.with_name('pse_pk5_delivery_2026-11-20_second')
+        metadata = json.loads((directory / 'capture.json').read_text())
+        pse_raw = gzip.decompress((directory / metadata['raw_file']).read_bytes())
+        self.assertEqual(sha256(pse_raw).hexdigest(), metadata['raw_sha256'])
+        snapshot = prepare_pk5_snapshot(
+            raw=pse_raw, day=day.isoformat(), source_url=metadata['url'],
+            retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
+            retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']),
+        )
+        selected = select_snapshot(day, [snapshot])
+        self.assertIsNotNone(selected.snapshot_id)
+        self.assertEqual(tuple(period for period, _ in selected.rows),
+                         tuple(period for period, _ in batch.rows))
+        cutoff = cutoff_for_day(day)
+        self.assertLessEqual(selected.latest_publication_ts_utc, cutoff)
+        self.assertLessEqual(selected.retrieval_completed_at_utc, cutoff)
+        self.assertGreater(batch.retrieved_at, cutoff)
+        report = ingest_manifest(manifest)
+        self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
 
     def test_november_19_fixing_i_matches_official_reference_after_unpriced_capture(self):
         day = date(2026, 11, 19)
@@ -635,6 +682,9 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                 self.assertEqual([conn.execute(query).fetchall() for query in queries], before)
                 if populated:
                     self.assertEqual(archive_batch(conn, accepted, accepted_raw), 'REPLAY')
+
+    def test_november_20_manifest_is_archived_and_replayed_without_duplicate_rows(self):
+        self.check_manifest_archive_and_replay(NOV_20_FIXTURES)
 
     def test_november_19_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_19_FIXTURES)
