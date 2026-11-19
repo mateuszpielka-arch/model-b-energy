@@ -4,15 +4,39 @@ The preparation function performs no I/O. The explicit CLI reads local files and
 exports CSV to stdout, without network or database access. HTTP provenance remains
 caller-owned; no historic timestamps are inferred.
 """
+from collections.abc import Mapping
 from hashlib import sha256
 
 from shadow_archive_batch import prepare_batch, read_reference_csv, revalidate_batch
 from shadow_pk5_snapshot import prepare_pk5_snapshot
+from shadow_asof import select_snapshot
 
 
 def prepare_history_rows(*, pk5_raw, pk5_source_url, retrieved_at, retrieval_completed_at,
                          actual_batch, actual_raw, actual_reference):
     """Require original source bytes and a UTC reference before marking rows ready."""
+    return prepare_history_rows_from_captures(
+        pk5_captures=[dict(raw=pk5_raw, source_url=pk5_source_url,
+                           retrieved_at=retrieved_at,
+                           retrieval_completed_at=retrieval_completed_at)],
+        actual_batch=actual_batch, actual_raw=actual_raw, actual_reference=actual_reference,
+    )
+
+
+def prepare_history_rows_from_captures(*, pk5_captures, actual_batch, actual_raw,
+                                      actual_reference):
+    """Choose one complete capture using the existing publication/conflict gate.
+
+    Each capture supplies raw bytes, source_url and aware retrieval start/end.
+    All supplied captures must pass source validation and their own cutoff;
+    invalid or late evidence is never silently ignored. No periods are blended.
+    """
+    fields = {'raw', 'source_url', 'retrieved_at', 'retrieval_completed_at'}
+    if not isinstance(pk5_captures, (list, tuple)) or not pk5_captures:
+        raise ValueError('Nonempty list or tuple of PK5 captures required')
+    if any(not isinstance(capture, Mapping) or set(capture) != fields
+           for capture in pk5_captures):
+        raise ValueError('PK5 capture requires raw, source_url and retrieval start/end only')
     batch = revalidate_batch(actual_batch, actual_raw)
     if (not isinstance(actual_reference, bytes)
             or sha256(actual_reference).hexdigest() != batch.reference_sha256):
@@ -25,10 +49,15 @@ def prepare_history_rows(*, pk5_raw, pk5_source_url, retrieved_at, retrieval_com
             actual_reference, batch.delivery_date.isoformat(), require_utc=True,
         ),
     )
-    snapshot = prepare_pk5_snapshot(
-        raw=pk5_raw, day=batch.delivery_date.isoformat(), source_url=pk5_source_url,
-        retrieved_at=retrieved_at, retrieval_completed_at=retrieval_completed_at,
-    )
+    snapshots = [
+        prepare_pk5_snapshot(day=batch.delivery_date.isoformat(), **capture)
+        for capture in pk5_captures
+    ]
+    selected = select_snapshot(batch.delivery_date, snapshots)
+    if selected.snapshot_id is None:
+        raise ValueError('PK5 history selection rejected: ' +
+                         ', '.join(reason for _, reason in selected.rejected))
+    snapshot = next(snapshot for snapshot in snapshots if snapshot['id'] == selected.snapshot_id)
     actual = dict(batch.rows)
     version = ':'.join((batch.delivery_date.isoformat(), batch.raw_sha256,
                         batch.reference_sha256, batch.parser_version))

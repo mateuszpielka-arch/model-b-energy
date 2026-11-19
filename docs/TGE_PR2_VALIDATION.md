@@ -2419,3 +2419,23 @@ sekund przed I/O dowodów/zapisem; subprocess CLI zwraca kod 2 i pusty stdout.
 Oryginalny czas 10:17:54.057511+00:00 nadal dopuszcza 24 okresy. Lokalnie 9/9
 testów test_shadow_source_history przeszło. Zmienione znaczniki są syntetyczne;
 oryginalne pliki, archiwa, prognozy i konfiguracja produkcji pozostają bez zmian.
+
+
+## Checkpoint 2026-11-19 — wybór kompletnego pobrania PK5 do historii
+
+Dodano czyste API prepare_history_rows_from_captures w shadow_source_history.
+Przyjmuje jawną niepustą listę/krotkę źródłowych pobrań jednej doby, ponownie
+waliduje każdy JSON, UTC, publikację i początek/koniec pobrania względem 09:50,
+a następnie korzysta z istniejącego selektora publikacji i konfliktów. Eksportuje
+całą wybraną obserwację z jej ID i czasami, bez mieszania okresów różnych pobrań.
+Dotychczasowe API pojedynczego pobrania deleguje do tej samej ścieżki.
+CLI nadal przyjmuje jedno capture.json; obsługa wielu plików nie jest tu wdrożona.
+
+Cztery nowe testy potwierdzają wybór rzeczywistej publikacji PK5 z 09:12,
+pobranej o 09:15 dla 20.11, w obu kolejnościach z wcześniejszą obserwacją.
+Syntetyczne późniejsze pobranie starszych oryginalnych bajtów nie cofa publikacji.
+Konflikt wartości przy tej samej publikacji i powielony identyfikator blokują
+wynik; spóźniony kandydat nie jest po cichu pomijany. Nieprawidłowa kolekcja
+lub zestaw pól jest odrzucany. Dane wejściowe pozostają niezmienione.
+Lokalnie 13/13 testów test_shadow_source_history przeszło. Konflikt i przesunięcia
+czasów są syntetyczne; to nadal jedna doba danych, bez okien treningowych ani rankingu.

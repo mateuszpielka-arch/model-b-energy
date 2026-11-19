@@ -1,4 +1,5 @@
 import csv
+from copy import deepcopy
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from dataclasses import replace
@@ -19,7 +20,7 @@ from shadow_ingest_manifest import ingest_manifest
 from shadow_archive_batch import read_reference_csv, prepare_batch
 from shadow_asof import cutoff_for_day
 from shadow_history_audit import read_csv
-from shadow_source_history import prepare_history_rows
+from shadow_source_history import prepare_history_rows, prepare_history_rows_from_captures
 from shadow_walkforward_csv import evaluate_csv_rows
 
 
@@ -47,6 +48,77 @@ class SourceHistoryTests(unittest.TestCase):
             retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
             retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']),
         )
+
+    def candidate_inputs(self):
+        inputs = self.inputs()
+        actual = {key: value for key, value in inputs.items() if key.startswith('actual_')}
+        captures = []
+        for name in ('pse_pk5_delivery_2026-11-20', 'pse_pk5_delivery_2026-11-20_second'):
+            directory = FIXTURES / name
+            metadata = json.loads((directory / 'capture.json').read_text())
+            captures.append(dict(
+                raw=gzip.decompress((directory / metadata['raw_file']).read_bytes()),
+                source_url=metadata['url'],
+                retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
+                retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']),
+            ))
+        return actual, captures
+
+    def test_history_selects_whole_latest_real_publication_in_both_orders(self):
+        actual, (early, latest) = self.candidate_inputs()
+        expected = prepare_history_rows(**self.inputs())
+        before = deepcopy((actual, early, latest))
+        # A synthetic later retrieval of the older official bytes cannot roll back publication.
+        recaptured_old = {
+            **early, 'retrieved_at': latest['retrieved_at'] + timedelta(minutes=2),
+            'retrieval_completed_at': latest['retrieval_completed_at'] + timedelta(minutes=2),
+        }
+        for captures in ([early, latest], [latest, early],
+                         [recaptured_old, latest], [latest, recaptured_old]):
+            with self.subTest(order=[item['retrieved_at'] for item in captures]):
+                rows = prepare_history_rows_from_captures(pk5_captures=captures, **actual)
+                self.assertEqual(rows, expected)
+                self.assertEqual(len({row['jwcd_snapshot_id'] for row in rows}), 1)
+                self.assertEqual({row['retrieved_at'] for row in rows},
+                                 {latest['retrieved_at'].isoformat()})
+        self.assertEqual((actual, early, latest), before)
+
+    def test_history_rejects_same_publication_conflict_and_duplicate_capture(self):
+        actual, (_, latest) = self.candidate_inputs()
+        payload = json.loads(latest['raw'])
+        payload['value'][0]['fcst_gen_unit_stor_prov'] += 1
+        conflict = {
+            **latest, 'raw': json.dumps(payload).encode(),
+            'retrieved_at': latest['retrieved_at'] + timedelta(minutes=1),
+            'retrieval_completed_at': latest['retrieval_completed_at'] + timedelta(minutes=1),
+        }
+        for captures, reason in (
+            ([latest, conflict], 'CONFLICTING_JWCD_PUBLICATION'),
+            ([conflict, latest], 'CONFLICTING_JWCD_PUBLICATION'),
+            ([latest, latest], 'MISSING_OR_DUPLICATE_SNAPSHOT_ID'),
+        ):
+            with self.subTest(reason=reason):
+                with self.assertRaisesRegex(ValueError, reason):
+                    prepare_history_rows_from_captures(pk5_captures=captures, **actual)
+
+    def test_history_does_not_silently_discard_late_capture(self):
+        actual, (early, latest) = self.candidate_inputs()
+        cutoff = cutoff_for_day(date(2026, 11, 20))
+        late = {**latest, 'retrieved_at': cutoff + timedelta(microseconds=1),
+                'retrieval_completed_at': cutoff + timedelta(microseconds=2)}
+        for captures in ([early, late], [late, early]):
+            with self.subTest(order=[item['retrieved_at'] for item in captures]):
+                with self.assertRaisesRegex(ValueError, 'RETRIEVAL_STARTED_AFTER_CUTOFF'):
+                    prepare_history_rows_from_captures(pk5_captures=captures, **actual)
+
+    def test_history_requires_explicit_capture_collection_and_fields(self):
+        actual, (_, latest) = self.candidate_inputs()
+        for captures in (None, [], latest, 'capture', [None],
+                         [{**latest, 'day': '2026-11-20'}],
+                         [{key: value for key, value in latest.items() if key != 'raw'}]):
+            with self.subTest(captures=type(captures).__name__):
+                with self.assertRaisesRegex(ValueError, 'PK5 capture'):
+                    prepare_history_rows_from_captures(pk5_captures=captures, **actual)
 
     def command(self, metadata):
         return [
