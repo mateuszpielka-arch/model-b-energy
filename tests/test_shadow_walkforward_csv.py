@@ -343,8 +343,41 @@ class WalkforwardCSVTests(unittest.TestCase):
             "observed_days": 1, "excluded_by_csv_audit_days": 1,
             "admitted_but_unscored_days": 0, "scored_on_common_sample_days": 0,
         })
+        self.assertEqual(comparison["calendar_target_coverage_by_hours"]["24"], {
+            "observed_days": 1, "excluded_by_csv_audit_days": 1,
+            "admitted_but_unscored_days": 0, "scored_on_common_sample_days": 0,
+            "calendar_days": 3, "absent_from_csv_days": 2, "calendar_periods": 72,
+            "scored_on_common_sample_periods": 0, "unscored_periods": 72,
+        })
         self.assertIn("MISSING_OR_INVALID_JWCD", comparison["targets_excluded_by_csv_audit"]["2026-11-17"])
         self.assertEqual(comparison["ranking"], [])
+
+    def test_missing_dst_calendar_days_count_23_and_25_periods(self):
+        for delivery, expected_hours, expected_periods in (
+            (date(2026, 3, 29), 23, 71), (date(2026, 10, 25), 25, 73),
+        ):
+            with self.subTest(delivery=delivery):
+                comparison = evaluate_csv_rows(
+                    [], evaluated_at=datetime(2026, 11, 7, tzinfo=timezone.utc),
+                    target_from=delivery - timedelta(days=1),
+                    target_to=delivery + timedelta(days=1),
+                )["walkforward"]
+                coverage = comparison["calendar_target_coverage_by_hours"]
+                self.assertEqual(coverage[str(expected_hours)], {
+                    "observed_days": 0, "excluded_by_csv_audit_days": 0,
+                    "admitted_but_unscored_days": 0, "scored_on_common_sample_days": 0,
+                    "calendar_days": 1, "absent_from_csv_days": 1,
+                    "calendar_periods": expected_hours, "scored_on_common_sample_periods": 0,
+                    "unscored_periods": expected_hours,
+                })
+                self.assertEqual(coverage["24"]["calendar_days"], 2)
+                self.assertEqual(coverage["24"]["absent_from_csv_days"], 2)
+                self.assertEqual(coverage["24"]["calendar_periods"], 48)
+                self.assertEqual(sum(row["calendar_days"] for row in coverage.values()), 3)
+                self.assertEqual(sum(row["calendar_periods"] for row in coverage.values()), expected_periods)
+                self.assertEqual(sum(row["unscored_periods"] for row in coverage.values()), expected_periods)
+                self.assertEqual(comparison["ranking"], [])
+                self.assertEqual(comparison["common_periods"], 0)
 
     def test_empty_source_reports_full_explicit_target_range(self):
         result = evaluate_csv_rows(

@@ -2240,3 +2240,12 @@ Test na referencji TGE dla 19.11.2026 wprowadza syntetyczne różnice +0.01/-0.0
 sprawdza dokładne kwoty przy precyzji 2 i aktywnej pułapce Inexact oraz
 niezmienność wejścia. Test ZIP sprawdza również różnicę przy cenach ujemnych.
 Nie zmieniono istniejących cen ani dowodów; to rozszerzenie raportu read-only.
+
+Raport CSV dodaje calendar_target_coverage_by_hours, obejmujące również
+całkowicie brakujące daty w żądanym zakresie. Osobno dla 23/24/25h podaje
+kalendarzowe doby i okresy, brakujące doby oraz okresy ocenione i nieocenione.
+Dotychczasowe observed_target_coverage_by_hours pozostaje zachowane.
+Testy pustych trzydniowych zakresów wokół obu zmian czasu potwierdzają
+71 okresów wiosną i 73 jesienią. Test rzeczywistych cen TGE z 17.11 bez JWCD
+rozróżnia jedną dobę wykluczoną przez audyt i dwie nieobecne, łącznie 72
+nieocenione okresy. Braki nie są dopisywane do rankingu ani historii.

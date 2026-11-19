@@ -2,7 +2,7 @@
 
 import argparse
 from collections import Counter, defaultdict
-from datetime import date
+from datetime import date, timedelta
 from dataclasses import asdict
 from decimal import Decimal
 import json
@@ -136,6 +136,24 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
             "excluded_by_csv_audit_days": excluded_by_hours[hours],
             "admitted_but_unscored_days": observed_by_hours[hours] - excluded_by_hours[hours] - scored,
             "scored_on_common_sample_days": scored,
+        }
+    absent_by_hours = Counter()
+    for gap in target_gaps:
+        start = date.fromisoformat(gap["start_day"])
+        for offset in range(gap["days"]):
+            absent_by_hours[len(expected_periods(start + timedelta(days=offset)))] += 1
+    comparison["calendar_target_coverage_by_hours"] = {}
+    for hours in (23, 24, 25):
+        observed = comparison["observed_target_coverage_by_hours"][str(hours)]
+        calendar_days = observed["observed_days"] + absent_by_hours[hours]
+        scored_days = observed["scored_on_common_sample_days"]
+        comparison["calendar_target_coverage_by_hours"][str(hours)] = {
+            **observed,
+            "calendar_days": calendar_days,
+            "absent_from_csv_days": absent_by_hours[hours],
+            "calendar_periods": hours * calendar_days,
+            "scored_on_common_sample_periods": hours * scored_days,
+            "unscored_periods": hours * (calendar_days - scored_days),
         }
     admission = {
         "delivery_days": len(readiness["days"]),
