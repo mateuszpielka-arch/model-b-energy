@@ -23,6 +23,15 @@ def _unique_object(pairs):
     return result
 
 
+
+def parse_capture_timestamp(value):
+    """Read capture metadata without inferring a zone or truncating precision."""
+    if (not isinstance(value, str)
+            or not re.fullmatch(_FULL_TIMESTAMP + r'(?:Z|[+-]\d{2}:\d{2})', value)):
+        raise ValueError('Full aware PK5 capture timestamp with at most six fractional digits required')
+    return _utc(datetime.fromisoformat(value))
+
+
 def _explicit_utc(value):
     if not isinstance(value, str):
         raise ValueError('Missing explicit PK5 UTC timestamp')

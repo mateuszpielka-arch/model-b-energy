@@ -51,6 +51,31 @@ class SourceHistoryTests(unittest.TestCase):
             str(FIXTURES / 'tge_delivery_2026-11-20/manifest.json'),
         ]
 
+    def test_cli_capture_times_cannot_be_truncated_into_cutoff(self):
+        directory = FIXTURES / 'pse_pk5_delivery_2026-11-20_second'
+        original = json.loads((directory / 'capture.json').read_text())
+        for field in ('retrieved_at_utc', 'retrieval_completed_at_utc'):
+            for fraction, valid in (('000000', True), ('0000001', False)):
+                with self.subTest(field=field, fraction=fraction), TemporaryDirectory() as temporary:
+                    target = Path(temporary)
+                    (target / original['raw_file']).write_bytes((directory / original['raw_file']).read_bytes())
+                    metadata = dict(original)
+                    stamp = '2026-11-19T08:50:00.' + fraction + '+00:00'
+                    metadata[field] = stamp
+                    if field == 'retrieved_at_utc':
+                        metadata['retrieval_completed_at_utc'] = stamp
+                    path = target / 'capture.json'
+                    path.write_text(json.dumps(metadata))
+                    completed = subprocess.run(self.command(path), capture_output=True, text=True)
+                    if valid:
+                        self.assertEqual(completed.returncode, 0, completed.stderr)
+                        rows = list(csv.DictReader(io.StringIO(completed.stdout)))
+                        self.assertEqual(len(rows), 24)
+                    else:
+                        self.assertEqual(completed.returncode, 2)
+                        self.assertEqual(completed.stdout, '')
+                        self.assertIn('timestamp', completed.stderr)
+
     def test_cli_exports_verified_real_rows_without_changing_source_files(self):
         directory = FIXTURES / 'pse_pk5_delivery_2026-11-20_second'
         metadata = directory / 'capture.json'

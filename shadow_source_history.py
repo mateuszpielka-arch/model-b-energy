@@ -51,7 +51,6 @@ def main():
     """Explicit local conversion; validate everything before producing any CSV."""
     import argparse
     import csv
-    from datetime import datetime
     import gzip
     import io
     import json
@@ -62,7 +61,7 @@ def main():
     from shadow_ingest_manifest import (
         MAX_MANIFEST_BYTES, MAX_REFERENCE_BYTES, _inside, _unique_manifest_object, load_batches,
     )
-    from shadow_pk5_snapshot import _unique_object
+    from shadow_pk5_snapshot import _unique_object, parse_capture_timestamp
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--pk5-capture', required=True, type=Path,
@@ -110,8 +109,8 @@ def main():
             reference = stream.read(MAX_REFERENCE_BYTES + 1)
         rows = prepare_history_rows(
             pk5_raw=pk5_raw, pk5_source_url=metadata['url'],
-            retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
-            retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']),
+            retrieved_at=parse_capture_timestamp(metadata['retrieved_at_utc']),
+            retrieval_completed_at=parse_capture_timestamp(metadata['retrieval_completed_at_utc']),
             actual_batch=batch, actual_raw=actual_raw, actual_reference=reference,
         )
     except (OSError, EOFError, ZlibError, ValueError, TypeError, KeyError) as exc:

@@ -2394,3 +2394,12 @@ lokalnej publikacji. Znaczniki date-only nie są uzupełniane domyślną półno
 Test odtworzył wcześniejsze błędne przyjęcie, potwierdza odrzucenie nadmiarowej
 precyzji i niepełnego czasu oraz akceptację dokładnego 09:50:00.000000.
 Rzeczywiste zapisane formaty PSE nadal przechodzą walidację. Zmiany dotyczą SHADOW.
+
+Naprawiono analogiczne obcinanie precyzji w CLI odczytującym metadane pobrania
+PK5. Nowy parse_capture_timestamp wymaga pełnego czasu z jawną strefą i najwyżej
+sześcioma cyframi ułamkowymi. CLI używa go dla retrieved_at_utc i
+retrieval_completed_at_utc, zamiast bezpośredniego datetime.fromisoformat.
+Test subprocess odtworzył wcześniejszy eksport CSV po 09:50:00.0000001 dla
+obu pól. Po poprawce nadmiarowa precyzja daje kod 2 i pusty stdout, natomiast
+dokładne 09:50:00.000000 pozostaje dopuszczalne. Zmienione czasy są syntetyczne;
+rzeczywiste pliki źródłowe i granica 09:50 pozostają zachowane.
