@@ -101,7 +101,13 @@ def load_batches(manifest_path):
         if type(http_status) is not int or http_status != 200:
             raise ValueError(f'Unsuccessful source HTTP status: expected integer 200 for {day}')
         try:
-            retrieved_at = _utc(datetime.fromisoformat(e.get('retrieved_at_utc')))
+            stamp = e.get('retrieved_at_utc')
+            # Do not let fromisoformat truncate actual availability or infer seconds.
+            if (not isinstance(stamp, str) or not re.fullmatch(
+                    r'\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}'
+                    r'(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})', stamp)):
+                raise ValueError('Full aware timestamp with at most six fractional digits required')
+            retrieved_at = _utc(datetime.fromisoformat(stamp))
         except (TypeError, ValueError) as exc:
             raise ValueError(f'Manifest requires an aware Fix1 retrieval timestamp for {day}') from exc
         if retrieved_at <= cutoff_for_day(delivery):

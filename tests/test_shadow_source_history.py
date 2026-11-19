@@ -7,10 +7,14 @@ import gzip
 import json
 import io
 import subprocess
+import shutil
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
+
+from shadow_ingest_manifest import ingest_manifest
 
 from shadow_archive_batch import read_reference_csv, prepare_batch
 from shadow_asof import cutoff_for_day
@@ -50,6 +54,53 @@ class SourceHistoryTests(unittest.TestCase):
             '--pk5-capture', str(metadata),
             str(FIXTURES / 'tge_delivery_2026-11-20/manifest.json'),
         ]
+
+    def test_fix1_manifest_cannot_truncate_actual_availability(self):
+        source = FIXTURES / 'tge_delivery_2026-11-20'
+        with TemporaryDirectory() as temporary:
+            target = Path(temporary) / 'actual'
+            shutil.copytree(source, target)
+            manifest = target / 'manifest.json'
+            data = json.loads(manifest.read_text())
+            entry, = data['entries']
+            exact = entry['retrieved_at_utc']
+            self.assertEqual(exact, '2026-11-19T10:17:54.057511+00:00')
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+            for invalid in (
+                '2026-11-19T10:17:54.0575119Z',
+                '2026-11-19T10:17:54.057511001+00:00',
+                '2026-11-19T10:17+00:00',
+            ):
+                with self.subTest(timestamp=invalid):
+                    entry['retrieved_at_utc'] = invalid
+                    manifest.write_text(json.dumps(data))
+                    with (patch('shadow_ingest_manifest._inside', side_effect=AssertionError('Evidence read before timestamp validation')) as read_evidence,
+                          patch('shadow_ingest_manifest._ingest_batches') as write_batches):
+                        with self.assertRaisesRegex(ValueError, 'retrieval timestamp'):
+                            ingest_manifest(manifest, conn=object())
+                        read_evidence.assert_not_called()
+                        write_batches.assert_not_called()
+            entry['retrieved_at_utc'] = exact
+            manifest.write_text(json.dumps(data))
+            self.assertEqual(ingest_manifest(manifest)['periods'], 24)
+
+    def test_cli_rejects_fix1_availability_precision_without_partial_csv(self):
+        source = FIXTURES / 'tge_delivery_2026-11-20'
+        pk5 = FIXTURES / 'pse_pk5_delivery_2026-11-20_second/capture.json'
+        with TemporaryDirectory() as temporary:
+            target = Path(temporary) / 'actual'
+            shutil.copytree(source, target)
+            manifest = target / 'manifest.json'
+            data = json.loads(manifest.read_text())
+            entry, = data['entries']
+            entry['retrieved_at_utc'] = '2026-11-19T10:17:54.0575119Z'
+            manifest.write_text(json.dumps(data))
+            command = self.command(pk5)
+            command[-1] = str(manifest)
+            completed = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(completed.returncode, 2, completed.stderr)
+            self.assertEqual(completed.stdout, '')
+            self.assertIn('retrieval timestamp', completed.stderr)
 
     def test_cli_capture_times_cannot_be_truncated_into_cutoff(self):
         directory = FIXTURES / 'pse_pk5_delivery_2026-11-20_second'

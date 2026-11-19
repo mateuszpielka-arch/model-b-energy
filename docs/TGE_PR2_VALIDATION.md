@@ -2403,3 +2403,19 @@ Test subprocess odtworzył wcześniejszy eksport CSV po 09:50:00.0000001 dla
 obu pól. Po poprawce nadmiarowa precyzja daje kod 2 i pusty stdout, natomiast
 dokładne 09:50:00.000000 pozostaje dopuszczalne. Zmienione czasy są syntetyczne;
 rzeczywiste pliki źródłowe i granica 09:50 pozostają zachowane.
+
+
+## Checkpoint 2026-11-19 — precyzja dostępności Fix1 w manifeście
+
+Loader manifestu wymaga teraz pełnego czasu pobrania Fix1 z sekundami, jawną
+strefą i najwyżej sześcioma cyframi ułamkowymi. Nie pozwala datetime.fromisoformat
+obciąć dostępności actual ani dopisać brakujących sekund. Reguła sprawdzana jest
+przed odczytem HTML/CSV i przed inicjalizacją lub zapisem do bazy.
+
+Dwa nowe testy na kopii rzeczywistej paczki TGE 20.11 odtworzyły wcześniejsze
+przyjęcie syntetycznego czasu 10:17:54.0575119 UTC oraz eksport CSV z obciętym
+znacznikiem. Po poprawce loader odrzuca także dziewięć cyfr ułamka i czas bez
+sekund przed I/O dowodów/zapisem; subprocess CLI zwraca kod 2 i pusty stdout.
+Oryginalny czas 10:17:54.057511+00:00 nadal dopuszcza 24 okresy. Lokalnie 9/9
+testów test_shadow_source_history przeszło. Zmienione znaczniki są syntetyczne;
+oryginalne pliki, archiwa, prognozy i konfiguracja produkcji pozostają bez zmian.
