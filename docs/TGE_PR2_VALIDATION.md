@@ -2299,3 +2299,22 @@ syntetycznie późniejszym czasem pobrania i cenami przesuniętymi na UTC 20.11.
 Writer odrzuca paczkę przed blokadą doby, zachowuje wszystkie trzy tabele
 w pustej i zapełnionej bazie oraz umożliwia REPLAY prawidłowej paczki.
 Zmodyfikowane metadane i klucze są syntetyczne; HTML pozostaje oryginalny.
+
+## Checkpoint 2026-11-19 — rzeczywisty kandydat PK5 przed 09:50
+
+Zapisano surowy JSON gzip i metadane publicznego PSE pk5l-wp dla dostawy
+20.11.2026: 24 wiersze, publikacja 19.11 o 08:12:42.328 Europe/Warsaw,
+początek pobrania 08:15:56.761896 i koniec 08:16:03.547940. SHA-256 JSON:
+492b6aac88c8aafa77c767aecc2ffd4e02c8b97d513ea2a7a6a22f7fef4c3709.
+
+Nowy czysty adapter shadow_pk5_snapshot.py przyjmuje wyłącznie kompletne
+doby 24h z tego endpointu i filtrem business_date. Sprawdza etykiety godzin,
+lokalne końce okresów i jawne plan_dtime_utc, zgodność lokalnej publikacji
+z publication_ts_utc, kompletność i unikalność UTC, a następnie istniejącą
+bramkę publication/retrieved/completed <= D−1 09:50. JWCD pochodzi wyłącznie
+z fcst_gen_unit_stor_prov. Doby DST są blokowane do osobnej weryfikacji.
+
+Cztery testy obejmują rzeczywisty zapis, dokładną granicę i mikrosekundę
+spóźnienia oraz syntetyczne braki, konflikty dat/okresów, paginację i duplikaty
+pól JSON. Adapter nie czyta bazy ani sieci i nie zapisuje prognoz. To jeden
+rzeczywisty kandydat JWCD, nie komplet historycznych okien 30/60/90D.
