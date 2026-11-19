@@ -2,9 +2,10 @@ from copy import deepcopy
 from datetime import date,timedelta
 from decimal import Decimal, Inexact, ROUND_UP, localcontext
 import unittest
+from unittest.mock import patch
 import test_shadow_ols as fixtures
 from shadow_similar_consensus import predict_similar,median_consensus,MEDIAN_MEMBERS
-from shadow_scoring import WARSAW
+from shadow_scoring import WARSAW, expected_periods
 
 class SimilarTests(unittest.TestCase):
     def args(self):
@@ -144,6 +145,39 @@ class MedianTests(unittest.TestCase):
             models[name].pop('prices')
             with self.subTest(member=name, missing_prices=True), self.assertRaises(ValueError):
                 median_consensus(target_day=day, models=models)
+
+    def test_interrupted_member_prices_block_whole_median_and_allow_clean_retry(self):
+        for day in (date(2026, 3, 29), date(2026, 11, 19), date(2026, 10, 25)):
+            valid = {
+                name: dict(
+                    target_day=day.isoformat(), target_snapshot_id='synthetic-snapshot',
+                    model_version=f'synthetic-{name}',
+                    prices=tuple((period, Decimal(value)) for period in expected_periods(day)),
+                )
+                for name, value in zip(MEDIAN_MEMBERS, ('10', '20', '40', '1000'))
+            }
+            before = deepcopy(valid)
+            expected = median_consensus(target_day=day, models=valid)
+            for name in MEDIAN_MEMBERS:
+                for error_type in (RuntimeError, OSError):
+                    with self.subTest(day=day, member=name, error=error_type.__name__):
+                        failure = error_type('synthetic interrupted price stream')
+
+                        def interrupted():
+                            yield valid[name]['prices'][0]
+                            raise failure
+
+                        models = {**valid, name: {**valid[name], 'prices': interrupted()}}
+                        with patch('shadow_similar_consensus.localcontext') as arithmetic:
+                            with self.assertRaisesRegex(
+                                ValueError, f'Unreadable median member prices: {name}'
+                            ) as caught:
+                                median_consensus(target_day=day, models=models)
+                            arithmetic.assert_not_called()
+                        self.assertIs(caught.exception.__cause__, failure)
+                        self.assertEqual(valid, before)
+                        self.assertEqual(median_consensus(target_day=day, models=valid), expected)
+                        self.assertEqual(len(expected['prices']), len(expected_periods(day)))
 
     def test_four_member_median_rejects_outlier(self):
         day,models=self.models();out=median_consensus(target_day=day,models=models)

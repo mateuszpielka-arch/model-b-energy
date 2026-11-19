@@ -2257,3 +2257,10 @@ Nie przyjmuje już bool/liczb/list/słowników jako wersji lub identyfikatora.
 Brak prices zgłasza błąd walidacji zamiast KeyError. Testy sprawdzają każdy
 z czterech modeli i iteratory cen, których nie wolno odczytać przy wadliwych
 metadanych. Dane są syntetyczne. Skład i obliczanie poprawnej mediany bez zmian.
+
+Samodzielna mediana zamienia przerwanie iteratora cen przez RuntimeError lub
+OSError na ValueError wskazujący konkretnego członka, z zachowaniem przyczyny.
+Nie zwraca częściowej prognozy. Test przerywa strumień po pierwszej cenie
+dla każdego z czterech modeli i dób 23/24/25h, potwierdza brak wejścia
+w obliczanie mediany i poprawne ponowienie z kompletnymi danymi.
+Wszystkie dane i przerwania strumieni w tym teście są syntetyczne.

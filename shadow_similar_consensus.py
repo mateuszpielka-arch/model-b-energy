@@ -70,7 +70,10 @@ def median_consensus(*,target_day,models):
     expected=set(expected_periods(target_day)); member_prices=[]
     for name in MEDIAN_MEMBERS:
         m=models[name]
-        prices=_prices(m.get('prices'))
+        try:
+            prices=_prices(m.get('prices'))
+        except (RuntimeError, OSError) as exc:
+            raise ValueError(f'Unreadable median member prices: {name}') from exc
         if set(prices)!=expected: raise ValueError('Incomplete median member periods')
         member_prices.append(prices)
     with localcontext(_SHADOW_DECIMAL_CONTEXT):
