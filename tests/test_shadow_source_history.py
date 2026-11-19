@@ -120,6 +120,66 @@ class SourceHistoryTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'PK5 capture'):
                     prepare_history_rows_from_captures(pk5_captures=captures, **actual)
 
+    def test_cli_multiple_real_captures_select_latest_in_both_orders(self):
+        early = FIXTURES / 'pse_pk5_delivery_2026-11-20/capture.json'
+        latest = FIXTURES / 'pse_pk5_delivery_2026-11-20_second/capture.json'
+        expected = list(prepare_history_rows(**self.inputs()))
+        files = [path for directory in (early.parent, latest.parent,
+                                       FIXTURES / 'tge_delivery_2026-11-20')
+                 for path in directory.iterdir() if path.is_file()]
+        before = {path: path.read_bytes() for path in files}
+        for first, second in ((early, latest), (latest, early)):
+            with self.subTest(first=first):
+                command = self.command(first)
+                command[-1:-1] = ['--pk5-capture', str(second)]
+                completed = subprocess.run(command, capture_output=True, text=True)
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                self.assertEqual(completed.stderr, '')
+                self.assertEqual(list(csv.DictReader(io.StringIO(completed.stdout))), expected)
+        self.assertEqual({path: path.read_bytes() for path in before}, before)
+
+    def test_cli_multiple_captures_validate_all_without_partial_csv(self):
+        directory = FIXTURES / 'pse_pk5_delivery_2026-11-20_second'
+        valid = directory / 'capture.json'
+        original = json.loads(valid.read_text())
+        for case, error in (
+            ('hash', 'SHA-256'), ('http', 'HTTP/source/row'), ('day', 'delivery differs'),
+            ('late', 'RETRIEVAL_STARTED_AFTER_CUTOFF'),
+            ('duplicate', 'MISSING_OR_DUPLICATE_SNAPSHOT_ID'),
+            ('conflict', 'CONFLICTING_JWCD_PUBLICATION'),
+        ):
+            with self.subTest(case=case), TemporaryDirectory() as temporary:
+                target = Path(temporary)
+                raw = gzip.decompress((directory / original['raw_file']).read_bytes())
+                metadata = dict(original)
+                if case == 'hash':
+                    metadata['raw_sha256'] = '0' * 64
+                elif case == 'http':
+                    metadata['http_status'] = 503
+                elif case == 'day':
+                    metadata['delivery_date'] = '2026-11-21'
+                elif case == 'late':
+                    metadata['retrieved_at_utc'] = '2026-11-19T08:50:00.000001Z'
+                    metadata['retrieval_completed_at_utc'] = '2026-11-19T08:50:00.000002Z'
+                elif case == 'conflict':
+                    payload = json.loads(raw)
+                    payload['value'][0]['fcst_gen_unit_stor_prov'] += 1
+                    raw = json.dumps(payload).encode()
+                    metadata.update(raw_sha256=sha256(raw).hexdigest(), bytes=len(raw))
+                    metadata['retrieved_at_utc'] = '2026-11-19T08:17:00Z'
+                    metadata['retrieval_completed_at_utc'] = '2026-11-19T08:17:01Z'
+                (target / original['raw_file']).write_bytes(gzip.compress(raw))
+                invalid = target / 'capture.json'
+                invalid.write_text(json.dumps(metadata))
+                for first, second in ((invalid, valid), (valid, invalid)):
+                    with self.subTest(first=first):
+                        command = self.command(first)
+                        command[-1:-1] = ['--pk5-capture', str(second)]
+                        completed = subprocess.run(command, capture_output=True, text=True)
+                        self.assertEqual(completed.returncode, 2, completed.stderr)
+                        self.assertEqual(completed.stdout, '')
+                        self.assertIn(error, completed.stderr)
+
     def command(self, metadata):
         return [
             sys.executable, str(Path(__file__).resolve().parents[1] / 'shadow_source_history.py'),

@@ -2439,3 +2439,22 @@ wynik; spóźniony kandydat nie jest po cichu pomijany. Nieprawidłowa kolekcja
 lub zestaw pól jest odrzucany. Dane wejściowe pozostają niezmienione.
 Lokalnie 13/13 testów test_shadow_source_history przeszło. Konflikt i przesunięcia
 czasów są syntetyczne; to nadal jedna doba danych, bez okien treningowych ani rankingu.
+
+
+## Checkpoint 2026-11-19 — wiele plików PK5 w lokalnym eksporcie CLI
+
+CLI shadow_source_history.py przyjmuje teraz powtarzalny --pk5-capture:
+`python shadow_source_history.py --pk5-capture pierwsze/capture.json --pk5-capture drugie/capture.json fix1/manifest.json`.
+Każdy plik przechodzi walidację metadanych, SHA-256, daty i źródłowego JSON,
+a wybór pełnego pobrania odbywa się przez prepare_history_rows_from_captures.
+Nie ma domyślnego pomijania wcześniejszych argumentów ani wadliwych kandydatów.
+CSV trafia na stdout dopiero po walidacji całej paczki; pojedynczy plik nadal działa.
+
+Dwa nowe testy subprocess obejmują oba rzeczywiste pobrania PK5 dla 20.11,
+obie kolejności argumentów i bajtową niezmienność wejścia. Drugi test sprawdza
+obie kolejności dla złego hashu, HTTP, daty, spóźnienia, duplikatu i konfliktu
+tej samej publikacji: kod 2, pusty stdout i właściwa przyczyna. Przed poprawką
+odtworzono ignorowanie pierwszego argumentu i eksport starszej publikacji,
+gdy jej plik był ostatni. Usterki i konflikt są syntetyczne; oryginalne źródła
+pozostają zachowane. Lokalnie 15/15 testów test_shadow_source_history przeszło.
+To obsługa jednej doby i jej rewizji, nie nowe historyczne okna ani ranking.
