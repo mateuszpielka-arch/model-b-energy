@@ -17,6 +17,33 @@ class WalkforwardTests(unittest.TestCase):
         return dict(history=history,target_days=[p['day'] for p in history[-2:]],
                     evaluated_at=datetime(2026,11,5,tzinfo=timezone.utc))
 
+    def test_decimal_overflow_rejects_only_affected_day_before_scoring(self):
+        spring, autumn = date(2026, 3, 29), date(2026, 10, 25)
+        history = (
+            fixtures.OLSTests().data(92, target=spring + timedelta(days=1))['history']
+            + fixtures.OLSTests().data(92, target=autumn + timedelta(days=1))['history']
+        )
+        args = dict(history=history, target_days=[spring, autumn],
+                    evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc))
+        baseline = run_walkforward(**args)
+        target = next(packet for packet in history if packet['day'] == spring)
+        # Finite synthetic JWCD passes admission but overflows the fixed OLS arithmetic.
+        for row in target['snapshots'][0]['rows']:
+            row['jwcd_mw'] = Decimal('9E999999')
+        with patch('shadow_walkforward.score_day', wraps=score_day) as scoring:
+            result = run_walkforward(**args)
+        self.assertEqual(result['common_days'], 1)
+        self.assertEqual(result['common_periods'], 25)
+        self.assertEqual(result['accepted'], [baseline['accepted'][1]])
+        self.assertEqual(result['skipped'], [
+            dict(day=spring.isoformat(), stage='ols30',
+                 reason='Numeric computation failed: Overflow', numeric_error='Overflow'),
+        ])
+        self.assertEqual(scoring.call_count, len(MODELS))
+        self.assertEqual({call.kwargs['day'] for call in scoring.call_args_list}, {autumn})
+        self.assertEqual({(row['days'], row['periods']) for row in result['ranking']}, {(1, 25)})
+        self.assertEqual(result['excluded_periods'], 23)
+
     def test_two_days_all_models_share_48_periods(self):
         kw = self.args()
         kw['history'][-1]['snapshots'].insert(0, None)

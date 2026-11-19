@@ -2264,3 +2264,11 @@ Nie zwraca częściowej prognozy. Test przerywa strumień po pierwszej cenie
 dla każdego z czterech modeli i dób 23/24/25h, potwierdza brak wejścia
 w obliczanie mediany i poprawne ponowienie z kompletnymi danymi.
 Wszystkie dane i przerwania strumieni w tym teście są syntetyczne.
+
+Walk-forward izoluje wyjątki arytmetyki Decimal przy przygotowaniu prognoz
+lub scoringu doby: raportuje numeric_error i etap, wyklucza dobę ze wspólnego
+rankingu i kontynuuje kolejne. Test odtworzył wcześniejsze przerwanie całego
+przebiegu przez Overflow w OLS 30D dla skończonego syntetycznego JWCD 9E999999.
+Po poprawce doba 23h jest wykluczona przed scoringiem, a niezależna doba 25h
+zachowuje identyczne prognozy i wyniki oraz sześć wywołań scoringu.
+Nie zmieniono reguł dostępności danych, modeli ani parametrów obliczeń.

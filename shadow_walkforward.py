@@ -7,7 +7,7 @@ from bisect import bisect_left, bisect_right
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, timedelta
-from decimal import Decimal, localcontext
+from decimal import Decimal, DecimalException, localcontext
 from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
 from shadow_training import (
@@ -292,8 +292,12 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         forecast_id=f'simulated:{day}:{name}',model_version=predictions[name]['model_version'],
                         actual_version=target['actual_version'],forecast_status='SHADOW',actual_verified=True,
                         issued_at=selected.cutoff_utc,publication_ts=latest_publication,retrieved_at=latest_retrieval)
-            except ValueError as exc:
-                rejection = dict(day=day.isoformat(), stage=stage, reason=str(exc))
+            except (ValueError, DecimalException) as exc:
+                numeric_error = type(exc).__name__ if isinstance(exc, DecimalException) else None
+                reason = f'Numeric computation failed: {numeric_error}' if numeric_error else str(exc)
+                rejection = dict(day=day.isoformat(), stage=stage, reason=reason)
+                if numeric_error:
+                    rejection['numeric_error'] = numeric_error
                 if missing_training_timing_days is not None:
                     rejection['missing_training_timing_days'] = missing_training_timing_days
                 if prediction_period_coverage is not None:
