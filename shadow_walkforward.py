@@ -390,16 +390,18 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                         actual_verified=True, issued_at=record.get('issued_at'),
                         publication_ts=record.get('publication_ts'), retrieved_at=record.get('retrieved_at'),
                     )
+                    staged_benchmark_totals = deepcopy(benchmark_totals)
+                    for name, prices in (('frozen_90d', frozen_prices), ('ols90', forecast_prices['ols90'])):
+                        for period in periods:
+                            value = actual[period]
+                            _accumulate((staged_benchmark_totals[name],), prices[period] - value, value)
                 except (ValueError, DecimalException) as exc:
                     reason = (f'Numeric computation failed: {type(exc).__name__}'
                               if isinstance(exc, DecimalException) else str(exc))
                     benchmark['excluded_days'][label] = reason
                 else:
+                    benchmark_totals = staged_benchmark_totals
                     benchmark['paired_days'].append(dict(day=label, frozen_90d=frozen_score, ols90=scores['ols90']))
-                    for name, prices in (('frozen_90d', frozen_prices), ('ols90', forecast_prices['ols90'])):
-                        for period in periods:
-                            value = actual[period]
-                            _accumulate((benchmark_totals[name],), prices[period] - value, value)
             # Publish sums and counters only after the entire day has accumulated.
             (totals, totals_by_hours, totals_by_day_type, totals_by_local_hour,
              local_hours) = staged_totals

@@ -2514,3 +2514,21 @@ rankingi ogólny, 23/24/25h, weekday/weekend i lokalnej godziny jak przebieg bez
 wadliwej doby. Wykluczono dokładnie 25 okresów; historia pozostaje niezmieniona.
 Lokalnie 67/67 testów test_shadow_walkforward przeszło. Historia i wstrzyknięta
 awaria są syntetyczne; produkcyjnych prognoz i FROZEN nie zmieniano.
+
+
+## Checkpoint 2026-11-19 — atomowe sumowanie par benchmarku offline
+
+Opcjonalne porównanie z dostarczonymi lokalnie rekordami FROZEN przygotowuje
+teraz sumy obu modeli na odłączonej kopii. Sumy i paired_days aktualizowane są
+dopiero po powodzeniu całej pary. Błąd Decimal w agregacji trafia do excluded_days
+tylko tej pary; wcześniejsze sumy oraz pełny ranking SHADOW zostają zachowane,
+a przebieg ocenia kolejne doby. Zmiana dotyczy wyłącznie read-only benchmarku.
+
+Nowa regresja odtworzyła wcześniejsze przerwanie całego przebiegu przez Overflow
+wstrzyknięty po częściowym sumowaniu drugiego modelu pary w dobie 25h.
+Po poprawce raport SHADOW jest dokładnie identyczny z przebiegiem bez benchmarku:
+trzy doby, 73 okresy. Ranking par ma wyłącznie wcześniejszą i następną dobę 24h,
+łącznie 48 okresów, i odpowiada referencji bez wadliwej pary. Rekordy i historia
+pozostają niezmienione. Lokalnie 68/68 testów test_shadow_walkforward przeszło.
+Historia, rekordy porównawcze i awaria są syntetyczne. Produkcyjnych modeli,
+FROZEN i istniejących archiwów nie zmieniano.

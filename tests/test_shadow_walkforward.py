@@ -18,6 +18,54 @@ class WalkforwardTests(unittest.TestCase):
         return dict(history=history,target_days=[p['day'] for p in history[-2:]],
                     evaluated_at=datetime(2026,11,5,tzinfo=timezone.utc))
 
+    def test_benchmark_accumulation_failure_discards_only_pair_and_continues(self):
+        history = fixtures.OLSTests().data(94, target=date(2026, 10, 27))['history']
+        targets = history[-3:]
+        first, broken, last = [packet['day'] for packet in targets]
+        args = dict(history=history, target_days=[first, broken, last],
+                    evaluated_at=datetime(2026, 11, 5, tzinfo=timezone.utc))
+        records = {}
+        for packet in targets:
+            day = packet['day']
+            cutoff = cutoff_for_day(day)
+            records[day] = dict(
+                forecast_id=f'synthetic-frozen:{day}', model_version=FROZEN_90D_VERSION,
+                forecast_status='FROZEN', issued_at=cutoff,
+                publication_ts=cutoff - timedelta(minutes=1), retrieved_at=cutoff,
+                prices=[(period, price + 10) for period, price in packet['actual']],
+            )
+        shadow = run_walkforward(**args)
+        baseline = run_walkforward(
+            **args, frozen_90d_by_day={day: record for day, record in records.items() if day != broken},
+        )['frozen_90d_benchmark']
+        before = deepcopy((history, records))
+        accumulate = walkforward._accumulate
+        calls = 0
+        # Benchmark totals are single-model; SHADOW calls update four groups together.
+        fail_at = 2 * len(expected_periods(first)) + len(expected_periods(broken)) + 2
+
+        def interrupt(totals, error, actual):
+            nonlocal calls
+            accumulate(totals, error, actual)
+            if len(totals) == 1:
+                calls += 1
+                if calls == fail_at:
+                    raise Overflow('Synthetic failure after partial benchmark accumulation')
+
+        with patch('shadow_walkforward._accumulate', side_effect=interrupt):
+            report = run_walkforward(**args, frozen_90d_by_day=records)
+        benchmark = report.pop('frozen_90d_benchmark')
+        self.assertEqual(report, shadow)
+        self.assertGreater(calls, fail_at)
+        self.assertEqual(benchmark['excluded_days'], {
+            broken.isoformat(): 'Numeric computation failed: Overflow',
+        })
+        for field in ('paired_days', 'ranking', 'coverage_by_hours'):
+            self.assertEqual(benchmark[field], baseline[field], field)
+        self.assertEqual({(row['days'], row['periods']) for row in benchmark['ranking']}, {(2, 48)})
+        self.assertEqual(report['common_periods'], 73)
+        self.assertEqual((history, records), before)
+
     def test_ranking_accumulation_failure_discards_whole_day_and_continues(self):
         history = fixtures.OLSTests().data(94, target=date(2026, 10, 27))['history']
         first, broken, last = [packet['day'] for packet in history[-3:]]
