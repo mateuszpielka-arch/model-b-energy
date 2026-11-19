@@ -440,6 +440,44 @@ class RecentOfficialSessionsTests(unittest.TestCase):
             )
             self.assertEqual(list(output.iterdir()), [])
 
+    def test_november_20_prepublication_response_cannot_reuse_previous_delivery(self):
+        from lxml import html
+
+        day = date(2026, 11, 20)
+        directory = FIXTURES.with_name('tge_delivery_2026-11-20_prepublication')
+        metadata = json.loads((directory / 'capture.json').read_text())
+        raw = gzip.decompress((directory / metadata['raw_file']).read_bytes())
+        self.assertEqual(sha256(raw).hexdigest(), metadata['raw_sha256'])
+        self.assertEqual(len(raw), metadata['bytes'])
+        self.assertEqual(metadata['http_status'], 200)
+        self.assertLess(datetime.fromisoformat(metadata['retrieved_at_utc']), cutoff_for_day(day))
+        labels = [
+            value.strip() for value in html.fromstring(raw).xpath(
+                '//table[@id="rdn"]/tbody/tr/td[1]/text()'
+            )
+            if re.fullmatch(r'\d{4}-\d{2}-\d{2}_H\d{2}', value.strip())
+        ]
+        self.assertEqual(labels, [f'2026-11-19_H{hour:02d}' for hour in range(1, 25)])
+        self.assertEqual(metadata['rdn_hourly_rows_total'], len(labels))
+        self.assertEqual(metadata['observed_hourly_rows'], 0)
+        self.assertEqual(metadata['observed_delivery_dates'], ['2026-11-19'])
+        self.assertEqual(metadata['status'], 'REQUESTED_DELIVERY_NOT_PRESENT')
+        previous, = json.loads((NOV_19_FIXTURES / 'manifest.json').read_text())['entries']
+        _, _, rows = load_session(previous, NOV_19_FIXTURES)
+        self.assertEqual(
+            parse_complete_standard_day(raw.decode('utf-8'), '2026-11-19', exact=True),
+            {index: Decimal(row['price_pln_mwh']) for index, row in enumerate(rows, 1)},
+        )
+        with self.assertRaisesRegex(ValueError, 'Incomplete hourly Fixing I snapshot'):
+            parse_complete_standard_day(raw.decode('utf-8'), day.isoformat(), exact=True)
+        with TemporaryDirectory() as tmp, patch(
+            'tools.capture_tge_validation._fetch_session', return_value=(200, raw),
+        ) as fetch:
+            with self.assertRaisesRegex(ValueError, 'No hourly Fixing I rows.*2026-11-20'):
+                capture(day, Path(tmp))
+            fetch.assert_called_once_with(metadata['url'], day)
+            self.assertEqual(list(Path(tmp).iterdir()), [])
+
     def test_november_19_unpriced_session_cannot_create_a_price_package(self):
         from lxml import html
 

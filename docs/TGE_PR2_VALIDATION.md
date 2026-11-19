@@ -2281,3 +2281,12 @@ z podaniem przyczyny; pełne 49 okresów i wszystkie wyniki SHADOW pozostają
 identyczne z przebiegiem bez benchmarku. Wcześniejsza poprawna para 24h
 pozostaje w rankingu porównawczym. Test potwierdza niezmienność rekordów.
 Historia i rekordy benchmarku są syntetyczne; produkcyjnego FROZEN nie zmieniano.
+
+Pobranie URL sesji 19.11.2026 o 06:12:00 Europe/Warsaw dla dostawy 20.11
+zwróciło HTTP 200, ale tabela RDN zawierała tylko 24 ceny dla 19.11.
+Zapisano oryginalny HTML gzip i metadane w tge_delivery_2026-11-20_prepublication.
+SHA-256 HTML: 15b2ae7452ffe23ac736d7eca7a0c26e950767859cbf47cf8b4034f9e632cdb6.
+Test sprawdza zgodność poprzedniej doby z zapisaną referencją TGE, odrzucenie
+żądanej doby przez parser oraz brak zapisu paczki HTML/CSV przez capture.
+HTTP 200 i poprawny URL sesji nie wystarczają do przyjęcia cen dostawy.
+Nie przypisano wcześniejszych cen do nowej doby ani nie wymyślono czasu publikacji.
