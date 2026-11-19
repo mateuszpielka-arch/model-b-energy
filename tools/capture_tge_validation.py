@@ -52,9 +52,14 @@ def extract_reference(raw, day, *, autumn_25h=False):
     if names[:4] != ['Data dostawy', 'Typ instrumentu', 'Kurs [PLN/MWh]', 'Wolumen [MW]']:
         raise ValueError('Wrong market/unit/columns')
     rows=[]
+    observed_delivery_dates = set()
     for row in tables[0].xpath('./tbody/tr'):
         elements = row.xpath('./td')
         cells=[' '.join(c.text_content().split()) for c in elements]
+        if cells:
+            hourly_label = re.fullmatch(r'(\d{4}-\d{2}-\d{2})_H\d{2}[Aa]?', cells[0])
+            if hourly_label:
+                observed_delivery_dates.add(hourly_label.group(1))
         if not cells or not cells[0].startswith(day+'_H'): continue
         if row.xpath('./td//script | ./td//style'):
             raise ValueError(f'Unexpected script or style in Fix1 reference row {cells[0]}')
@@ -74,7 +79,11 @@ def extract_reference(raw, day, *, autumn_25h=False):
         rows.append((label,Decimal(cells[2].replace(' ','').replace('−','-').replace(',','.'))))
     observed = [label for label, _ in rows]
     if not observed:
-        raise ValueError(f'No hourly Fixing I rows in TGE response for {day}')
+        observed_days = ', '.join(sorted(observed_delivery_dates)) or 'none'
+        raise ValueError(
+            f'No hourly Fixing I rows in TGE response for {day}; '
+            f'observed hourly delivery dates: {observed_days}'
+        )
     if observed != expected:
         raise ValueError(
             f'Incomplete or reordered hourly labels in Fix1 reference for {day}: '

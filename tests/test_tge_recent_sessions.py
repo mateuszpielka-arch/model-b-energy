@@ -473,7 +473,9 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         with TemporaryDirectory() as tmp, patch(
             'tools.capture_tge_validation._fetch_session', return_value=(200, raw),
         ) as fetch:
-            with self.assertRaisesRegex(ValueError, 'No hourly Fixing I rows.*2026-11-20'):
+            with self.assertRaisesRegex(
+                ValueError, 'No hourly Fixing I rows.*2026-11-20; observed hourly delivery dates: 2026-11-19',
+            ):
                 capture(day, Path(tmp))
             fetch.assert_called_once_with(metadata['url'], day)
             self.assertEqual(list(Path(tmp).iterdir()), [])
@@ -601,6 +603,38 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
                     'SELECT raw_sha256, raw_html, retrieved_at FROM fix1_shadow_test.batches ORDER BY raw_sha256'
                 ).fetchall(), evidence)
                 self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.quarantine').fetchone(), (0,))
+
+    def test_november_20_stale_delivery_html_is_rejected_before_archive_lock(self):
+        from dataclasses import replace
+
+        day = date(2026, 11, 20)
+        directory = FIXTURES.with_name('tge_delivery_2026-11-20_prepublication')
+        metadata = json.loads((directory / 'capture.json').read_text())
+        raw = gzip.decompress((directory / metadata['raw_file']).read_bytes())
+        (accepted, accepted_raw), = load_batches(NOV_19_FIXTURES / 'manifest.json')
+        # Fabricated later capture time and shifted UTC rows cannot certify old HTML.
+        forged = replace(
+            accepted, delivery_date=day, raw_sha256=metadata['raw_sha256'],
+            source_url=metadata['url'], retrieved_at=cutoff_for_day(day) + timedelta(hours=2),
+            rows=tuple(zip(expected_periods(day), (price for _, price in accepted.rows))),
+        )
+        queries = [
+            'SELECT * FROM fix1_shadow_test.batches ORDER BY id',
+            'SELECT * FROM fix1_shadow_test.prices ORDER BY delivery_date, period_start_utc',
+            'SELECT * FROM fix1_shadow_test.quarantine ORDER BY batch_id',
+        ]
+        for populated in (False, True):
+            with self.subTest(populated=populated), self.isolated_connection() as conn:
+                if populated:
+                    self.assertEqual(archive_batch(conn, accepted, accepted_raw), 'INSERT')
+                before = [conn.execute(query).fetchall() for query in queries]
+                with patch('shadow_postgres_archive._lock_delivery_day') as lock:
+                    with self.assertRaisesRegex(ValueError, 'Incomplete hourly Fixing I snapshot'):
+                        archive_batch(conn, forged, raw)
+                    lock.assert_not_called()
+                self.assertEqual([conn.execute(query).fetchall() for query in queries], before)
+                if populated:
+                    self.assertEqual(archive_batch(conn, accepted, accepted_raw), 'REPLAY')
 
     def test_november_19_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_19_FIXTURES)

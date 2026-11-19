@@ -2290,3 +2290,12 @@ Test sprawdza zgodność poprzedniej doby z zapisaną referencją TGE, odrzuceni
 żądanej doby przez parser oraz brak zapisu paczki HTML/CSV przez capture.
 HTTP 200 i poprawny URL sesji nie wystarczają do przyjęcia cen dostawy.
 Nie przypisano wcześniejszych cen do nowej doby ani nie wymyślono czasu publikacji.
+
+Ekstraktor referencyjny przy braku godzin żądanej dostawy podaje daty
+rzeczywiście znalezionych godzin w RDN. Test na oficjalnym HTML pobranym
+19.11 o 06:12 wskazuje żądaną dostawę 20.11 i znalezioną 19.11.
+Nowy test PostgreSQL próbuje przyjąć ten HTML z prawidłowym SHA-256,
+syntetycznie późniejszym czasem pobrania i cenami przesuniętymi na UTC 20.11.
+Writer odrzuca paczkę przed blokadą doby, zachowuje wszystkie trzy tabele
+w pustej i zapełnionej bazie oraz umożliwia REPLAY prawidłowej paczki.
+Zmodyfikowane metadane i klucze są syntetyczne; HTML pozostaje oryginalny.
