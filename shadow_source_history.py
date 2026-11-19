@@ -1,7 +1,8 @@
 """Join evidence-checked standard-day PK5 and Fix1 into offline audit CSV rows.
 
-No I/O or database access. HTTP provenance is caller-owned; consistency checks
-do not authenticate an external source. No historic timestamps are inferred.
+The preparation function performs no I/O. The explicit CLI reads local files and
+exports CSV to stdout, without network or database access. HTTP provenance remains
+caller-owned; no historic timestamps are inferred.
 """
 from hashlib import sha256
 
@@ -44,3 +45,83 @@ def prepare_history_rows(*, pk5_raw, pk5_source_url, retrieved_at, retrieval_com
         )
         for index, row in enumerate(sorted(snapshot['rows'], key=lambda row: row['period_start_utc']), 1)
     )
+
+
+def main():
+    """Explicit local conversion; validate everything before producing any CSV."""
+    import argparse
+    import csv
+    from datetime import datetime
+    import gzip
+    import io
+    import json
+    from pathlib import Path
+    import sys
+    from zlib import error as ZlibError
+
+    from shadow_ingest_manifest import (
+        MAX_MANIFEST_BYTES, MAX_REFERENCE_BYTES, _inside, _unique_manifest_object, load_batches,
+    )
+    from shadow_pk5_snapshot import _unique_object
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--pk5-capture', required=True, type=Path,
+                        help='Saved PK5 capture.json alongside its original JSON gzip')
+    parser.add_argument('actual_manifest', type=Path, help='One-day verified Fixing I manifest')
+    args = parser.parse_args()
+    try:
+        with args.pk5_capture.open('rb') as stream:
+            metadata_bytes = stream.read(MAX_MANIFEST_BYTES + 1)
+        if len(metadata_bytes) > MAX_MANIFEST_BYTES:
+            raise ValueError('PK5 capture metadata exceeds 1 MiB')
+        metadata = json.loads(metadata_bytes, object_pairs_hook=_unique_object)
+        if not isinstance(metadata, dict):
+            raise ValueError('PK5 capture metadata must be an object')
+        filename = metadata.get('raw_file')
+        if (not isinstance(filename, str) or Path(filename).name != filename
+                or not filename.endswith('.json.gz')):
+            raise ValueError('PK5 capture requires a local JSON gzip filename')
+        if (type(metadata.get('http_status')) is not int or metadata['http_status'] != 200
+                or metadata.get('response_url') != metadata.get('url')
+                or type(metadata.get('rows')) is not int or metadata['rows'] != 24):
+            raise ValueError('PK5 capture HTTP/source/row metadata mismatch')
+        with gzip.open(_inside(args.pk5_capture.parent, filename), 'rb') as stream:
+            pk5_raw = stream.read(8 * 1024 * 1024 + 1)
+        if (len(pk5_raw) > 8 * 1024 * 1024 or type(metadata.get('bytes')) is not int
+                or metadata['bytes'] != len(pk5_raw)
+                or metadata.get('raw_sha256') != sha256(pk5_raw).hexdigest()):
+            raise ValueError('PK5 capture raw size or SHA-256 mismatch')
+        batches = load_batches(args.actual_manifest)
+        if len(batches) != 1:
+            raise ValueError('Exactly one Fixing I delivery day required')
+        batch, actual_raw = batches[0]
+        if metadata.get('delivery_date') != batch.delivery_date.isoformat():
+            raise ValueError('PK5 capture delivery differs from Fixing I')
+        with args.actual_manifest.open('rb') as stream:
+            manifest_bytes = stream.read(MAX_MANIFEST_BYTES + 1)
+        if len(manifest_bytes) > MAX_MANIFEST_BYTES:
+            raise ValueError('Fix1 capture manifest exceeds 1 MiB')
+        manifest = json.loads(manifest_bytes, object_pairs_hook=_unique_manifest_object)
+        entries = manifest.get('entries') if isinstance(manifest, dict) else None
+        if not isinstance(entries, list) or len(entries) != 1 or not isinstance(entries[0], dict):
+            raise ValueError('Exactly one Fixing I evidence entry required')
+        reference_path = _inside(args.actual_manifest.parent, entries[0]['reference_file'])
+        with reference_path.open('rb') as stream:
+            reference = stream.read(MAX_REFERENCE_BYTES + 1)
+        rows = prepare_history_rows(
+            pk5_raw=pk5_raw, pk5_source_url=metadata['url'],
+            retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
+            retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']),
+            actual_batch=batch, actual_raw=actual_raw, actual_reference=reference,
+        )
+    except (OSError, EOFError, ZlibError, ValueError, TypeError, KeyError) as exc:
+        parser.error(str(exc))
+    output = io.StringIO(newline='')
+    writer = csv.DictWriter(output, fieldnames=rows[0], lineterminator='\n')
+    writer.writeheader()
+    writer.writerows(rows)
+    sys.stdout.write(output.getvalue())
+
+
+if __name__ == '__main__':
+    main()

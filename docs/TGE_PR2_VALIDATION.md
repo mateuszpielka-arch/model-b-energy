@@ -2375,3 +2375,13 @@ odrzucenie zmienionych bajtów oraz zmian ceny/UTC nawet przy dopasowanym hashu
 referencji i spóźnionego PK5. Audyt dopuszcza 24 pary jako jedną dobę, ale
 walk-forward zachowuje pusty ranking i jawnie wykazuje brak 30/60/90 dób CSV.
 To przygotowanie danych do backtestu, nie dowód gotowości historycznych okien.
+
+Dodano jawny lokalny eksport CLI:
+`python shadow_source_history.py --pk5-capture katalog/capture.json katalog/manifest.json`.
+Weryfikuje metadane HTTP/URL, rozmiar i SHA-256 PK5 oraz istniejący manifest
+Fix1, po czym używa sprawdzonego połączenia źródeł. Wypisuje kompletny CSV
+na stdout dopiero po walidacji całości. Nie łączy się z siecią lub bazą,
+nie odczytuje DATABASE_URL i nie zmienia plików wejściowych.
+Test subprocess na rzeczywistych źródłach 20.11 potwierdza zgodność eksportu
+z funkcją i niezmienność plików. Błędny hash, HTTP, URL odpowiedzi i powielony
+znacznik pobrania kończą się kodem 2 i pustym stdout, bez częściowego CSV.

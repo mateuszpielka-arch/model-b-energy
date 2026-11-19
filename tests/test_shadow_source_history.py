@@ -5,6 +5,9 @@ from dataclasses import replace
 from hashlib import sha256
 import gzip
 import json
+import io
+import subprocess
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -40,6 +43,49 @@ class SourceHistoryTests(unittest.TestCase):
             retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
             retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']),
         )
+
+    def command(self, metadata):
+        return [
+            sys.executable, str(Path(__file__).resolve().parents[1] / 'shadow_source_history.py'),
+            '--pk5-capture', str(metadata),
+            str(FIXTURES / 'tge_delivery_2026-11-20/manifest.json'),
+        ]
+
+    def test_cli_exports_verified_real_rows_without_changing_source_files(self):
+        directory = FIXTURES / 'pse_pk5_delivery_2026-11-20_second'
+        metadata = directory / 'capture.json'
+        files = list(directory.iterdir()) + list((FIXTURES / 'tge_delivery_2026-11-20').iterdir())
+        before = {path: path.read_bytes() for path in files if path.is_file()}
+        completed = subprocess.run(self.command(metadata), check=True, capture_output=True, text=True)
+        self.assertEqual(completed.stderr, '')
+        rows = list(csv.DictReader(io.StringIO(completed.stdout)))
+        self.assertEqual(rows, list(prepare_history_rows(**self.inputs())))
+        self.assertEqual({path: path.read_bytes() for path in before}, before)
+
+    def test_cli_invalid_capture_metadata_produces_no_partial_csv(self):
+        directory = FIXTURES / 'pse_pk5_delivery_2026-11-20_second'
+        original = json.loads((directory / 'capture.json').read_text())
+        for case in ('hash', 'http', 'redirect', 'duplicate'):
+            with self.subTest(case=case), TemporaryDirectory() as temporary:
+                target = Path(temporary)
+                (target / original['raw_file']).write_bytes((directory / original['raw_file']).read_bytes())
+                metadata = dict(original)
+                if case == 'hash':
+                    metadata['raw_sha256'] = '0' * 64
+                elif case == 'http':
+                    metadata['http_status'] = 503
+                elif case == 'redirect':
+                    metadata['response_url'] = 'https://example.com/pk5'
+                text = json.dumps(metadata)
+                if case == 'duplicate':
+                    text = text.replace('"retrieved_at_utc":',
+                                        '"retrieved_at_utc": "2099-01-01T00:00:00Z", "retrieved_at_utc":', 1)
+                path = target / 'capture.json'
+                path.write_text(text)
+                completed = subprocess.run(self.command(path), capture_output=True, text=True)
+                self.assertEqual(completed.returncode, 2)
+                self.assertEqual(completed.stdout, '')
+                self.assertIn('error:', completed.stderr)
 
     def test_real_sources_roundtrip_to_audit_but_do_not_manufacture_training(self):
         inputs = self.inputs()
