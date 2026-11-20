@@ -2675,3 +2675,24 @@ SUPERSEDED_JWCD_PUBLICATIONS, sprawdza cutoff, hashe oraz niezmienność obu
 obserwacji. Lokalnie 13/13 testów test_shadow_pk5_snapshot przeszło.
 To dwie rewizje jednej doby, nie dodatkowy dzień treningowy. Nie zapisano
 prognozy ani ceny Fix1 21.11; wcześniejsze źródła pozostają zachowane.
+
+
+## Checkpoint 2026-11-20 — jawne narzędzie walidacyjnego pobrania PK5
+
+Dodano tools/capture_pk5_validation.py:
+`python -m tools.capture_pk5_validation --day YYYY-MM-DD --output NOWY_KATALOG`.
+Narzędzie wykonuje jeden jawny GET publicznego pk5l-wp z filtrem business_date.
+Sprawdza zwykłą dobę 24h i cutoff przed siecią, HTTP 200 bez przekierowania,
+limit 8 MiB i pełny Content-Length, a następnie istniejący adapter PK5.
+Dopiero po walidacji zapisuje gzip oryginalnych bajtów i capture.json z SHA-256,
+rzeczywistym początkiem/końcem pobrania oraz snapshot ID. Nie pobiera sekretów,
+nie zapisuje bazy ani prognoz i nie uruchamia harmonogramów.
+
+Zapis jest wyłączny: ponowienie nie nadpisuje dowodów, a błąd zapisu metadanych
+usuwa właśnie utworzony raw, zachowując wcześniejszy capture.json. Trzy nowe
+testy z emulowanym HTTP i zegarem na oryginalnych bajtach drugiego pobrania PK5
+21.11 potwierdzają zgodność wszystkich metadanych i treści, brak plików przy
+spóźnieniu, złym HTTP/URL, uciętej lub nadmiernej odpowiedzi i niepełnym JSON,
+brak żądania przy późnym starcie, ochronę ponowienia i wycofanie raw.
+Lokalnie 3/3 testy oraz uruchomienie CLI --help przeszły. W tym kroku nie
+wykonano nowego pobrania źródła ani nie zmieniono produkcyjnych collectorów.
