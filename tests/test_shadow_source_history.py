@@ -30,6 +30,44 @@ FIXTURES = Path(__file__).parent / 'fixtures'
 
 
 class SourceHistoryTests(unittest.TestCase):
+
+    def test_cli_checks_declared_live_capture_identity_before_exporting(self):
+        directory = FIXTURES / 'pse_pk5_delivery_2026-11-21_third'
+        metadata = json.loads((directory / 'capture.json').read_text())
+        self.assertTrue(metadata['snapshot_id'].startswith('pk5-capture-sha256:'))
+        original_raw = (directory / metadata['raw_file']).read_bytes()
+        manifest = FIXTURES / 'tge_delivery_2026-11-21/manifest.json'
+        with TemporaryDirectory() as temporary:
+            target = Path(temporary)
+            (target / metadata['raw_file']).write_bytes(original_raw)
+            capture = target / 'capture.json'
+            for output_format in ('csv', 'json'):
+                for identity in (metadata['snapshot_id'], 'pk5-capture-sha256:' + '0' * 64,
+                                 None, '', 123):
+                    with self.subTest(output_format=output_format, identity=identity):
+                        capture.write_text(json.dumps({**metadata, 'snapshot_id': identity}))
+                        command = self.command(capture)
+                        command[-1] = str(manifest)
+                        command[-1:-1] = ['--format', output_format]
+                        completed = subprocess.run(command, capture_output=True, text=True)
+                        if identity == metadata['snapshot_id']:
+                            self.assertEqual(completed.returncode, 0, completed.stderr)
+                            if output_format == 'json':
+                                report = json.loads(completed.stdout)
+                                self.assertEqual(report['selected_snapshot_id'], identity)
+                                rows = report['rows']
+                            else:
+                                rows = list(csv.DictReader(io.StringIO(completed.stdout)))
+                            self.assertEqual(len(rows), 24)
+                            self.assertEqual({row['jwcd_snapshot_id'] for row in rows}, {identity})
+                        else:
+                            self.assertEqual(completed.returncode, 2)
+                            self.assertEqual(completed.stdout, '')
+                            self.assertIn('PK5 capture snapshot_id mismatch', completed.stderr)
+            self.assertEqual((target / metadata['raw_file']).read_bytes(), original_raw)
+        self.assertEqual(json.loads((directory / 'capture.json').read_text()), metadata)
+
+
     def inputs(self):
         actual_dir = FIXTURES / 'tge_delivery_2026-11-20'
         entry, = json.loads((actual_dir / 'manifest.json').read_text())['entries']

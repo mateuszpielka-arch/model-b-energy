@@ -172,11 +172,18 @@ def main():
                 raise ValueError('PK5 capture raw size or SHA-256 mismatch')
             if metadata.get('delivery_date') != batch.delivery_date.isoformat():
                 raise ValueError('PK5 capture delivery differs from Fixing I')
-            captures.append(dict(
+            capture = dict(
                 raw=pk5_raw, source_url=metadata['url'],
                 retrieved_at=parse_capture_timestamp(metadata['retrieved_at_utc']),
                 retrieval_completed_at=parse_capture_timestamp(metadata['retrieval_completed_at_utc']),
-            ))
+            )
+            # Legacy captures omit this optional field; a declared identity must
+            # agree with the original bytes and exact retrieval start/end.
+            if 'snapshot_id' in metadata:
+                snapshot = prepare_pk5_snapshot(day=batch.delivery_date.isoformat(), **capture)
+                if metadata['snapshot_id'] != snapshot['id']:
+                    raise ValueError('PK5 capture snapshot_id mismatch')
+            captures.append(capture)
         with args.actual_manifest.open('rb') as stream:
             manifest_bytes = stream.read(MAX_MANIFEST_BYTES + 1)
         if len(manifest_bytes) > MAX_MANIFEST_BYTES:

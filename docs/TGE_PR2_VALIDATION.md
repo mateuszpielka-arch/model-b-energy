@@ -2795,3 +2795,21 @@ granicy połączenia: walidacja i dokładna różnica jednego okresu przeszły.
 Pełną regresję bazy uruchamia istniejący CI na izolowanym PostgreSQL 16.
 To test niezmienności i blokady wyniku po konflikcie, nie nowa doba historii
 ani ocena skuteczności modeli.
+
+
+## Checkpoint 2026-11-20 — zgodność deklarowanego snapshot ID przy eksporcie historii
+
+CLI shadow_source_history sprawdza teraz opcjonalne snapshot_id z capture.json
+względem ID wyliczonego przez istniejący adapter PK5 z oryginalnych bajtów oraz
+dokładnego początku/końca pobrania. Wcześniej deklarowane ID było pomijane.
+Błędne, puste, null lub nienapisowe ID blokuje cały eksport przed stdout.
+Starsze metadane bez tego pola pozostają obsługiwane; zasady publication_ts,
+retrieved_at, końca pobrania i cutoff D−1 09:50 pozostają bez zmian.
+
+Nowa regresja używa rzeczywistego pobrania PK5 21.11 o 09:13 i pełnego Fix1
+tej dostawy. Sprawdza poprawne ID oraz cztery błędne wartości w obu formatach:
+CSV i JSON. Poprawne wejście eksportuje 24 wiersze z identycznym ID, błędne
+zwraca kod 2 i pusty stdout; oryginalne źródła pozostają niezmienione.
+Lokalnie przeszło 19/19 testów test_shadow_source_history, również starsze
+pobrania bez snapshot_id. Sprawdzenie wiąże deklarację z treścią, nie uwierzytelnia
+niezależnie czasów HTTP. Nie dodano danych historycznych, prognoz ani wdrożenia.
