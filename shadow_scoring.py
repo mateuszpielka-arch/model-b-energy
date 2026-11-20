@@ -19,6 +19,15 @@ _SHADOW_DECIMAL_CONTEXT = Context(
 )
 
 
+def _percentage(numerator, denominator):
+    # Multiplication by 100 needs two extra exponent positions, not extra precision.
+    # Apply the original context to the final result so real range failures remain errors.
+    with localcontext() as context:
+        context.Emax += 2
+        result = 100 * numerator / denominator
+    return +result
+
+
 def _utc(value):
     if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
         raise ValueError('Timestamp must include timezone')
@@ -139,6 +148,6 @@ def score_day(*, day, forecast, actual, forecast_id, model_version, actual_versi
         n = len(expected)
         return Score(forecast_id, model_version, actual_version, forecast_status,
                      n, len(ratios), n-len(ratios), abs_sum/n,
-                     100*sum(ratios)/len(ratios) if ratios else None,
-                     100*abs_sum/denom if denom else None,
+                     _percentage(sum(ratios), len(ratios)) if ratios else None,
+                     _percentage(abs_sum, denom) if denom else None,
                      sum(errors)/n)

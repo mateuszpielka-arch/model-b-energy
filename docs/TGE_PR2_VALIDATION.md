@@ -2566,3 +2566,20 @@ porównania i deficyt 30/60/90 dób. Test subprocess porównuje pełny JSON wraz
 z audytem w obu kolejnościach pobrań PK5. Lokalnie 17/17 testów
 test_shadow_source_history przeszło. Nie dopisano brakujących dat, prognoz
 ani rankingu; sprawdzenie spójności metadanych nie zastępuje ich uwierzytelnienia.
+
+
+## Checkpoint 2026-11-20 — wspólne obliczanie procentów scoringu i rankingu
+
+Przeniesiono pomocnicze obliczanie procentu do shadow_scoring._percentage
+i użyto go również w score_day dla MAPE/WAPE. Ranking korzysta z tej samej
+funkcji. Rozszerzenie wykładnika dotyczy tylko mnożenia przez 100 i dzielenia;
+precyzja oraz ograniczenie końcowego wyniku pozostają takie same.
+
+Nowa regresja odtworzyła naturalny Overflow scoringu pełnych dób 23/24/25h
+dla syntetycznych cen forecast=1E999997, actual=2E999997, mimo że końcowe
+MAPE/WAPE wynoszą 50%. Po poprawce dokładne MAE=1E999997 i bias=-1E999997
+oraz wszystkie liczniki okresów są poprawne. Test zachowuje wejście i kontekst
+wywołującego; drugi potwierdza błąd dla rzeczywiście niemieszczącego się procentu.
+Lokalnie przeszło 18/18 testów scoringu, 3/3 procentów rankingu i 68/68 walk-forward.
+To graniczne testy arytmetyki, nie wyniki skuteczności ani nowe dane historyczne.
+Produkcyjnych prognoz, konfiguracji i archiwów nie zmieniano.

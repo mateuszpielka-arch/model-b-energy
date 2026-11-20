@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal, Inexact, ROUND_UP, localcontext
+from decimal import Decimal, Inexact, Overflow, ROUND_UP, getcontext, localcontext
 import unittest
+from copy import deepcopy
 from shadow_scoring import expected_periods, score_day
 
 class ScoringTests(unittest.TestCase):
@@ -13,6 +14,33 @@ class ScoringTests(unittest.TestCase):
                     forecast_status='SHADOW', actual_verified=True,
                     publication_ts=prior+timedelta(hours=6),
                     retrieved_at=prior+timedelta(hours=7), issued_at=prior+timedelta(hours=7,minutes=30))
+
+    def test_finite_daily_wape_survives_intermediate_scaling_overflow_for_23_24_25h(self):
+        for day, count in ((date(2026, 3, 29), 23), (date(2026, 11, 20), 24),
+                           (date(2026, 10, 25), 25)):
+            with self.subTest(day=day):
+                args = self.args(day)
+                args['forecast'] = [(period, Decimal('1E999997')) for period, _ in args['forecast']]
+                args['actual'] = [(period, Decimal('2E999997')) for period, _ in args['actual']]
+                before = deepcopy(args)
+                maximum = getcontext().Emax
+                result = score_day(**args)
+                self.assertEqual(result.periods, count)
+                self.assertEqual(result.mape_periods, count)
+                self.assertEqual(result.zero_actual_periods, 0)
+                self.assertEqual(result.mae, Decimal('1E999997'))
+                self.assertEqual(result.bias, Decimal('-1E999997'))
+                self.assertEqual(result.mape_pct, Decimal(50))
+                self.assertEqual(result.wape_pct, Decimal(50))
+                self.assertEqual(getcontext().Emax, maximum)
+                self.assertEqual(args, before)
+
+    def test_truly_unrepresentable_daily_percentage_remains_an_error(self):
+        args = self.args()
+        args['forecast'] = [(period, Decimal('9E999997')) for period, _ in args['forecast']]
+        args['actual'] = [(period, Decimal('0.1')) for period, _ in args['actual']]
+        with self.assertRaises(Overflow):
+            score_day(**args)
 
     def test_hand_calculated_zero_negative_positive(self):
         kw=self.args(); periods=expected_periods(kw['day'])
