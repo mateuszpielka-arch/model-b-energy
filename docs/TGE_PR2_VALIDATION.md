@@ -2904,3 +2904,25 @@ referencji dla doby DST. Lokalnie 2/2 przeszły. Dowód jest TGE_LABEL_ONLY,
 bez period_start_utc i bez manifestu gotowej paczki. Późne pobranie nie dowodzi
 historycznej dostępności PK5 przed D−1 09:50; nie dodano go do treningu,
 scoringu PostgreSQL ani rankingu. Wcześniejsze pliki i produkcja bez zmian.
+
+
+## Checkpoint 2026-11-20 — rzeczywiste przekierowanie zamiast wiosennej sesji 23h
+
+Sprawdzono oficjalny historyczny URL sesji 28.03 dla dostawy 29.03.2026.
+20.11 pobranie rozpoczęto o 19:17:17.940181 Europe/Warsaw i zakończono
+19:17:35.179365. Odpowiedź HTTP 200 pochodziła jednak po przekierowaniu z
+https://tge.pl/ i nie zawierała tabeli RDN. To nie są ceny żądanej dostawy.
+Zachowano oryginalny HTML gzip oraz metadane obu URL w osobnym katalogu
+`tests/fixtures/tge_delivery_2026-03-29_redirected`, bez CSV i manifestu
+przyjęcia. HTML: 257560 bajtów; SHA-256
+8354293db9974600ee050478336fc809675c90fb245d149512fea52cf24e517b.
+
+Dwa nowe testy sprawdzają hash/rozmiar, faktyczny brak tabeli i odrzucenie
+niezależnej ekstrakcji. Odtworzenie zaobserwowanego statusu/końcowego URL
+potwierdza odrzucenie przez _fetch_session przed odczytem body i bez retry.
+Drugi test potwierdza zachowaną blokadę wiosennej konwencji etykiet oraz brak
+żądań i częściowych plików przy próbie standardowego capture doby 23h.
+Lokalnie 2/2 testy przeszły. Nie poszerzono obsługi parsera na podstawie
+nieistniejących danych. Wiosenne etykiety i mapowanie UTC nadal niezweryfikowane;
+nie dodano cen, historii treningowej, wyniku scoringu ani rankingu.
+Produkcja i dotychczasowe archiwa pozostają bez zmian.

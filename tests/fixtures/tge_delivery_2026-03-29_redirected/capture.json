@@ -1,0 +1,15 @@
+{
+  "url": "https://tge.pl/energia-elektryczna-rdn?dateShow=28-03-2026",
+  "response_url": "https://tge.pl/",
+  "http_status": 200,
+  "retrieved_at_utc": "2026-11-20T18:17:17.940181+00:00",
+  "retrieval_completed_at_utc": "2026-11-20T18:17:35.179365+00:00",
+  "bytes": 257560,
+  "raw_sha256": "8354293db9974600ee050478336fc809675c90fb245d149512fea52cf24e517b",
+  "delivery_date": "2026-03-29",
+  "session_date": "2026-03-28",
+  "raw_file": "tge_delivery_2026-03-29_redirected.html.gz",
+  "status": "REQUESTED_SESSION_REDIRECTED",
+  "observed_rdn_tables": 0,
+  "note": "Official historical-session request redirected to homepage; no hourly reference, UTC mapping, prices or admission manifest created."
+}
