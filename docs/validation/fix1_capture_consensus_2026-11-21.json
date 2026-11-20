@@ -1,0 +1,492 @@
+{
+  "source_commit": "40cd54cbe8abec5feceb13335a0f853dd926599d",
+  "manifests": [
+    "tests/fixtures/tge_delivery_2026-10-26/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-07/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-08/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-09/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-10/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-11/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-12/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-13/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-14/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-15/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-16/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-17/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-18/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-19/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-19_late/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-20/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-20_late/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-21/manifest.json",
+    "tests/fixtures/tge_history_2026-10-27_2026-11-02/manifest.json",
+    "tests/fixtures/tge_history_2026-11-04_2026-11-06/manifest.json"
+  ],
+  "audit": {
+    "read_only": true,
+    "validated_capture_entries": 28,
+    "distinct_captures": 28,
+    "duplicate_capture_entries": 0,
+    "delivery_days": 26,
+    "unique_delivery_periods": 624,
+    "days_with_price_conflicts": 0,
+    "days": [
+      {
+        "delivery_date": "2026-10-26",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-09T09:18:13.366581+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "da55f4f22850fb1a02e72023349fcaec957d5d24328fff2185cfe9097dec3fb3",
+            "reference_sha256": "8809c3ab5c14dceff787d77d734ae36e1d89b4d843364e7dd0849177a0df5dc3",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=25-10-2026",
+            "retrieved_at_utc": "2026-11-09T09:18:13.366581+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-10-27",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-02T20:15:24.069787+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "73314256323843dc825311a38bcd0f69a7fae4ec704c073b92ea2632634af499",
+            "reference_sha256": "3325d38cf80d4e7e1551184a6f0271eabe8dcf6d8f9f249527cd97f1b1383e36",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=26-10-2026",
+            "retrieved_at_utc": "2026-11-02T20:15:24.069787+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-10-28",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-02T20:15:23.701449+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "8768edb87e5e192bdcb27d8738428ef6fed50b962bd685b77de3a74edbfa83b6",
+            "reference_sha256": "53f4e24d730ebaddabbe98041ec491a2c90083f87e8a71d1bb3453befbbd772e",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=27-10-2026",
+            "retrieved_at_utc": "2026-11-02T20:15:23.701449+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-10-29",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-02T20:15:32.404381+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "d3a05e2136bb73f0eca9d20c172b5985d41cede3c57cf17c18c83dbc35d8b3c9",
+            "reference_sha256": "75fd4f16c07bab9f4cff239c8d698f7b2078a12579223c69fdfb426acc985dcd",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=28-10-2026",
+            "retrieved_at_utc": "2026-11-02T20:15:32.404381+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-10-30",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-02T20:15:32.080195+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "8324e2372fc374c421d40ce9fa07bb0210591380014b11f6ca9cd5fc2ff29f01",
+            "reference_sha256": "0fc8fa9ca363ddd0e74e15ba8f4531ab50cc92d67aafd0d4e5a7960609b057b1",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=29-10-2026",
+            "retrieved_at_utc": "2026-11-02T20:15:32.080195+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-10-31",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-02T20:15:41.365817+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "94c94322c4ff8dbe46925a41632b3689459f0a965a6a7458246d45a6be2f05cc",
+            "reference_sha256": "bdcd4727a509606102c3706f4380aabcb26f9d196d3fad4b53c074a1266b9ba3",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=30-10-2026",
+            "retrieved_at_utc": "2026-11-02T20:15:41.365817+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-01",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-02T20:15:40.338234+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "8715861ede1b8669e42cde8696a7b52bc877d67f95579e7028211fb7759b2df6",
+            "reference_sha256": "59e379ec54d1125c5ac0019e58bf72179d282d531f9a525330a33902ee27dc7d",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=31-10-2026",
+            "retrieved_at_utc": "2026-11-02T20:15:40.338234+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-02",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-02T20:15:49.324541+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "33ec7dcb66cfd21096ed5dd7d8457b0fcd0ab3cc5b62eb9a12b1c467b9836bc8",
+            "reference_sha256": "b6a1e0edf8d9660cefee370525129ad01f5b67f225b86420766534600f4ae42d",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=01-11-2026",
+            "retrieved_at_utc": "2026-11-02T20:15:49.324541+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-04",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-06T15:12:00.334280+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "6f37c2376cab86d45c6c4a44085a579210fda91948149fa28528b99b253d0081",
+            "reference_sha256": "c08807af415cdcd062a2adc87f229eca87bba0af6f00636afa9603acf355ec69",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=03-11-2026",
+            "retrieved_at_utc": "2026-11-06T15:12:00.334280+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-05",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-06T15:12:00.314638+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "31627350fb547f63554a61856ae67cd103fac6fa320ad27c1a7051b1327e0014",
+            "reference_sha256": "d22f13d1d51a4c3d3895eeed6eba93a90783cd5a361ee2609ce2eb23df8579f1",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=04-11-2026",
+            "retrieved_at_utc": "2026-11-06T15:12:00.314638+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-06",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-06T15:12:07.918077+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "3a0fa7cebf0be76d0a60e3891b7f53b986be759497b40d9ac6757076355678a0",
+            "reference_sha256": "647504c8439503119002c8ea42dfbae4a70325ac7306d91c613075a687a8b2ef",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=05-11-2026",
+            "retrieved_at_utc": "2026-11-06T15:12:07.918077+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-07",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-07T07:18:48.795749+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "3a061e23bb52c166c152e410529de2a4e8f23e70ecd4450e83de231f90b52cd8",
+            "reference_sha256": "91eaddab6b4a4104e6957f6f08276b9652a852175e33779dcc918bc918823f0c",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=06-11-2026",
+            "retrieved_at_utc": "2026-11-07T07:18:48.795749+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-08",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-07T17:11:04.223771+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "de6aac19f90d22a8c25d3fba4a43fefb6c3ce11e3e5952e44ea2e9cb854a158a",
+            "reference_sha256": "cf954b4456bdae1a9ba80d828532b5eb82ddf1bf863fcbdb7667671aac604d4d",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=07-11-2026",
+            "retrieved_at_utc": "2026-11-07T17:11:04.223771+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-09",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-08T10:13:06.010076+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "16186aa64769b511e02416ab207f89ea4561c4737bcae425ae6e536ca3512f64",
+            "reference_sha256": "ca64d9f39b083e505a135f00b85c3389bc86caa02f08058269ccd73012435b15",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=08-11-2026",
+            "retrieved_at_utc": "2026-11-08T10:13:06.010076+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-10",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-09T10:14:15.392926+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "7eaff34003add4a5ebb604761ec3124ae66cd1c709cf36027238f8b8aea4b42e",
+            "reference_sha256": "f8fc2e7138511af8cbbc589d0393af4048604f084230de6de7b4024c09231ebb",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=09-11-2026",
+            "retrieved_at_utc": "2026-11-09T10:14:15.392926+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-11",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-10T11:20:10.080157+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "3da07772b4f2293f3cd4c9a8efc1a07f9453e306f7cdbc531d394842739b16ab",
+            "reference_sha256": "51574b51315988584a984d688fb3d1e1b1dd47ef574f53c930a163bab6fdf5ed",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=10-11-2026",
+            "retrieved_at_utc": "2026-11-10T11:20:10.080157+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-12",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-11T11:20:00.579519+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "7fa9626bc4634d31bb256f3011fff7d80b99af1596bc05b3663703885ab32a34",
+            "reference_sha256": "f734c21fd8af68df3dd4f62b755ffe66b526c8038e0075dd363bd98df235cee6",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=11-11-2026",
+            "retrieved_at_utc": "2026-11-11T11:20:00.579519+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-13",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-12T10:17:05.482741+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "741c05720f197f0d3c58e16bfaa497f4c042ab8aceb0d07e77a433ced9a0238b",
+            "reference_sha256": "6ab0dfc6707f90430640d57ae535d201fdbc186697397d04551e2887deb76261",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=12-11-2026",
+            "retrieved_at_utc": "2026-11-12T10:17:05.482741+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-14",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-13T10:15:14.333999+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "2ddfbb2e94a54cfeb012c484ad3722d8cb3628b1a11787c1fb3cfb8f9c1ccefb",
+            "reference_sha256": "89ba0f873f0602d468603184da5fe811e3c9d3f97e7ab73b88fc328138fdcbb2",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=13-11-2026",
+            "retrieved_at_utc": "2026-11-13T10:15:14.333999+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-15",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-14T10:19:37.036238+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "e59c93c29f59c3da826144bb3b9561182bce8443103b809308b285a2e3166fa4",
+            "reference_sha256": "e7818dbc45558160a5c6c374a4666cd82ac76a38fd3ab5dcc1e80e350adc75c1",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=14-11-2026",
+            "retrieved_at_utc": "2026-11-14T10:19:37.036238+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-16",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-15T21:19:59.918432+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "dad5a1475ae2c32c5965dcf232e7798016d9d76609fab3a8198edafb753c08b6",
+            "reference_sha256": "ffe75bf5caa1e9a1e6dca50a91120ad4a4a57bc4afcb492db499b232a2ffb02c",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=15-11-2026",
+            "retrieved_at_utc": "2026-11-15T21:19:59.918432+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-17",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-16T10:34:27.627283+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "c5ecb07c21750daf121b2651680cb30632822faf521b6fa0289eeb45285ffb26",
+            "reference_sha256": "ac1f16bbb10205904c481537c9bcc89cda7465a9cde82a9aaee6e17f33dc3b44",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=16-11-2026",
+            "retrieved_at_utc": "2026-11-16T10:34:27.627283+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-18",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-17T21:11:47.162688+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "821d71747d7fd9c32a2815a5c40781adc0b98887b1cf1300eb98cecc549a3cf4",
+            "reference_sha256": "9792521efeb5e54cfb4072ff8ab659be2af99e4939191b66b53c68b669bc8b13",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=17-11-2026",
+            "retrieved_at_utc": "2026-11-17T21:11:47.162688+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-19",
+        "periods": 24,
+        "captures": 2,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-18T10:18:01.988581+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "8e1df0a505de28054daf7256bf4366b79e1731a9826d5e4b0af4819bc67578b8",
+            "reference_sha256": "b86bc11ed8e801f71683591b56164eaed410247aaf9a14b9729bc28330b1ebd3",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=18-11-2026",
+            "retrieved_at_utc": "2026-11-18T10:18:01.988581+00:00"
+          },
+          {
+            "raw_sha256": "2ff5b758c36378a8cb48e314e7cc00bac26fbeb8c5d9e47d9616bf62a6e61c03",
+            "reference_sha256": "b86bc11ed8e801f71683591b56164eaed410247aaf9a14b9729bc28330b1ebd3",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=18-11-2026",
+            "retrieved_at_utc": "2026-11-18T22:11:43.728958+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-20",
+        "periods": 24,
+        "captures": 2,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-19T10:17:54.057511+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "6ab99a8520bc0414f84c6be6f3a6fc71536b28e4640d680a26ddc231b34f3b66",
+            "reference_sha256": "e336b1d4a87d6385d62e97c0e1478fb837a33efbe81e7128753a6008e00ad72e",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=19-11-2026",
+            "retrieved_at_utc": "2026-11-19T10:17:54.057511+00:00"
+          },
+          {
+            "raw_sha256": "5cc0193cd1969f6bc447a8d6ae3837955f2f761c00ca6f8cca1d740b7c6d04e6",
+            "reference_sha256": "e336b1d4a87d6385d62e97c0e1478fb837a33efbe81e7128753a6008e00ad72e",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=19-11-2026",
+            "retrieved_at_utc": "2026-11-20T03:20:41.999315+00:00"
+          }
+        ]
+      },
+      {
+        "delivery_date": "2026-11-21",
+        "periods": 24,
+        "captures": 1,
+        "price_consensus": "CONSISTENT",
+        "conflicting_periods_utc": [],
+        "first_observed_retrieved_at_utc": "2026-11-20T10:14:16.158611+00:00",
+        "evidence": [
+          {
+            "raw_sha256": "a2eb6068abbca961fcba56f17a9cca5f183b1d890fd0066aa7831e2109faa9e5",
+            "reference_sha256": "5c19435fcfe1e883b16b860bf2beec71a3a17f06e5cb9833595ade98097fb708",
+            "parser_version": "rdn-layout-shadow-v2",
+            "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=20-11-2026",
+            "retrieved_at_utc": "2026-11-20T10:14:16.158611+00:00"
+          }
+        ]
+      }
+    ]
+  }
+}

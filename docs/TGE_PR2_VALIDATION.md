@@ -3012,3 +3012,25 @@ wskazuje konflikt dokładnie 2026-11-20T23:00:00+00:00 i zachowuje oba dowody.
 Błędny manifest w dowolnej kolejności odrzuca całe CLI bez częściowego stdout.
 Lokalnie 3/3 testy przeszły. Audyt dotyczy wyłącznie wskazanych paczek;
 nie dodano ceny, doby treningu, prognozy ani rankingu. Produkcja bez zmian.
+
+
+## Checkpoint 2026-11-21 — odtworzony audyt całego zachowanego korpusu manifestów
+
+Uruchomiono nowy read-only audit_manifests dla wszystkich 20 manifestów
+Fix1 obecnych w commicie 40cd54cbe8abec5feceb13335a0f853dd926599d.
+Zapisano pełny, odtwarzalny wynik wraz z listą ścieżek i hashem commitu źródła
+w docs/validation/fix1_capture_consensus_2026-11-21.json.
+
+Wynik: 28 odrębnych dowodów pobrania, 26 unikalnych dób i 624 okresy,
+0 powtórzonych wpisów wejścia oraz 0 dób z konfliktem cen. Zakres próby
+26.10–21.11; nie obejmuje manifestu dostawy 3.11, więc nie jest pełnym ciągiem
+kalendarzowym. Dostawy 19/20.11 mają po dwa różne pobrania zgodnych cen.
+Każda paczka przeszła kontrolę oryginalnych hashy, referencji i parsera.
+
+Dwie nowe regresje odtwarzają cały zapisany raport, również przy odwróconej
+kolejności manifestów, oraz sprawdzają hashe wszystkich plików próby przed/po.
+Podwojenie listy wejścia daje 56 wpisów i 28 duplikatów, ale nadal te same
+28 dowodów, 26 dób, 624 okresy i identyczne raporty dobowe. Lokalnie 2/2 testy
+przeszły. To spójność zachowanych źródeł Fix1, nie 26 nowych dni operacyjnej
+obserwacji ani potwierdzenie PK5 przed D−1 09:50; nie zwiększono gotowości
+treningu i nie wygenerowano rankingu. Produkcja i archiwa pozostają bez zmian.
