@@ -2882,3 +2882,25 @@ nadal brakuje 29/59/89 dób do pierwszego porównania. CSV z opcją oraz czas be
 strefy, bez sekund lub o nadmiernej precyzji zwracają kod 2 bez częściowego
 wyjścia. Lokalnie przeszło 27/27 testów eksportu i kolekcji.
 Nie wydano prognozy, nie odczytano FROZEN i nie zmieniono produkcji ani archiwów.
+
+
+## Checkpoint 2026-11-20 — ponowne rzeczywiste pobranie jesiennej doby 25h
+
+Oficjalny URL sesji 24.10 pobrano ponownie 20.11.2026: HTTP 200 bez zmiany URL,
+rozpoczęcie 18:17:34.502900 Europe/Warsaw, zakończenie 18:17:43.329801.
+Zachowano osobno gzip oryginalnego HTML, CSV etykiet i capture.json w
+`tests/fixtures/tge_delivery_2026-10-25_recaptured`. HTML ma 442277 bajtów,
+SHA-256 b7dafaa12ad87c2934f5fdf6d7a1f6bf554eeb13c1b0ecf7cd55a08599c07126.
+CSV SHA-256 0202bf39d6790d50a7ca76710ebecfda8bd067d92d96effd0fdf30cfc8a8c5fa.
+
+Nowy HTML różni się bajtowo od dowodu pobranego 2.11, ale wszystkie 25 cen
+Fixing I i etykiety H01/H02/H02a/H03..H24 są identyczne. Potwierdzono je przez
+parser etykiet, niezależną ekstrakcję XPath i CSV. H02a=380.01,
+H10=-13.46, H24=370.01 PLN/MWh; ceny ujemne nie są obcinane.
+
+Dwa nowe testy sprawdzają hashe, kompletność i niezmienność cen między
+pobraniami oraz blokadę parsera integer, standardowego przyjęcia 24h i zwykłej
+referencji dla doby DST. Lokalnie 2/2 przeszły. Dowód jest TGE_LABEL_ONLY,
+bez period_start_utc i bez manifestu gotowej paczki. Późne pobranie nie dowodzi
+historycznej dostępności PK5 przed D−1 09:50; nie dodano go do treningu,
+scoringu PostgreSQL ani rankingu. Wcześniejsze pliki i produkcja bez zmian.
