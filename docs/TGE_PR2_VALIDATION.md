@@ -2658,3 +2658,20 @@ validate_candidate. Narzędzie capture nie zapisuje częściowej paczki i podaje
 Lokalnie przeszedł 1 test nowego pobrania oraz 18/18 testów eksportu historii.
 To rzeczywisty negatywny dowód układu przed publikacją, nie nowe ceny ani prognoza.
 Poprzednich dowodów i produkcji nie zmieniano.
+
+
+## Checkpoint 2026-11-20 — druga rzeczywista rewizja PK5 dla dostawy 21.11
+
+Zachowano osobno nowszy JSON gzip i capture.json w
+pse_pk5_delivery_2026-11-21_second. Publikacja 20.11 o 07:03:47.124
+Europe/Warsaw, początek pobrania 07:17:50.784033, koniec 07:17:57.987761,
+HTTP 200, 24 wiersze, przed cutoff D−1 09:50. Surowy JSON ma 18624 bajty,
+SHA-256 c4b87119b2cb2c82d1d3a9cd985d79710c8222c0108e770b4dd083f6902248eb.
+
+Względem wcześniejszej rzeczywistej publikacji zmieniły się wszystkie 24
+wartości JWCD; H01=8735.00000, H24=6970.00000 MW. Nowy test wybiera całe
+nowsze pobranie w obu kolejnościach, wskazuje starsze jako
+SUPERSEDED_JWCD_PUBLICATIONS, sprawdza cutoff, hashe oraz niezmienność obu
+obserwacji. Lokalnie 13/13 testów test_shadow_pk5_snapshot przeszło.
+To dwie rewizje jednej doby, nie dodatkowy dzień treningowy. Nie zapisano
+prognozy ani ceny Fix1 21.11; wcześniejsze źródła pozostają zachowane.

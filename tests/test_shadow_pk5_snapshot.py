@@ -26,6 +26,35 @@ class PK5SnapshotTests(unittest.TestCase):
                     retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
                     retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']))
 
+    def test_two_real_november_21_revisions_select_newer_publication_without_mutation(self):
+        directory = FIXTURE.with_name('pse_pk5_delivery_2026-11-21')
+        early = prepare_pk5_snapshot(**self.inputs(directory))
+        latest = prepare_pk5_snapshot(**self.inputs(directory.with_name(
+            'pse_pk5_delivery_2026-11-21_second')))
+        before = deepcopy((early, latest))
+        day = date(2026, 11, 21)
+        early_selection = select_snapshot(day, [early])
+        expected = select_snapshot(day, [latest])
+        self.assertEqual(expected.rejected, ())
+        self.assertGreater(expected.latest_publication_ts_utc,
+                           early_selection.latest_publication_ts_utc)
+        self.assertEqual(expected.latest_publication_ts_utc,
+                         datetime(2026, 11, 20, 6, 3, 47, 124000, tzinfo=timezone.utc))
+        self.assertLess(expected.retrieval_completed_at_utc, cutoff_for_day(day))
+        self.assertNotEqual(early['raw_sha256'], latest['raw_sha256'])
+        self.assertEqual(sum(first != second for (_, first), (_, second) in
+                             zip(early_selection.rows, expected.rows, strict=True)), 24)
+        self.assertEqual(expected.rows[0][1], Decimal('8735.00000'))
+        self.assertEqual(expected.rows[-1][1], Decimal('6970.00000'))
+        for candidates in ([early, latest], [latest, early]):
+            with self.subTest(order=[candidate['id'] for candidate in candidates]):
+                selected = select_snapshot(day, candidates)
+                self.assertEqual(selected.snapshot_id, latest['id'])
+                self.assertEqual(selected.rows, expected.rows)
+                self.assertEqual(selected.rejected,
+                                 ((early['id'], 'SUPERSEDED_JWCD_PUBLICATIONS'),))
+        self.assertEqual((early, latest), before)
+
     def test_real_november_21_capture_is_complete_and_pre_cutoff(self):
         inputs = self.inputs(FIXTURE.with_name('pse_pk5_delivery_2026-11-21'))
         before = deepcopy(inputs)
