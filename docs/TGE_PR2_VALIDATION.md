@@ -2926,3 +2926,23 @@ Lokalnie 2/2 testy przeszły. Nie poszerzono obsługi parsera na podstawie
 nieistniejących danych. Wiosenne etykiety i mapowanie UTC nadal niezweryfikowane;
 nie dodano cen, historii treningowej, wyniku scoringu ani rankingu.
 Produkcja i dotychczasowe archiwa pozostają bez zmian.
+
+
+## Checkpoint 2026-11-20 — zakres celów oceny bez usuwania historii źródeł
+
+CLI shadow_source_collection obsługuje teraz --target-from / --target-to
+wymagające jawnego --walk-forward-at. Zakres ogranicza wyłącznie cele oceny;
+wszystkie przyjęte wiersze i dowody źródeł pozostają w raporcie oraz historii
+przekazywanej do istniejącego evaluate_csv_rows. Pominięta granica domyślnie
+odpowiada pierwszej/ostatniej dostawie kolekcji. Odwrócony zakres, niepoprawna
+data lub zakres bez oceny są odrzucane bez częściowego stdout.
+
+Dwie nowe regresje subprocess na rzeczywistych danych 20/21.11 sprawdzają
+obie kolejności paczek i identyczny pełny eksport poza polem evaluation.
+Dla celu 21.11 pomijana jest tylko ta doba: 20.11 nadal figuruje jako 1 dzień
+przyjęty do historii okna 30D, a brakujących jest 29. Ocena wyłącznie 22.11
+pokazuje 1 brakującą dobę kalendarzową i pusty ranking, bez tworzenia danych
+lub sztucznego skipped dla nieobecnego źródła. Pełne wyniki porównano z API
+walk-forward wywołanym na wszystkich 48 wierszach i tym samym zakresie.
+Lokalnie 29/29 testów eksportu/kolekcji przeszło. Dwie doby nadal nie wystarczają
+do treningu wymaganych okien. Produkcja, FROZEN i archiwa pozostają bez zmian.

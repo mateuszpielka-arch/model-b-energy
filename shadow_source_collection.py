@@ -24,7 +24,15 @@ def main():
     parser.add_argument('--format', choices=('csv', 'json'), default='csv')
     parser.add_argument('--walk-forward-at', type=_stamp,
                         help='Explicit evaluation timestamp; requires --format json and compares source days offline')
+    parser.add_argument('--target-from', type=date.fromisoformat,
+                        help='First delivery date to evaluate; earlier source days remain training history')
+    parser.add_argument('--target-to', type=date.fromisoformat,
+                        help='Last delivery date to evaluate; defaults to last source date')
     args = parser.parse_args()
+    if (args.target_from is not None or args.target_to is not None) and args.walk_forward_at is None:
+        parser.error('Target range requires --walk-forward-at')
+    if args.target_from is not None and args.target_to is not None and args.target_from > args.target_to:
+        parser.error('--target-from must not be after --target-to')
     if args.walk_forward_at is not None and args.format != 'json':
         parser.error('--walk-forward-at requires --format json')
     try:
@@ -37,8 +45,8 @@ def main():
                 evaluated_at_utc=args.walk_forward_at.isoformat(),
                 **evaluate_csv_rows(
                     report['rows'], evaluated_at=args.walk_forward_at,
-                    target_from=date.fromisoformat(report['days'][0]['delivery_date']),
-                    target_to=date.fromisoformat(report['days'][-1]['delivery_date']),
+                    target_from=args.target_from or date.fromisoformat(report['days'][0]['delivery_date']),
+                    target_to=args.target_to or date.fromisoformat(report['days'][-1]['delivery_date']),
                 ),
             )
         # Build the complete output before exposing any part of the collection.

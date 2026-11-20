@@ -32,6 +32,64 @@ class SourceCollectionCliTests(unittest.TestCase):
         return subprocess.run(command, capture_output=True, text=True)
 
 
+
+    def test_target_range_limits_evaluation_without_removing_source_training_history(self):
+        baseline = json.loads(self.run_cli(self.groups(), 'json').stdout)
+        stamp = '2026-11-20T10:14:16.158611+00:00'
+        for label in ('2026-11-21', '2026-11-22'):
+            for groups in (self.groups(), list(reversed(self.groups()))):
+                with self.subTest(target=label, order=groups):
+                    completed = self.run_cli(groups, 'json', [
+                        '--walk-forward-at', stamp, '--target-from', label, '--target-to', label,
+                    ])
+                    self.assertEqual(completed.returncode, 0, completed.stderr)
+                    report = json.loads(completed.stdout)
+                    evaluation = report.pop('evaluation')
+                    self.assertEqual(report, baseline)
+                    evaluation.pop('evaluated_at_utc')
+                    expected = evaluate_csv_rows(
+                        report['rows'], evaluated_at=datetime.fromisoformat(stamp),
+                        target_from=date.fromisoformat(label), target_to=date.fromisoformat(label),
+                    )
+                    self.assertEqual(evaluation, json.loads(json.dumps(expected)))
+                    self.assertEqual(evaluation['csv_admission']['admitted_days'], 2)
+                    comparison = evaluation['walkforward']
+                    self.assertEqual(comparison['target_from'], label)
+                    self.assertEqual(comparison['target_to'], label)
+                    self.assertEqual(comparison['target_coverage']['calendar_days'], 1)
+                    self.assertEqual(comparison['ranking'], [])
+                    self.assertEqual(comparison['common_periods'], 0)
+                    if label == '2026-11-21':
+                        skipped, = comparison['skipped']
+                        self.assertEqual(skipped['day'], label)
+                        coverage = skipped['training_csv_coverage_by_window']['30D']
+                        self.assertEqual(coverage['admitted_by_csv_audit_days'], 1)
+                        self.assertEqual(coverage['absent_from_csv_days'], 29)
+                        self.assertNotIn('2026-11-20', skipped['missing_training_days'])
+                    else:
+                        self.assertEqual(comparison['skipped'], [])
+                        self.assertEqual(comparison['target_coverage']['absent_from_csv_days'], 1)
+                        self.assertEqual(comparison['target_missing_ranges'], [
+                            {'start_day': label, 'end_day': label, 'days': 1},
+                        ])
+
+    def test_target_range_requires_evaluation_and_valid_order_without_partial_output(self):
+        stamp = '2026-11-20T10:14:16+00:00'
+        for extra, error in (
+            (['--target-from', '2026-11-21'], 'requires --walk-forward-at'),
+            (['--target-to', '2026-11-21'], 'requires --walk-forward-at'),
+            (['--walk-forward-at', stamp, '--target-from', '2026-11-22',
+              '--target-to', '2026-11-21'], 'must not be after'),
+            (['--walk-forward-at', stamp, '--target-to', 'invalid'], 'invalid'),
+            (['--walk-forward-at', stamp, '--target-from', '2026-11-22'],
+             'Target start must not be after target end'),
+        ):
+            with self.subTest(extra=extra):
+                completed = self.run_cli(self.groups(), 'json', extra)
+                self.assertEqual(completed.returncode, 2)
+                self.assertEqual(completed.stdout, '')
+                self.assertIn(error, completed.stderr)
+
     def test_explicit_source_evaluation_matches_existing_walkforward_without_invented_training(self):
         stamp = '2026-11-20T11:14:16.158611+01:00'
         expected_time = '2026-11-20T10:14:16.158611+00:00'
