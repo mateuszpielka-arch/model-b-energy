@@ -2601,3 +2601,22 @@ wadliwa doba jest wykluczona przed scoringiem ze wskazaniem modelu, daty i pola,
 a następna zachowuje identyczny pełny wynik. Historia pozostaje niezmieniona.
 Lokalnie przeszło 69/69 testów walk-forward i 3/3 testy precyzji czasu audytu.
 To testy dowodów treningowych na syntetycznej historii, nie nowe źródła ani ranking modeli.
+
+
+## Checkpoint 2026-11-20 — rzeczywiste późne pobranie Fix1 dla 20.11
+
+Ponowne pobranie oficjalnego URL sesji 19.11 zakończono 20.11.2026 o
+04:20:41.999315 Europe/Warsaw (HTTP 200). Zachowano osobno surowy HTML gzip,
+CSV z jawnymi UTC i manifest w tge_delivery_2026-11-20_late. HTML ma 424909 bajtów,
+SHA-256 5cc0193cd1969f6bc447a8d6ae3837955f2f761c00ca6f8cca1d740b7c6d04e6.
+CSV wszystkich 24 cen jest bajtowo identyczny z pobraniem 19.11 o 11:17:
+SHA-256 e336b1d4a87d6385d62e97c0e1478fb837a33efbe81e7128753a6008e00ad72e.
+H01=716.72, H24=655.39 PLN/MWh.
+
+Nowy test porównuje parser, niezależny XPath, referencyjny CSV, hashe i przyjęcie
+paczki. Lokalnie przeszedł 1/1. Nowy test PostgreSQL obejmuje obie kolejności
+importu: INSERT/REPLAY, dwa niezmienne dowody, 24 ceny wskazujące pierwsze
+zaakceptowane pobranie, ponowny REPLAY obu i brak kwarantanny. Ten test działa
+wyłącznie na izolowanym PostgreSQL CI. To nowe rzeczywiste pobranie tej samej
+sesji, nie dodatkowa doba ani dowód dostępności JWCD przed cutoff. Wcześniejsze
+pliki, archiwa i produkcja pozostają zachowane.

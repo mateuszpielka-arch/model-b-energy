@@ -40,6 +40,7 @@ NOV_18_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-18')
 NOV_19_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-19')
 NOV_19_LATE_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-19_late')
 NOV_20_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-20')
+NOV_20_LATE_FIXTURES = FIXTURES.with_name('tge_delivery_2026-11-20_late')
 DSN = os.environ.get('FIX1_SHADOW_TEST_DSN')
 
 
@@ -187,6 +188,29 @@ class RecentOfficialSessionsTests(unittest.TestCase):
         self.assertEqual(rows[0]['price_pln_mwh'], '471.34')
         report = ingest_manifest(manifest)
         self.assertEqual((report['periods'], report['inserted_periods']), (24, 0))
+
+    def test_november_20_late_capture_keeps_all_official_prices(self):
+        early, = json.loads((NOV_20_FIXTURES / 'manifest.json').read_text())['entries']
+        late, = json.loads((NOV_20_LATE_FIXTURES / 'manifest.json').read_text())['entries']
+        raw, reference, rows = load_session(late, NOV_20_LATE_FIXTURES)
+        early_raw, early_reference, _ = load_session(early, NOV_20_FIXTURES)
+        self.assertEqual(late['url'], early['url'])
+        self.assertGreater(datetime.fromisoformat(late['retrieved_at_utc']),
+                           datetime.fromisoformat(early['retrieved_at_utc']))
+        self.assertNotEqual(raw, early_raw)
+        self.assertEqual(len(raw), late['bytes'])
+        self.assertEqual(sha256(raw).hexdigest(), late['raw_sha256'])
+        self.assertEqual(reference, early_reference)
+        self.assertEqual(sha256(reference).hexdigest(), late['reference_sha256'])
+        independent = extract_reference(raw, late['delivery_date'])
+        self.assertEqual(independent, [
+            (row['hour'], Decimal(row['price_pln_mwh'])) for row in rows
+        ])
+        parsed = parse_complete_standard_day(raw.decode('utf-8'), late['delivery_date'], exact=True)
+        self.assertEqual(parsed, {index: price for index, (_, price) in enumerate(independent, 1)})
+        self.assertEqual(prepare_session(late, raw, independent).rows,
+                         load_batches(NOV_20_FIXTURES / 'manifest.json')[0][0].rows)
+
 
     def test_november_19_late_capture_keeps_all_official_prices(self):
         early, = json.loads((NOV_19_FIXTURES / 'manifest.json').read_text())['entries']
@@ -615,6 +639,42 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
     def test_november_16_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_16_FIXTURES)
+
+    def test_november_20_capture_order_preserves_first_accepted_evidence(self):
+        (early, early_raw), = load_batches(NOV_20_FIXTURES / 'manifest.json')
+        (late, late_raw), = load_batches(NOV_20_LATE_FIXTURES / 'manifest.json')
+        for first, second in (((early, early_raw), (late, late_raw)),
+                              ((late, late_raw), (early, early_raw))):
+            with self.subTest(first_capture=first[0].retrieved_at), self.isolated_connection() as conn:
+                self.assertEqual(archive_batch(conn, *first), 'INSERT')
+                self.assertEqual(archive_batch(conn, *second), 'REPLAY')
+                accepted = first[0]
+                query = '''
+                    SELECT p.period_start_utc, p.price, b.raw_sha256, b.retrieved_at
+                    FROM fix1_shadow_test.prices p
+                    JOIN fix1_shadow_test.batches b ON b.id = p.batch_id
+                    ORDER BY p.period_start_utc
+                '''
+                saved = conn.execute(query).fetchall()
+                self.assertEqual(saved, [
+                    (period, price, accepted.raw_sha256, accepted.retrieved_at)
+                    for period, price in accepted.rows
+                ])
+                evidence = conn.execute(
+                    'SELECT raw_sha256, raw_html, retrieved_at FROM fix1_shadow_test.batches ORDER BY raw_sha256'
+                ).fetchall()
+                self.assertEqual(evidence, sorted(
+                    (batch.raw_sha256, raw, batch.retrieved_at)
+                    for batch, raw in (first, second)
+                ))
+                for batch, raw in (first, second):
+                    self.assertEqual(archive_batch(conn, batch, raw), 'REPLAY')
+                self.assertEqual(conn.execute(query).fetchall(), saved)
+                self.assertEqual(conn.execute(
+                    'SELECT raw_sha256, raw_html, retrieved_at FROM fix1_shadow_test.batches ORDER BY raw_sha256'
+                ).fetchall(), evidence)
+                self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.quarantine').fetchone(), (0,))
+
 
     def test_november_19_capture_order_preserves_first_accepted_evidence(self):
         (early, early_raw), = load_batches(NOV_19_FIXTURES / 'manifest.json')
