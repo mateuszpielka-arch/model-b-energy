@@ -2734,3 +2734,23 @@ sprawdza odrzucenie przed blokadą, niezmienność trzech tabel w pustej i
 zapełnionej bazie oraz REPLAY prawidłowej wcześniejszej paczki.
 To kolejny rzeczywisty stan strony przed cenami, a nie ceny Fix1 21.11,
 prognoza ani powód zmiany istniejących archiwów.
+
+
+## Checkpoint 2026-11-20 — rzeczywisty kompletny Fix1 dostawy 21.11
+
+Narzędzie capture_tge_validation pobrało oficjalny URL sesji 20.11 z kompletem
+24 cen Fixing I o 11:14:16.158611 Europe/Warsaw. Zapisano osobno oryginalny HTML
+gzip, CSV z UTC i manifest w tge_delivery_2026-11-21. HTML: 280139 bajtów,
+SHA-256 a2eb6068abbca961fcba56f17a9cca5f183b1d890fd0066aa7831e2109faa9e5.
+SHA-256 CSV: 5c19435fcfe1e883b16b860bf2beec71a3a17f06e5cb9833595ade98097fb708.
+H01=783.16, H24=552.65 PLN/MWh. Czas pobrania jest konserwatywną dostępnością
+actual, nie domniemanym czasem publikacji TGE.
+
+Trzy nowe testy sprawdzają parser vs niezależny XPath i referencję 24 cen/UTC,
+połączenie rzeczywistych źródeł z PK5 21.11 pobranym o 09:13 oraz archiwizację.
+Dwie sparowane doby 20/21.11 dają 48 unikalnych okresów i ciąg gotowości 2,
+ale brakuje 29/59/89 dób do pierwszego porównania 30/60/90D: ranking nadal pusty.
+Lokalnie dwa testy źródeł przeszły; test PostgreSQL jest przeznaczony dla CI
+i sprawdza INSERT/REPLAY, 24 niezmienne ceny, oryginalny HTML i brak kwarantanny.
+Nie zmieniono wcześniejszych dowodów braku cen ani produkcji. Nie wydano
+prognozy i nie zastąpiono porannego raportu.
