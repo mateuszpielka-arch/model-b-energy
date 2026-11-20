@@ -2620,3 +2620,22 @@ zaakceptowane pobranie, ponowny REPLAY obu i brak kwarantanny. Ten test działa
 wyłącznie na izolowanym PostgreSQL CI. To nowe rzeczywiste pobranie tej samej
 sesji, nie dodatkowa doba ani dowód dostępności JWCD przed cutoff. Wcześniejsze
 pliki, archiwa i produkcja pozostają zachowane.
+
+
+## Checkpoint 2026-11-20 — rzeczywisty PK5 przed cutoff dla dostawy 21.11
+
+Pobrano publiczne PSE pk5l-wp z filtrem business_date=2026-11-21: HTTP 200,
+24 wiersze, publikacja 20.11 o 05:13:06.844 Europe/Warsaw, rozpoczęcie pobrania
+05:14:53.205545 i zakończenie 05:14:59.091799, przed D−1 09:50. Zachowano
+oryginalny JSON gzip oraz capture.json w pse_pk5_delivery_2026-11-21.
+JSON ma 18624 bajty, SHA-256:
+58bf3545c5c2aaec8a3c0a9355efa9bec5c36c6e67870f7e975824963b314935.
+
+Dwa nowe testy sprawdzają pełny adapter i selekcję tej doby, publikację/czasy,
+początek i koniec UTC oraz wartości JWCD z fcst_gen_unit_stor_prov.
+H01=8655.00000, H24=6983.00000 MW. Obserwacje rzeczywistych dostaw 20.11 i 21.11
+pozostają oddzielone w obu kolejnościach: obca doba ma WRONG_DELIVERY_DATE.
+Wejście pozostaje niezmienione. Lokalnie 12/12 testów test_shadow_pk5_snapshot
+przeszło. To druga rzeczywista doba kandydata JWCD; nie dodano ceny Fix1 dla
+21.11, prognozy, rankingu ani okien treningowych. Późniejsze rewizje PK5 mogą
+być osobnymi obserwacjami; tego pobrania nie nadpisano.

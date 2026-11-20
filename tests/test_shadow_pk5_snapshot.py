@@ -26,6 +26,43 @@ class PK5SnapshotTests(unittest.TestCase):
                     retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
                     retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']))
 
+    def test_real_november_21_capture_is_complete_and_pre_cutoff(self):
+        inputs = self.inputs(FIXTURE.with_name('pse_pk5_delivery_2026-11-21'))
+        before = deepcopy(inputs)
+        snapshot = prepare_pk5_snapshot(**inputs)
+        day = date(2026, 11, 21)
+        selected = select_snapshot(day, [snapshot])
+        self.assertEqual(selected.rejected, ())
+        self.assertEqual(len(selected.rows), 24)
+        self.assertEqual(selected.rows[0],
+                         (datetime(2026, 11, 20, 23, tzinfo=timezone.utc), Decimal('8655.00000')))
+        self.assertEqual(selected.rows[-1],
+                         (datetime(2026, 11, 21, 22, tzinfo=timezone.utc), Decimal('6983.00000')))
+        self.assertEqual(selected.latest_publication_ts_utc,
+                         datetime(2026, 11, 20, 4, 13, 6, 844000, tzinfo=timezone.utc))
+        self.assertLess(selected.latest_publication_ts_utc, selected.retrieved_at_utc)
+        self.assertLess(selected.retrieval_completed_at_utc, cutoff_for_day(day))
+        source = json.loads(inputs['raw'], parse_float=Decimal)['value']
+        self.assertEqual([value for _, value in selected.rows],
+                         [row['fcst_gen_unit_stor_prov'] for row in source])
+        self.assertEqual(inputs, before)
+
+    def test_two_real_delivery_days_remain_separate_in_both_orders(self):
+        november_20 = prepare_pk5_snapshot(**self.inputs())
+        november_21 = prepare_pk5_snapshot(**self.inputs(
+            FIXTURE.with_name('pse_pk5_delivery_2026-11-21')))
+        before = deepcopy((november_20, november_21))
+        for selected_snapshot, other in ((november_20, november_21), (november_21, november_20)):
+            day = selected_snapshot['delivery_date']
+            expected = select_snapshot(day, [selected_snapshot])
+            for candidates in ([selected_snapshot, other], [other, selected_snapshot]):
+                with self.subTest(day=day, order=[item['id'] for item in candidates]):
+                    selection = select_snapshot(day, candidates)
+                    self.assertEqual(selection.snapshot_id, selected_snapshot['id'])
+                    self.assertEqual(selection.rows, expected.rows)
+                    self.assertEqual(selection.rejected, ((other['id'], 'WRONG_DELIVERY_DATE'),))
+        self.assertEqual((november_20, november_21), before)
+
     def test_repeated_payload_has_distinct_capture_identity_and_stable_utc_identity(self):
         inputs = self.inputs()
         first = prepare_pk5_snapshot(**inputs)
