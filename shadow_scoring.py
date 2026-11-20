@@ -3,6 +3,7 @@
 Inputs must already have independently verified actual provenance and UTC period
 mapping. This module does not certify either; it refuses unverified batches.
 """
+import re
 from dataclasses import dataclass
 from collections.abc import Mapping
 from datetime import date, datetime, time, timedelta, timezone
@@ -35,6 +36,17 @@ def _utc(value):
         return value.astimezone(UTC)
     except OverflowError as exc:
         raise ValueError('Timestamp is outside the supported UTC range') from exc
+
+
+def _evidence_timestamp(value):
+    if isinstance(value, datetime):
+        return _utc(value)
+    # Evidence must not silently move across a cutoff or UTC period.
+    if (not isinstance(value, str) or not re.fullmatch(
+            r'\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}'
+            r'(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})', value)):
+        raise ValueError('Full aware timestamp with at most six fractional digits required')
+    return _utc(datetime.fromisoformat(value))
 
 
 def expected_periods(day: date):

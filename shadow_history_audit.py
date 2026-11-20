@@ -4,13 +4,13 @@ Supports legacy H01..H24 ONLY on standard days; DST needs explicit UTC periods.
 A structurally complete price day alone never means model-ready history.
 """
 import csv
-import re
 from collections import Counter, defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from itertools import chain
 from shadow_asof import cutoff_for_day, snapshot_identifier
 from shadow_scoring import _utc, expected_periods
+from shadow_scoring import _evidence_timestamp as _stamp
 
 
 FIX1_COLUMNS = ('fix1', 'price_pln_mwh', 'fix1_pln_mwh')
@@ -20,17 +20,6 @@ JWCD_TIMESTAMPS = ('publication_ts', 'retrieved_at', 'retrieval_completed_at')
 def _number(value):
     try: return value not in (None,'') and Decimal(str(value)).is_finite()
     except InvalidOperation: return False
-
-
-def _stamp(value):
-    if isinstance(value, datetime):
-        return _utc(value)
-    # CSV admission must not silently move evidence across a cutoff or UTC period.
-    if (not isinstance(value, str) or not re.fullmatch(
-            r'\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}'
-            r'(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})', value)):
-        raise ValueError('Full aware timestamp with at most six fractional digits required')
-    return _utc(datetime.fromisoformat(value))
 
 
 def audit_rows(rows):

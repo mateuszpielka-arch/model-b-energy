@@ -18,6 +18,49 @@ class WalkforwardTests(unittest.TestCase):
         return dict(history=history,target_days=[p['day'] for p in history[-2:]],
                     evaluated_at=datetime(2026,11,5,tzinfo=timezone.utc))
 
+    def test_training_timestamp_precision_cannot_cross_any_model_cutoff(self):
+        args = self.args()
+        first, second = args['target_days']
+        training_day = first - timedelta(days=1)
+        baseline = run_walkforward(**args)
+        before = deepcopy(args)
+        fields = ('actual_available_at_utc', 'latest_publication_ts_utc',
+                  'retrieved_at_utc', 'retrieval_completed_at_utc')
+        for model in ('ols30', 'ols60', 'ols90', 'similar_shape', 'similar_level'):
+            for field in fields:
+                with self.subTest(model=model, field=field):
+                    def change(prediction, kind, day):
+                        if day == first and kind == model:
+                            evidence = prediction['training_timing'][-1]
+                            self.assertEqual(evidence['day'], training_day.isoformat())
+                            for key in fields:
+                                cutoff_day = first if key == 'actual_available_at_utc' else training_day
+                                evidence[key] = cutoff_for_day(cutoff_day).isoformat(timespec='microseconds')
+                            evidence[field] = evidence[field].replace('.000000', '.0000001')
+                        return prediction
+
+                    def ols(**kwargs):
+                        return change(predict_ols(**kwargs), f"ols{kwargs['window_days']}",
+                                      kwargs['target_day'])
+
+                    def similar(**kwargs):
+                        return change(predict_similar(**kwargs), 'similar_' + kwargs['mode'],
+                                      kwargs['target_day'])
+
+                    with patch('shadow_walkforward.predict_ols', side_effect=ols), patch(
+                        'shadow_walkforward.predict_similar', side_effect=similar,
+                    ), patch('shadow_walkforward.score_day', wraps=score_day) as scoring:
+                        result = run_walkforward(**args)
+                    self.assertEqual(result['common_days'], 1)
+                    self.assertEqual(result['accepted'], [baseline['accepted'][1]])
+                    self.assertEqual(result['skipped'], [
+                        dict(day=first.isoformat(), stage='scoring', model=model,
+                             reason=f'Invalid training timing evidence for {training_day}: {field}'),
+                    ])
+                    self.assertEqual(scoring.call_count, len(MODELS))
+                    self.assertEqual({call.kwargs['day'] for call in scoring.call_args_list}, {second})
+        self.assertEqual(args, before)
+
     def test_benchmark_accumulation_failure_discards_only_pair_and_continues(self):
         history = fixtures.OLSTests().data(94, target=date(2026, 10, 27))['history']
         targets = history[-3:]

@@ -2583,3 +2583,21 @@ wywołującego; drugi potwierdza błąd dla rzeczywiście niemieszczącego się 
 Lokalnie przeszło 18/18 testów scoringu, 3/3 procentów rankingu i 68/68 walk-forward.
 To graniczne testy arytmetyki, nie wyniki skuteczności ani nowe dane historyczne.
 Produkcyjnych prognoz, konfiguracji i archiwów nie zmieniano.
+
+
+## Checkpoint 2026-11-20 — ścisły czas dowodów treningowych przed scoringiem
+
+Walk-forward używa teraz wspólnego parsera shadow_scoring._evidence_timestamp
+przy ponownym sprawdzaniu training_timing. Wymaga pełnego czasu z sekundami,
+jawną strefą i najwyżej sześcioma cyframi ułamka, bez obcinania precision.
+Istniejący audyt CSV korzysta z tego samego parsera pod dotychczasową nazwą _stamp.
+Reguły cutoff, modeli i ich okien pozostają bez zmian.
+
+Nowa regresja odtworzyła błędne dopuszczenie 0.1 mikrosekundy po cutoff dla
+OLS 30/60/90D i similar shape/level. Każdy model sprawdzono osobno dla czasu
+dostępności treningowego Fix1 oraz publikacji, rozpoczęcia i końca pobrania JWCD:
+łącznie 20 wariantów syntetycznie zmienionego training_timing. Po poprawce
+wadliwa doba jest wykluczona przed scoringiem ze wskazaniem modelu, daty i pola,
+a następna zachowuje identyczny pełny wynik. Historia pozostaje niezmieniona.
+Lokalnie przeszło 69/69 testów walk-forward i 3/3 testy precyzji czasu audytu.
+To testy dowodów treningowych na syntetycznej historii, nie nowe źródła ani ranking modeli.

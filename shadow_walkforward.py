@@ -7,7 +7,7 @@ from bisect import bisect_left, bisect_right
 from copy import deepcopy
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from decimal import Decimal, DecimalException, localcontext
 from shadow_asof import cutoff_for_day, preserve_snapshot_rows, select_snapshot
 from shadow_ols import predict_ols
@@ -16,7 +16,8 @@ from shadow_training import (
 )
 from shadow_similar_consensus import MEDIAN_MEMBERS, median_consensus, predict_similar
 from shadow_scoring import (
-    WARSAW, _SHADOW_DECIMAL_CONTEXT, _percentage, _prices, _utc, expected_periods, score_day,
+    WARSAW, _SHADOW_DECIMAL_CONTEXT, _evidence_timestamp, _percentage, _prices, _utc,
+    expected_periods, score_day,
     validate_forecast_identity, validate_forecast_timing,
 )
 
@@ -278,7 +279,7 @@ def run_walkforward(*,history,target_days,evaluated_at,frozen_90d_by_day=None):
                             'retrieved_at_utc', 'retrieval_completed_at_utc',
                         ):
                             try:
-                                timestamps[field] = _utc(datetime.fromisoformat(evidence[field]))
+                                timestamps[field] = _evidence_timestamp(evidence[field])
                             except (KeyError, TypeError, ValueError) as exc:
                                 raise ValueError(
                                     f'Invalid training timing evidence for {training_day}: {field}'
