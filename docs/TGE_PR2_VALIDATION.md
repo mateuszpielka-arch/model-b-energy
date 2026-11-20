@@ -2754,3 +2754,21 @@ Lokalnie dwa testy źródeł przeszły; test PostgreSQL jest przeznaczony dla CI
 i sprawdza INSERT/REPLAY, 24 niezmienne ceny, oryginalny HTML i brak kwarantanny.
 Nie zmieniono wcześniejszych dowodów braku cen ani produkcji. Nie wydano
 prognozy i nie zastąpiono porannego raportu.
+
+
+## Checkpoint 2026-11-20 — scoring kontrolny rzeczywistych źródeł 21.11
+
+Dodano niezależny rachunek Fraction łączący etykiety okresów surowego PK5
+pobranego o 09:13 z oficjalnym referencyjnym CSV Fix1 21.11. Prognoza kontrolna
+to wyłącznie syntetyczny stały wzór JWCD/20, bez uczenia i bez rzeczywistego wydania.
+Wynik kontrolny: MAE 209.985416666667 PLN/MWh; MAPE 34.502647436342%;
+WAPE 35.376391638237%; bias -209.985416666667 PLN/MWh; 24 okresy niezerowe.
+
+Nowy test czystego scoringu sprawdza zgodność czterech metryk z oraclem
+Fraction i utrwalonymi wartościami kontrolnymi. Nowy test izolowanego PostgreSQL
+sprawdza brak wyniku 1 mikrosekundę przed pobraniem actual, INSERT dokładnie
+w chwili dostępności, te same metryki oraz REPLAY z referencją i bez niej:
+jeden trwały wynik, niezmienione ceny i brak kwarantanny. Lokalnie przeszły
+3 testy źródeł/scoringu; dwa testy PostgreSQL wymagają CI.
+To walidacja mechanizmu scoringu na realnych źródłach, nie ocena skuteczności
+OLS/dni podobnych ani zamiennik porannej prognozy.
