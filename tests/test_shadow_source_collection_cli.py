@@ -1,4 +1,5 @@
 import csv
+from datetime import date, datetime
 import io
 import json
 from pathlib import Path
@@ -8,6 +9,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from shadow_source_history import prepare_history_collection
+from shadow_walkforward_csv import evaluate_csv_rows
 from test_shadow_source_history_collection import FIXTURES, package
 
 
@@ -21,12 +23,51 @@ class SourceCollectionCliTests(unittest.TestCase):
              str(FIXTURES / 'pse_pk5_delivery_2026-11-21_third/capture.json')],
         ]
 
-    def run_cli(self, groups, output_format):
+    def run_cli(self, groups, output_format, extra=()):
         command = [sys.executable, str(Path(__file__).resolve().parents[1] /
                                        'shadow_source_collection.py'), '--format', output_format]
         for group in groups:
             command.extend(['--day', *group])
+        command.extend(extra)
         return subprocess.run(command, capture_output=True, text=True)
+
+
+    def test_explicit_source_evaluation_matches_existing_walkforward_without_invented_training(self):
+        stamp = '2026-11-20T11:14:16.158611+01:00'
+        expected_time = '2026-11-20T10:14:16.158611+00:00'
+        baseline = json.loads(self.run_cli(self.groups(), 'json').stdout)
+        for groups in (self.groups(), list(reversed(self.groups()))):
+            completed = self.run_cli(groups, 'json', ['--walk-forward-at', stamp])
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            report = json.loads(completed.stdout)
+            evaluation = report.pop('evaluation')
+            self.assertEqual(report, baseline)
+            self.assertEqual(evaluation.pop('evaluated_at_utc'), expected_time)
+            expected = evaluate_csv_rows(
+                report['rows'], evaluated_at=datetime.fromisoformat(expected_time),
+                target_from=date(2026, 11, 20), target_to=date(2026, 11, 21),
+            )
+            self.assertEqual(evaluation, json.loads(json.dumps(expected)))
+            self.assertEqual(evaluation['csv_admission']['admitted_days'], 2)
+            comparison = evaluation['walkforward']
+            self.assertEqual((comparison['common_days'], comparison['common_periods']), (0, 0))
+            self.assertEqual(comparison['ranking'], [])
+            self.assertEqual(len(comparison['skipped']), 2)
+            self.assertEqual(evaluation['history_audit']['missing_days_for_first_comparison'],
+                             {'30D': 29, '60D': 59, '90D': 89})
+
+    def test_evaluation_requires_json_and_full_explicit_timestamp_without_partial_output(self):
+        for output_format, stamp, error in (
+            ('csv', '2026-11-20T10:14:16+00:00', 'requires --format json'),
+            ('json', '2026-11-20T10:14:16', 'invalid'),
+            ('json', '2026-11-20T10:14+00:00', 'invalid'),
+            ('json', '2026-11-20T10:14:16.1586111+00:00', 'invalid'),
+        ):
+            with self.subTest(output_format=output_format, stamp=stamp):
+                completed = self.run_cli(self.groups(), output_format, ['--walk-forward-at', stamp])
+                self.assertEqual(completed.returncode, 2)
+                self.assertEqual(completed.stdout, '')
+                self.assertIn(error, completed.stderr)
 
     def test_two_real_days_export_in_order_with_whole_capture_selection_and_no_source_writes(self):
         groups = self.groups()

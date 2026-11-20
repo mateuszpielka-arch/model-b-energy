@@ -2857,3 +2857,28 @@ Tak samo odrzucane są duplikaty dostawy i brak ścieżki capture. Lokalnie
 przeszło 25/25 testów eksportu, w tym wszystkie 19 wcześniejszych regresji
 jednodniowego CLI i 3 testy kolekcji. Nie dodano doby historii ani rankingu.
 Produkcja, FROZEN i dotychczasowe archiwa pozostają bez zmian.
+
+
+## Checkpoint 2026-11-20 — jawna ocena walk-forward z kolekcji źródeł
+
+CLI shadow_source_collection otrzymało opcję
+`--format json --walk-forward-at PEŁNY_CZAS_ZE_STREFĄ`.
+Po pełnej walidacji kolekcji wywołuje istniejące evaluate_csv_rows na dokładnie
+eksportowanych wierszach i zakresie od pierwszej do ostatniej dostawy. JSON
+zawiera evaluation z jawnym evaluated_at_utc, audytem, przyjęciem CSV oraz
+wynikiem istniejącego walk-forward OLS 30/60/90D, podobnych dób i mediany.
+Nie dodano modelu ani zastępczych danych. Bez opcji wynik eksportu pozostaje
+bez zmian; opcja z CSV jest odrzucana, aby nie zgubić raportu oceny.
+
+Czas oceny używa wspólnego ścisłego parsera: sekundy, jawna strefa, maksymalnie
+6 cyfr ułamka. Wynik budowany jest w całości przed stdout; serializacja korzysta
+z dotychczasowego formatera raportów walk-forward, obsługującego Score/Decimal.
+
+Dwie nowe regresje subprocess sprawdzają oba porządki rzeczywistych źródeł
+20/21.11, normalizację +01:00 do UTC, pełną zgodność oceny z istniejącym API
+i identyczny wcześniejszy eksport po usunięciu pola evaluation. Dwie doby są
+przyjęte, ale 0 dni/0 okresów wspólnego scoringu, 2 pominięcia i pusty ranking:
+nadal brakuje 29/59/89 dób do pierwszego porównania. CSV z opcją oraz czas bez
+strefy, bez sekund lub o nadmiernej precyzji zwracają kod 2 bez częściowego
+wyjścia. Lokalnie przeszło 27/27 testów eksportu i kolekcji.
+Nie wydano prognozy, nie odczytano FROZEN i nie zmieniono produkcji ani archiwów.
