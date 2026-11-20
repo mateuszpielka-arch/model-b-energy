@@ -2946,3 +2946,25 @@ lub sztucznego skipped dla nieobecnego źródła. Pełne wyniki porównano z API
 walk-forward wywołanym na wszystkich 48 wierszach i tym samym zakresie.
 Lokalnie 29/29 testów eksportu/kolekcji przeszło. Dwie doby nadal nie wystarczają
 do treningu wymaganych okien. Produkcja, FROZEN i archiwa pozostają bez zmian.
+
+
+## Checkpoint 2026-11-20 — rzeczywisty wczesny PK5 weekendowej dostawy 22.11
+
+Uruchomiono istniejące capture_pk5_validation dla dostawy 22.11. Publiczny
+PSE pk5l-wp zwrócił HTTP 200 i komplet 24 okresów. Publikacja: 20.11 o
+21:02:37.114 Europe/Warsaw; początek pobrania 21:20:32.063933, koniec
+21:20:40.007491. To pobranie dzień wcześniej niż własny cutoff tej dostawy:
+21.11 o 09:50 Europe/Warsaw. Zachowano oryginalny JSON gzip i capture.json
+ze snapshot ID w tests/fixtures/pse_pk5_delivery_2026-11-22.
+Surowy JSON: 18621 bajtów; SHA-256
+ab47fe9dd17f9f13df01963097c616227f305f3578de291f8793722633ac8892.
+H01 JWCD=6192.00000, H24=9701.00000 MW; zmienna wyłącznie fcst_gen_unit_stor_prov.
+
+Dwa nowe testy sprawdzają rozmiar/hash/ID, pełne 24 wartości względem surowego
+JSON, publikację, chronologię, własny cutoff oraz skrajne UTC okresów. Rzeczywiste
+kandydaty dostaw 21/22.11 w obu kolejnościach wybierają wyłącznie własną dobę,
+a obca ma WRONG_DELIVERY_DATE. Wejście jest niezmienione; syntetyczne przesunięcie
+pobrania 22.11 o 1 mikrosekundę po jej cutoff jest odrzucane. Lokalnie 2/2 testy
+przeszły. To wczesna obserwacja PK5; późniejsze rewizje mogą być nowsze.
+Nie dodano Fix1 dla 22.11, sparowanej doby treningu, prognozy ani rankingu.
+Produkcja, poranne wydanie i istniejące archiwa pozostają bez zmian.
