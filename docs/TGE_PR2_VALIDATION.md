@@ -2968,3 +2968,24 @@ pobrania 22.11 o 1 mikrosekundę po jej cutoff jest odrzucane. Lokalnie 2/2 test
 przeszły. To wczesna obserwacja PK5; późniejsze rewizje mogą być nowsze.
 Nie dodano Fix1 dla 22.11, sparowanej doby treningu, prognozy ani rankingu.
 Produkcja, poranne wydanie i istniejące archiwa pozostają bez zmian.
+
+
+## Checkpoint 2026-11-20 — atomowy wyłączny zapis eksportu kolekcji
+
+CLI shadow_source_collection ma opcjonalne --output NOWY_PLIK. Najpierw
+waliduje całą kolekcję i przygotowuje pełny CSV/JSON, następnie zapisuje plik
+tymczasowy w katalogu docelowym, flush/fsync i publikuje go atomowym link.
+Istniejąca ścieżka docelowa nie jest nadpisywana, a staging jest sprzątany
+również przy błędzie zapisu/publikacji. Katalog docelowy musi już istnieć.
+Przy --output stdout pozostaje pusty; bez opcji dotychczasowy eksport stdout
+pozostaje bez zmian. Nie zmieniono archiwizacji PostgreSQL ani produkcji.
+
+Trzy nowe testy sprawdzają bajtową zgodność zapisanych CSV/JSON na rzeczywistych
+źródłach 20/21.11 z dotychczasowym stdout, odmowę ponownego zapisu i zachowanie
+pliku. Nieprawidłowa kolekcja nie tworzy pliku ani nie narusza już istniejącego.
+Wstrzyknięte błędy fsync/link nie zostawiają stagingu; dwóch równoczesnych
+lokalnych autorów publikuje dokładnie jeden kompletny wynik, drugi otrzymuje
+FileExistsError, bez pozostałych plików. Lokalnie 32/32 testy eksportu/kolekcji
+przeszły. Gwarancja dotyczy atomowej publikacji bez nadpisania; nie testowano
+awarii zasilania ani trwałości wpisu katalogu po takiej awarii. Nie dodano danych,
+prognozy ani rankingu; produkcyjne archiwa pozostają nietknięte.

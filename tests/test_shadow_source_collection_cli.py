@@ -1,4 +1,7 @@
 import csv
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+from unittest.mock import patch
 from datetime import date, datetime
 import io
 import json
@@ -8,6 +11,7 @@ import sys
 from tempfile import TemporaryDirectory
 import unittest
 
+from shadow_source_collection import write_output_exclusively
 from shadow_source_history import prepare_history_collection
 from shadow_walkforward_csv import evaluate_csv_rows
 from test_shadow_source_history_collection import FIXTURES, package
@@ -32,6 +36,73 @@ class SourceCollectionCliTests(unittest.TestCase):
         return subprocess.run(command, capture_output=True, text=True)
 
 
+
+
+    def test_output_file_matches_stdout_and_cannot_be_overwritten(self):
+        for output_format in ('csv', 'json'):
+            with self.subTest(output_format=output_format), TemporaryDirectory() as temporary:
+                target = Path(temporary) / ('history.' + output_format)
+                baseline = self.run_cli(self.groups(), output_format)
+                self.assertEqual(baseline.returncode, 0, baseline.stderr)
+                completed = self.run_cli(self.groups(), output_format, ['--output', str(target)])
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                self.assertEqual(completed.stdout, '')
+                self.assertEqual(completed.stderr, '')
+                saved = target.read_bytes()
+                self.assertEqual(saved, baseline.stdout.encode())
+                self.assertEqual(list(Path(temporary).iterdir()), [target])
+                replay = self.run_cli(self.groups(), output_format, ['--output', str(target)])
+                self.assertEqual(replay.returncode, 2)
+                self.assertEqual(replay.stdout, '')
+                self.assertEqual(target.read_bytes(), saved)
+                self.assertEqual(list(Path(temporary).iterdir()), [target])
+
+    def test_invalid_sources_do_not_create_output_or_touch_existing_file(self):
+        group, _ = self.groups()
+        with TemporaryDirectory() as temporary:
+            target = Path(temporary) / 'history.json'
+            for initial in (None, b'existing immutable export\n'):
+                if initial is not None:
+                    target.write_bytes(initial)
+                completed = self.run_cli(
+                    [group, group], 'json', ['--output', str(target)],
+                )
+                self.assertEqual(completed.returncode, 2)
+                self.assertEqual(completed.stdout, '')
+                self.assertIn('Duplicate delivery date', completed.stderr)
+                if initial is None:
+                    self.assertEqual(list(Path(temporary).iterdir()), [])
+                else:
+                    self.assertEqual(target.read_bytes(), initial)
+                    self.assertEqual(list(Path(temporary).iterdir()), [target])
+
+    def test_atomic_publication_cleans_failures_and_only_one_concurrent_writer_wins(self):
+        with TemporaryDirectory() as temporary:
+            target = Path(temporary) / 'history.json'
+            for operation in ('fsync', 'link'):
+                with self.subTest(operation=operation), patch(
+                    'shadow_source_collection.' + operation, side_effect=OSError('injected failure'),
+                ):
+                    with self.assertRaisesRegex(OSError, 'injected failure'):
+                        write_output_exclusively(target, 'complete export\n')
+                    self.assertEqual(list(Path(temporary).iterdir()), [])
+            start = Barrier(2, timeout=5)
+            payloads = ('first complete export\n' * 1000, 'second complete export\n' * 1000)
+
+            def write(payload):
+                start.wait()
+                try:
+                    write_output_exclusively(target, payload)
+                    return 'INSERT', payload
+                except FileExistsError:
+                    return 'EXISTS', payload
+
+            with ThreadPoolExecutor(max_workers=2) as workers:
+                results = list(workers.map(write, payloads))
+            self.assertCountEqual([status for status, _ in results], ['INSERT', 'EXISTS'])
+            winner, = [payload for status, payload in results if status == 'INSERT']
+            self.assertEqual(target.read_text(), winner)
+            self.assertEqual(list(Path(temporary).iterdir()), [target])
 
     def test_target_range_limits_evaluation_without_removing_source_training_history(self):
         baseline = json.loads(self.run_cli(self.groups(), 'json').stdout)

@@ -8,6 +8,8 @@ import csv
 from datetime import date
 import io
 import json
+from os import fsync, link
+from tempfile import NamedTemporaryFile
 from pathlib import Path
 import sys
 from zlib import error as ZlibError
@@ -15,6 +17,22 @@ from zlib import error as ZlibError
 from shadow_source_history import load_history_day, prepare_history_collection
 from shadow_history_audit import _stamp
 from shadow_walkforward_csv import evaluate_csv_rows, _json_value
+
+
+def write_output_exclusively(path, result):
+    """Publish a complete UTF-8 export atomically, refusing any existing path."""
+    staging = None
+    try:
+        with NamedTemporaryFile(mode='w', encoding='utf-8', newline='',
+                                dir=path.parent, prefix='.fix1-export-', delete=False) as stream:
+            staging = Path(stream.name)
+            stream.write(result)
+            stream.flush()
+            fsync(stream.fileno())
+        link(staging, path)
+    finally:
+        if staging is not None:
+            staging.unlink(missing_ok=True)
 
 
 def main():
@@ -28,6 +46,8 @@ def main():
                         help='First delivery date to evaluate; earlier source days remain training history')
     parser.add_argument('--target-to', type=date.fromisoformat,
                         help='Last delivery date to evaluate; defaults to last source date')
+    parser.add_argument('--output', type=Path,
+                        help='Publish a new local file atomically; refuses existing paths and suppresses stdout')
     args = parser.parse_args()
     if (args.target_from is not None or args.target_to is not None) and args.walk_forward_at is None:
         parser.error('Target range requires --walk-forward-at')
@@ -58,9 +78,12 @@ def main():
             writer.writeheader()
             writer.writerows(report['rows'])
             result = output.getvalue()
+        if args.output is not None:
+            write_output_exclusively(args.output, result)
     except (OSError, EOFError, ZlibError, ValueError, TypeError, KeyError) as exc:
         parser.error(str(exc))
-    sys.stdout.write(result)
+    if args.output is None:
+        sys.stdout.write(result)
 
 
 if __name__ == '__main__':
