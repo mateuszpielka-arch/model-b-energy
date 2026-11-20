@@ -192,6 +192,19 @@ class SourceHistoryTests(unittest.TestCase):
         self.assertEqual(report['periods'], 24)
         self.assertEqual(report['delivery_date'], '2026-11-20')
         self.assertEqual(report['cutoff_utc'], '2026-11-19T08:50:00+00:00')
+        readiness = report['history_audit']
+        self.assertEqual(readiness['complete_pair_days'], 1)
+        self.assertEqual(readiness['model_ready_days'], 1)
+        self.assertEqual(readiness['longest_model_ready_run'], 1)
+        self.assertEqual(readiness['missing_days_for_first_comparison'],
+                         {'30D': 30, '60D': 60, '90D': 90})
+        self.assertEqual(readiness['comparison_candidates'], {'30D': [], '60D': [], '90D': []})
+        day, = readiness['days']
+        self.assertEqual(day['day'], '2026-11-20')
+        self.assertEqual(day['expected_periods'], 24)
+        self.assertEqual(day['valid_fix1_rows'], 24)
+        self.assertEqual(day['valid_jwcd_rows'], 24)
+        self.assertEqual(day['issues'], [])
         evidence = {item['raw_sha256']: item for item in report['pk5_captures']}
         self.assertEqual(len(evidence), 2)
         for capture in captures:

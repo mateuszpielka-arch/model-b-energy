@@ -10,6 +10,7 @@ from hashlib import sha256
 from shadow_archive_batch import prepare_batch, read_reference_csv, revalidate_batch
 from shadow_pk5_snapshot import prepare_pk5_snapshot
 from shadow_asof import select_snapshot
+from shadow_history_audit import audit_rows
 
 
 def prepare_history_rows(*, pk5_raw, pk5_source_url, retrieved_at, retrieval_completed_at,
@@ -43,6 +44,7 @@ def prepare_history_report_from_captures(*, pk5_captures, actual_batch, actual_r
 
     Hashes and consistency checks do not independently authenticate capture times.
     Superseded observations remain visible in the report, without blending rows.
+    Readiness describes only the exported rows, not any external history archive.
     """
     fields = {'raw', 'source_url', 'retrieved_at', 'retrieval_completed_at'}
     if not isinstance(pk5_captures, (list, tuple)) or not pk5_captures:
@@ -113,7 +115,7 @@ def prepare_history_report_from_captures(*, pk5_captures, actual_batch, actual_r
             parser_version=batch.parser_version, source_url=batch.source_url,
             retrieved_at_utc=batch.retrieved_at.isoformat(), actual_version=version,
         ),
-        rows=rows,
+        rows=rows, history_audit=audit_rows(rows),
     )
 
 

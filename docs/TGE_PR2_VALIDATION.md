@@ -2549,3 +2549,20 @@ zachowanie Overflow dla rzeczywiście zbyt dużego procentu oraz None przy
 zerowych mianownikach i jawne zero_actual_periods. Lokalnie 3/3 nowe testy
 i 68/68 testów test_shadow_walkforward przeszło. To testy granic arytmetyki
 na syntetycznych sumach, nie wyniki modeli ani nowe dane historyczne.
+
+
+## Checkpoint 2026-11-20 — gotowość historii w raporcie źródłowym JSON
+
+Raport prepare_history_report_from_captures i CLI --format json zawiera teraz
+history_audit dla dokładnie tych wierszy, które eksportuje. Używa istniejącego
+audytora read-only: pokazuje kompletność par, bramki dostępności, najdłuższy
+ciąg gotowych dób oraz braki do pierwszego porównania 30/60/90D. Wynik CSV
+pozostaje taki sam. Podsumowanie dotyczy wyłącznie tej paczki, nie zewnętrznych
+archiwów ani całego projektu.
+
+Rozszerzony test na rzeczywistych źródłach 20.11 potwierdza 24 poprawne pary
+Fix1/JWCD, jedną dobę bez problemów audytu, ciąg długości 1, brak kandydatów do
+porównania i deficyt 30/60/90 dób. Test subprocess porównuje pełny JSON wraz
+z audytem w obu kolejnościach pobrań PK5. Lokalnie 17/17 testów
+test_shadow_source_history przeszło. Nie dopisano brakujących dat, prognoz
+ani rankingu; sprawdzenie spójności metadanych nie zastępuje ich uwierzytelnienia.
