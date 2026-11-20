@@ -2772,3 +2772,26 @@ jeden trwały wynik, niezmienione ceny i brak kwarantanny. Lokalnie przeszły
 3 testy źródeł/scoringu; dwa testy PostgreSQL wymagają CI.
 To walidacja mechanizmu scoringu na realnych źródłach, nie ocena skuteczności
 OLS/dni podobnych ani zamiennik porannej prognozy.
+
+
+## Checkpoint 2026-11-20 — kwarantanna blokuje także wcześniej zapisany scoring
+
+Dodano regresję izolowanego PostgreSQL dla pełnego cyklu rzeczywistych źródeł
+21.11: przyjęcie oryginalnego Fix1, zapis kontrolnego scoringu JWCD/20, następnie
+konflikt jednej ceny H01 (+1 PLN/MWh). Konflikt jest jawnie syntetyczny:
+zmienione kopie HTML/CSV przechodzą normalną walidację paczki; nie przedstawiono
+ich jako kolejnej publikacji TGE i nie zmieniono oryginalnych fixture.
+
+Test wymaga zachowania oryginalnych cen, dowodu i całego zapisanego wyniku,
+utrwalenia osobnego HTML/hash referencji konfliktu oraz jednej kwarantanny.
+Po konflikcie ponowny scoring jest odrzucany zarówno dla starego, jak i nowego
+forecast_id, z referencją CSV i bez niej. Ponowienia obu paczek pozostają
+QUARANTINE i nie zmieniają żadnej z czterech tabel; prawidłowa paczka nie usuwa
+kwarantanny. Nie zmieniono kodu produkcyjnego ani reguł archiwizacji/scoringu.
+
+Lokalnie 3 testy źródeł/scoringu przeszły; 3 testy PostgreSQL pominięto z braku
+lokalnej bazy. Dodatkowo wykonano przygotowanie syntetycznego konfliktu aż do
+granicy połączenia: walidacja i dokładna różnica jednego okresu przeszły.
+Pełną regresję bazy uruchamia istniejący CI na izolowanym PostgreSQL 16.
+To test niezmienności i blokady wyniku po konflikcie, nie nowa doba historii
+ani ocena skuteczności modeli.

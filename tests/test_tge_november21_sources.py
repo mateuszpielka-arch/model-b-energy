@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import unittest
 
+from shadow_archive_batch import prepare_batch, read_reference_csv
 from shadow_history_audit import audit_rows
 from shadow_ingest_manifest import load_batches
 from shadow_postgres_archive import archive_batch, connect_test_database, initialize
@@ -142,6 +143,70 @@ class November21SourcesTests(unittest.TestCase):
 
 @unittest.skipUnless(DSN, 'Set FIX1_SHADOW_TEST_DSN for isolated PostgreSQL')
 class November21ArchiveTests(unittest.TestCase):
+
+    def test_synthetic_price_conflict_blocks_existing_score_replay_without_rewriting_it(self):
+        batch, raw, reference, inputs, _ = scoring_case()
+        # Deliberately synthetic conflict derived from retained source bytes.
+        # This is not a second official publication or a correction to the fixture.
+        self.assertEqual(raw.count(b'783,16'), 1)
+        conflict_raw = raw.replace(b'783,16', b'784,16', 1)
+        self.assertEqual(reference.count(b'783.16'), 1)
+        conflict_reference = reference.replace(b'783.16', b'784.16', 1)
+        conflict = prepare_batch(
+            raw=conflict_raw, day=batch.delivery_date.isoformat(),
+            source_url=batch.source_url, retrieved_at=batch.retrieved_at + timedelta(seconds=1),
+            reference_rows=read_reference_csv(conflict_reference, batch.delivery_date.isoformat(),
+                                              require_utc=True),
+            reference_sha256=sha256(conflict_reference).hexdigest(),
+        )
+        self.assertEqual(conflict.rows[0][1] - batch.rows[0][1], Decimal('1'))
+        self.assertEqual(conflict.rows[1:], batch.rows[1:])
+        with connect_test_database(DSN) as conn:
+            initialize(conn)
+            initialize_scores(conn)
+            conn.execute('TRUNCATE fix1_shadow_test.quarantine, fix1_shadow_test.prices, '
+                         'fix1_shadow_test.batches RESTART IDENTITY CASCADE')
+            self.assertEqual(archive_batch(conn, batch, raw), 'INSERT')
+            self.assertEqual(score_archived_day(
+                conn, **inputs, reference_csv=reference, evaluated_at=batch.retrieved_at,
+            )[0], 'INSERT')
+            prices_query = ('SELECT delivery_date, period_start_utc, price, batch_id '
+                            'FROM fix1_shadow_test.prices ORDER BY period_start_utc')
+            score_query = 'SELECT * FROM fix1_shadow_test.scores'
+            batch_query = 'SELECT * FROM fix1_shadow_test.batches ORDER BY id'
+            saved_prices = conn.execute(prices_query).fetchall()
+            saved_scores = conn.execute(score_query).fetchall()
+            saved_batches = conn.execute(batch_query).fetchall()
+            self.assertEqual(len(saved_scores), 1)
+            self.assertEqual(archive_batch(conn, conflict, conflict_raw), 'QUARANTINE')
+            evidence = conn.execute(batch_query).fetchall()
+            self.assertEqual(len(evidence), 2)
+            self.assertEqual(evidence[:1], saved_batches)
+            self.assertEqual(conn.execute(
+                'SELECT raw_sha256, reference_sha256, raw_html FROM fix1_shadow_test.batches '
+                'WHERE raw_sha256 = %s', (conflict.raw_sha256,),
+            ).fetchall(), [(conflict.raw_sha256, conflict.reference_sha256, conflict_raw)])
+            quarantine_query = 'SELECT * FROM fix1_shadow_test.quarantine'
+            saved_quarantine = conn.execute(quarantine_query).fetchall()
+            self.assertEqual(len(saved_quarantine), 1)
+            for supplied_reference in (reference, None):
+                for forecast_id in (inputs['forecast_id'], inputs['forecast_id'] + ':new'):
+                    with self.subTest(reference=supplied_reference is not None,
+                                      existing_identity=forecast_id == inputs['forecast_id']):
+                        with self.assertRaisesRegex(ValueError, 'Quarantined delivery day'):
+                            score_archived_day(
+                                conn, **{**inputs, 'forecast_id': forecast_id},
+                                reference_csv=supplied_reference,
+                                evaluated_at=conflict.retrieved_at,
+                            )
+                        self.assertEqual(conn.execute(score_query).fetchall(), saved_scores)
+            for candidate, candidate_raw in ((batch, raw), (conflict, conflict_raw)):
+                self.assertEqual(archive_batch(conn, candidate, candidate_raw), 'QUARANTINE')
+                self.assertEqual(conn.execute(prices_query).fetchall(), saved_prices)
+                self.assertEqual(conn.execute(score_query).fetchall(), saved_scores)
+                self.assertEqual(conn.execute(batch_query).fetchall(), evidence)
+                self.assertEqual(conn.execute(quarantine_query).fetchall(), saved_quarantine)
+
     def test_real_source_control_scoring_gates_availability_and_replays_once(self):
         batch, raw, reference, inputs, expected = scoring_case()
         query = 'SELECT input_sha256, payload FROM fix1_shadow_test.scores'
