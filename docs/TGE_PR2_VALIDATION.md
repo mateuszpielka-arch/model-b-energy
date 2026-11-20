@@ -2696,3 +2696,22 @@ spóźnieniu, złym HTTP/URL, uciętej lub nadmiernej odpowiedzi i niepełnym JS
 brak żądania przy późnym starcie, ochronę ponowienia i wycofanie raw.
 Lokalnie 3/3 testy oraz uruchomienie CLI --help przeszły. W tym kroku nie
 wykonano nowego pobrania źródła ani nie zmieniono produkcyjnych collectorów.
+
+
+## Checkpoint 2026-11-20 — rzeczywiste uruchomienie narzędzia PK5 przed 09:50
+
+Uruchomiono nowe CLI capture_pk5_validation dla dostawy 21.11 na publicznym
+PSE. HTTP 200; publikacja 20.11 o 09:12:56.224 Europe/Warsaw, początek pobrania
+09:13:37.534340, koniec 09:13:47.559972, przed cutoff 09:50. CLI samo zwalidowało
+i zapisało 24 wiersze, gzip oraz capture.json ze snapshot ID w
+pse_pk5_delivery_2026-11-21_third. Surowy JSON: 18624 bajty, SHA-256
+4f0202160c8035e2b7d43095cf807a20bfa357ae8ad4965a466eab607209cb5a.
+H01=8571.00000, H24=6846.00000 MW.
+
+Nowy test sprawdza zgodność ID z metadanymi CLI, dokładną publikację,
+chronologię, 24 wartości i wybór tego całego pobrania we wszystkich sześciu
+kolejnościach trzech rzeczywistych obserwacji. Obie starsze publikacje są
+wskazane jako SUPERSEDED_JWCD_PUBLICATIONS, bez zmiany wejścia.
+Lokalnie 14/14 testów test_shadow_pk5_snapshot przeszło. To rzeczywiste
+jednorazowe pobranie walidacyjne, nie uruchomienie produkcyjnego collectora
+ani prognozy 09:50. Nadal nie dodano Fix1 dla 21.11 ani kolejnej doby treningu.

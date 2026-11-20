@@ -4,6 +4,7 @@ from decimal import Decimal
 import gzip
 from hashlib import sha256
 import json
+from itertools import permutations
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -25,6 +26,37 @@ class PK5SnapshotTests(unittest.TestCase):
         return dict(raw=raw, day=metadata['delivery_date'], source_url=metadata['url'],
                     retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
                     retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']))
+
+    def test_live_cli_capture_is_selected_across_all_three_real_revision_orders(self):
+        directories = [
+            FIXTURE.with_name(name) for name in (
+                'pse_pk5_delivery_2026-11-21', 'pse_pk5_delivery_2026-11-21_second',
+                'pse_pk5_delivery_2026-11-21_third',
+            )
+        ]
+        snapshots = [prepare_pk5_snapshot(**self.inputs(directory)) for directory in directories]
+        before = deepcopy(snapshots)
+        latest = snapshots[-1]
+        metadata = json.loads((directories[-1] / 'capture.json').read_text())
+        self.assertEqual(metadata['snapshot_id'], latest['id'])
+        day = date(2026, 11, 21)
+        expected = select_snapshot(day, [latest])
+        self.assertEqual(expected.rejected, ())
+        self.assertEqual(expected.latest_publication_ts_utc,
+                         datetime(2026, 11, 20, 8, 12, 56, 224000, tzinfo=timezone.utc))
+        self.assertLess(expected.latest_publication_ts_utc, expected.retrieved_at_utc)
+        self.assertLess(expected.retrieval_completed_at_utc, cutoff_for_day(day))
+        self.assertEqual(len(expected.rows), 24)
+        self.assertEqual(expected.rows[0][1], Decimal('8571.00000'))
+        self.assertEqual(expected.rows[-1][1], Decimal('6846.00000'))
+        rejected = {(snapshot['id'], 'SUPERSEDED_JWCD_PUBLICATIONS') for snapshot in snapshots[:-1]}
+        for candidates in permutations(snapshots):
+            with self.subTest(order=[candidate['id'] for candidate in candidates]):
+                selection = select_snapshot(day, candidates)
+                self.assertEqual(selection.snapshot_id, latest['id'])
+                self.assertEqual(selection.rows, expected.rows)
+                self.assertEqual(set(selection.rejected), rejected)
+        self.assertEqual(snapshots, before)
 
     def test_two_real_november_21_revisions_select_newer_publication_without_mutation(self):
         directory = FIXTURE.with_name('pse_pk5_delivery_2026-11-21')
