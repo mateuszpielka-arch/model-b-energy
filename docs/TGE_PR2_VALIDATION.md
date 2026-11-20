@@ -2833,3 +2833,27 @@ jest odrzucana w obu kolejnościach, duplikaty i błędny kształt wejścia rów
 oryginalne dane pozostają niezmienione. Lokalnie przeszło 3/3 nowych testów.
 To API do składania już zweryfikowanych dób; nie dodano historii, CLI ani prognozy.
 Produkcja, FROZEN i istniejące archiwa pozostają bez zmian.
+
+
+## Checkpoint 2026-11-20 — jawny wielodniowy eksport CLI bez częściowych wyników
+
+Dodano shadow_source_collection.py. Wywołanie:
+`python shadow_source_collection.py --day MANIFEST_20 CAPTURE_20 [CAPTURE_20B] --day MANIFEST_21 CAPTURE_21 --format json`.
+Domyślnie eksportuje CSV; JSON zachowuje raporty dobowych dowodów i wspólny
+audyt. Kolejność grup nie zmienia chronologii wierszy. Dla jednej doby można
+podać kilka kandydatów PK5; selekcja nadal wybiera całe pobranie po publikacji.
+
+Wydzielono load_history_day ze starszego CLI, zachowując dotychczasowe kontrole
+hashy, rozmiarów, HTTP/URL, dat, pełnych czasów, opcjonalnego snapshot_id oraz
+referencji Fix1. Oba CLI używają tego samego loadera. Nowe CLI odczytuje wyłącznie
+jawnie wskazane lokalne pliki i przygotowuje całą kolekcję oraz tekst wyjściowy
+przed stdout. Nie czyta bazy, sekretów, sieci ani harmonogramów.
+
+Trzy nowe testy subprocess obejmują rzeczywiste źródła 20/21.11: oba porządki,
+CSV/JSON, 48 wierszy, selekcję nowszej publikacji PK5 20.11 spośród dwóch,
+niezmienność źródeł i zgodność audytu. Błędny hash, snapshot_id lub poprawnie
+uporządkowane pobranie po cutoff w dowolnej grupie zwracają kod 2 bez stdout.
+Tak samo odrzucane są duplikaty dostawy i brak ścieżki capture. Lokalnie
+przeszło 25/25 testów eksportu, w tym wszystkie 19 wcześniejszych regresji
+jednodniowego CLI i 3 testy kolekcji. Nie dodano doby historii ani rankingu.
+Produkcja, FROZEN i dotychczasowe archiwa pozostają bez zmian.
