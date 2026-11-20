@@ -252,6 +252,17 @@ class SourceHistoryTests(unittest.TestCase):
         self.assertEqual(completed.stdout, '')
         self.assertIn('MISSING_OR_DUPLICATE_SNAPSHOT_ID', completed.stderr)
 
+    def test_cli_real_november_21_pk5_cannot_use_previous_fix1_delivery(self):
+        capture = FIXTURES / 'pse_pk5_delivery_2026-11-21/capture.json'
+        for output_format in ('csv', 'json'):
+            with self.subTest(output_format=output_format):
+                command = self.command(capture)
+                command[-1:-1] = ['--format', output_format]
+                completed = subprocess.run(command, capture_output=True, text=True)
+                self.assertEqual(completed.returncode, 2)
+                self.assertEqual(completed.stdout, '')
+                self.assertIn('PK5 capture delivery differs from Fixing I', completed.stderr)
+
     def command(self, metadata):
         return [
             sys.executable, str(Path(__file__).resolve().parents[1] / 'shadow_source_history.py'),

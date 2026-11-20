@@ -2639,3 +2639,22 @@ Wejście pozostaje niezmienione. Lokalnie 12/12 testów test_shadow_pk5_snapshot
 przeszło. To druga rzeczywista doba kandydata JWCD; nie dodano ceny Fix1 dla
 21.11, prognozy, rankingu ani okien treningowych. Późniejsze rewizje PK5 mogą
 być osobnymi obserwacjami; tego pobrania nie nadpisano.
+
+
+## Checkpoint 2026-11-20 — odpowiedź TGE przed publikacją dostawy 21.11
+
+Oficjalny URL sesji 20.11 pobrany o 06:16:45.733107 Europe/Warsaw zwrócił
+HTTP 200, ale tabela RDN zawierała wyłącznie 24 ceny dostawy 20.11 i zero
+wierszy 21.11. Zachowano oryginalny HTML gzip i capture.json osobno w
+tge_delivery_2026-11-21_prepublication, bez tworzenia referencji cen dla 21.11.
+HTML: 387471 bajtów, SHA-256:
+d58c035787c5db16a5b114846b4d357d5b82b743aa86082a5a1aea15a1a67975.
+
+Nowy test sprawdza hashe, daty wszystkich godzin RDN, zgodność cen poprzedniej
+doby z referencją 20.11 oraz odrzucenie dostawy 21.11 przez parser i read-only
+validate_candidate. Narzędzie capture nie zapisuje częściowej paczki i podaje
+żądaną/znalezioną datę. Drugi nowy test subprocess łączy rzeczywisty PK5 dla
+21.11 z manifestem Fix1 20.11: oba formaty CSV/JSON zwracają kod 2 i pusty stdout.
+Lokalnie przeszedł 1 test nowego pobrania oraz 18/18 testów eksportu historii.
+To rzeczywisty negatywny dowód układu przed publikacją, nie nowe ceny ani prognoza.
+Poprzednich dowodów i produkcji nie zmieniano.

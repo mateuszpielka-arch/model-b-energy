@@ -1,0 +1,17 @@
+{
+  "url": "https://tge.pl/energia-elektryczna-rdn?dateShow=20-11-2026",
+  "response_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=20-11-2026",
+  "http_status": 200,
+  "delivery_date": "2026-11-21",
+  "retrieval_started_at_utc": "2026-11-20T05:16:38.065178+00:00",
+  "retrieved_at_utc": "2026-11-20T05:16:45.733107+00:00",
+  "bytes": 387471,
+  "raw_sha256": "d58c035787c5db16a5b114846b4d357d5b82b743aa86082a5a1aea15a1a67975",
+  "raw_file": "tge_delivery_2026-11-21.html.gz",
+  "rdn_hourly_rows_total": 24,
+  "observed_hourly_rows": 0,
+  "observed_delivery_dates": [
+    "2026-11-20"
+  ],
+  "status": "REQUESTED_DELIVERY_NOT_PRESENT"
+}
