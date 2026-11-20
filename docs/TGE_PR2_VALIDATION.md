@@ -2715,3 +2715,22 @@ wskazane jako SUPERSEDED_JWCD_PUBLICATIONS, bez zmiany wejścia.
 Lokalnie 14/14 testów test_shadow_pk5_snapshot przeszło. To rzeczywiste
 jednorazowe pobranie walidacyjne, nie uruchomienie produkcyjnego collectora
 ani prognozy 09:50. Nadal nie dodano Fix1 dla 21.11 ani kolejnej doby treningu.
+
+
+## Checkpoint 2026-11-20 — pełne etykiety 21.11 bez opublikowanych cen Fix1
+
+Oficjalny URL sesji 20.11 pobrany o 10:19:00.593702 Europe/Warsaw zwrócił
+HTTP 200 i już 24 etykiety godzin dostawy 21.11, ale wszystkie ceny Fixing I
+były oznaczone '-'. Zachowano oryginalny HTML gzip i capture.json w
+tge_delivery_2026-11-21_unpriced. HTML ma 258957 bajtów, SHA-256:
+9e5f092b2dcebda28c1290fd248335c40dab005a5aad2203136802ee2024b9c7.
+Nie utworzono referencji cen ani manifestu gotowej paczki.
+
+Nowy test porównuje hash, liczbę bajtów i wszystkie 24 brakujące ceny,
+potwierdza odrzucenie przez parser i brak plików z narzędzia capture.
+Lokalnie przeszedł 1/1. Drugi test na izolowanym PostgreSQL próbuje związać
+prawdziwy nieopublikowany HTML z syntetycznie przesuniętymi cenami 20.11:
+sprawdza odrzucenie przed blokadą, niezmienność trzech tabel w pustej i
+zapełnionej bazie oraz REPLAY prawidłowej wcześniejszej paczki.
+To kolejny rzeczywisty stan strony przed cenami, a nie ceny Fix1 21.11,
+prognoza ani powód zmiany istniejących archiwów.

@@ -595,6 +595,34 @@ class RecentOfficialSessionsTests(unittest.TestCase):
             fetch.assert_called_once_with(metadata['url'], day)
             self.assertEqual(list(Path(tmp).iterdir()), [])
 
+    def test_november_21_unpriced_session_cannot_create_a_price_package(self):
+        from lxml import html
+
+        day = date(2026, 11, 21)
+        directory = FIXTURES.with_name('tge_delivery_2026-11-21_unpriced')
+        metadata = json.loads((directory / 'capture.json').read_text())
+        raw = gzip.decompress((directory / metadata['raw_file']).read_bytes())
+        self.assertEqual(sha256(raw).hexdigest(), metadata['raw_sha256'])
+        self.assertEqual(len(raw), metadata['bytes'])
+        self.assertEqual(metadata['http_status'], 200)
+        self.assertGreater(datetime.fromisoformat(metadata['retrieved_at_utc']), cutoff_for_day(day))
+        cells = html.fromstring(raw).xpath(
+            '//table[@id="rdn"]/tbody/tr[starts-with(normalize-space(td[1]), "2026-11-21_H")]/td[3]'
+        )
+        self.assertEqual([cell.text_content().strip() for cell in cells], ['-'] * 24)
+        self.assertEqual(metadata['unpriced_fixing_i_rows'], len(cells))
+        with self.assertRaisesRegex(ValueError, r"Invalid Fixing I price for H01: '-'"):
+            parse_complete_standard_day(raw.decode('utf-8'), day.isoformat(), exact=True)
+        with TemporaryDirectory() as tmp, patch(
+            'tools.capture_tge_validation._fetch_session', return_value=(200, raw),
+        ) as fetch:
+            output = Path(tmp)
+            with self.assertRaisesRegex(ValueError, 'Fixing I price unavailable for 2026-11-21_H01'):
+                capture(day, output)
+            fetch.assert_called_once_with(metadata['url'], day)
+            self.assertEqual(list(output.iterdir()), [])
+
+
     def test_november_19_unpriced_session_cannot_create_a_price_package(self):
         from lxml import html
 
@@ -792,6 +820,40 @@ class RecentOfficialSessionsPostgresTests(unittest.TestCase):
 
     def test_november_19_manifest_is_archived_and_replayed_without_duplicate_rows(self):
         self.check_manifest_archive_and_replay(NOV_19_FIXTURES)
+
+    def test_november_21_unpriced_html_cannot_be_archived_with_shifted_prices(self):
+        from dataclasses import replace
+
+        (accepted, priced_raw), = load_batches(NOV_20_FIXTURES / 'manifest.json')
+        directory = FIXTURES.with_name('tge_delivery_2026-11-21_unpriced')
+        metadata = json.loads((directory / 'capture.json').read_text())
+        raw = gzip.decompress((directory / metadata['raw_file']).read_bytes())
+        self.assertEqual(sha256(raw).hexdigest(), metadata['raw_sha256'])
+        day = date(2026, 11, 21)
+        # Synthetic forgery binds previous-day prices to the genuine unpriced next-day HTML.
+        forged = replace(
+            accepted, delivery_date=day, source_url=metadata['url'],
+            retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
+            raw_sha256=metadata['raw_sha256'],
+            rows=tuple(zip(expected_periods(day), (price for _, price in accepted.rows))),
+        )
+        queries = (
+            'SELECT * FROM fix1_shadow_test.batches ORDER BY id',
+            'SELECT * FROM fix1_shadow_test.prices ORDER BY delivery_date, period_start_utc',
+            'SELECT * FROM fix1_shadow_test.quarantine ORDER BY batch_id',
+        )
+        with self.isolated_connection() as conn:
+            for populated in (False, True):
+                with self.subTest(populated=populated):
+                    if populated:
+                        self.assertEqual(archive_batch(conn, accepted, priced_raw), 'INSERT')
+                    before = [conn.execute(query).fetchall() for query in queries]
+                    with patch('shadow_postgres_archive._lock_delivery_day') as lock:
+                        with self.assertRaisesRegex(ValueError, r"Invalid Fixing I price for H01: '-'"):
+                            archive_batch(conn, forged, raw)
+                        lock.assert_not_called()
+                    self.assertEqual([conn.execute(query).fetchall() for query in queries], before)
+            self.assertEqual(archive_batch(conn, accepted, priced_raw), 'REPLAY')
 
     def test_november_19_unpriced_html_cannot_be_admitted_with_a_valid_raw_hash(self):
         from dataclasses import replace
