@@ -119,6 +119,27 @@ def prepare_history_report_from_captures(*, pk5_captures, actual_batch, actual_r
     )
 
 
+
+def prepare_history_collection(*, days):
+    """Validate whole source packages before returning a sorted multi-day history.
+
+    No I/O, partial result, timestamp inference or external archive mutation.
+    Per-day selection evidence is retained; readiness covers the combined rows.
+    """
+    fields = {'pk5_captures', 'actual_batch', 'actual_raw', 'actual_reference'}
+    if not isinstance(days, (list, tuple)) or not days:
+        raise ValueError('Nonempty list or tuple of source day packages required')
+    if any(not isinstance(package, Mapping) or set(package) != fields for package in days):
+        raise ValueError('Source day package requires captures and Fix1 batch/raw/reference only')
+    reports = [prepare_history_report_from_captures(**package) for package in days]
+    labels = [report['delivery_date'] for report in reports]
+    if len(set(labels)) != len(labels):
+        raise ValueError('Duplicate delivery date in source history collection')
+    reports.sort(key=lambda report: report['delivery_date'])
+    rows = tuple(row for report in reports for row in report['rows'])
+    return dict(days=reports, periods=len(rows), rows=rows, history_audit=audit_rows(rows))
+
+
 def main():
     """Explicit local conversion; validate everything before producing any CSV."""
     import argparse

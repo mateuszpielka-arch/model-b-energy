@@ -2813,3 +2813,23 @@ zwraca kod 2 i pusty stdout; oryginalne źródła pozostają niezmienione.
 Lokalnie przeszło 19/19 testów test_shadow_source_history, również starsze
 pobrania bez snapshot_id. Sprawdzenie wiąże deklarację z treścią, nie uwierzytelnia
 niezależnie czasów HTTP. Nie dodano danych historycznych, prognoz ani wdrożenia.
+
+
+## Checkpoint 2026-11-20 — wielodniowa kolekcja zweryfikowanych źródeł
+
+Dodano czystą funkcję prepare_history_collection(days=...) przyjmującą listę
+lub krotkę kompletnych paczek: kandydaci PK5, batch Fix1, raw i referencja.
+Każda paczka przechodzi istniejące pełne sprawdzenie źródeł oraz selekcję
+publication_ts/retrieved_at/końca pobrania względem własnego D−1 09:50.
+Wynik porządkuje doby, zachowuje osobne raporty dowodów, łączy wiersze i liczy
+wspólny history_audit. Duplikat dostawy lub błędna paczka odrzuca całą kolekcję.
+Funkcja nie wykonuje I/O, nie zwraca częściowego wyniku i nie zmienia wejścia.
+
+Trzy nowe testy na rzeczywistych źródłach 20/21.11 sprawdzają obie kolejności,
+48 unikalnych UTC, identyczne raporty dzienne, serializację JSON, ciąg gotowości 2,
+braki 29/59/89 dób do pierwszego porównania oraz przyjęcie obu dni przez
+walk-forward z zerem wspólnych okresów i pustym rankingiem. Spóźniona paczka
+jest odrzucana w obu kolejnościach, duplikaty i błędny kształt wejścia również;
+oryginalne dane pozostają niezmienione. Lokalnie przeszło 3/3 nowych testów.
+To API do składania już zweryfikowanych dób; nie dodano historii, CLI ani prognozy.
+Produkcja, FROZEN i istniejące archiwa pozostają bez zmian.
