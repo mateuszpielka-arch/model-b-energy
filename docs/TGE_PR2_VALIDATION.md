@@ -2989,3 +2989,26 @@ FileExistsError, bez pozostałych plików. Lokalnie 32/32 testy eksportu/kolekcj
 przeszły. Gwarancja dotyczy atomowej publikacji bez nadpisania; nie testowano
 awarii zasilania ani trwałości wpisu katalogu po takiej awarii. Nie dodano danych,
 prognozy ani rankingu; produkcyjne archiwa pozostają nietknięte.
+
+
+## Checkpoint 2026-11-20 — read-only zgodność cen między manifestami Fix1
+
+Dodano shadow_manifest_audit.py: jawny audyt jednego lub wielu lokalnych
+manifestów bez bazy, sieci i zapisów. Każda paczka przechodzi istniejące
+load_batches, zanim powstanie raport. Dowody grupowane są po dostawie, a dokładne
+powtórzenia identity/czasu/URL są liczone osobno od odrębnych pobrań i dób.
+Raport zawiera oryginalne hashe/czasy/URL, liczbę unikalnych okresów dostaw,
+CONSISTENT albo CONFLICT i dokładne UTC okresów z różnymi cenami.
+Nie wybiera zwycięskiego pobrania ani nie zmienia kwarantanny/archiwum.
+first_observed_retrieved_at_utc oznacza najwcześniejsze pobranie w podanej
+próbie, nie czas publikacji TGE ani historyczną dostępność JWCD.
+
+Trzy nowe testy: rzeczywiste Fix1 20.11, jego późne pobranie i 21.11 oraz
+powtórzone wejście dają 4 wpisy, 3 odrębne dowody, 2 doby i 48 unikalnych
+okresów, bez konfliktów. Kolejność nie zmienia raportu i źródła pozostają
+bajtowo niezmienione. Jawnie syntetyczna zmiana H01 21.11 o +1 PLN/MWh
+we własnej kopii HTML/CSV jest przyjmowana przez normalną walidację, ale audyt
+wskazuje konflikt dokładnie 2026-11-20T23:00:00+00:00 i zachowuje oba dowody.
+Błędny manifest w dowolnej kolejności odrzuca całe CLI bez częściowego stdout.
+Lokalnie 3/3 testy przeszły. Audyt dotyczy wyłącznie wskazanych paczek;
+nie dodano ceny, doby treningu, prognozy ani rankingu. Produkcja bez zmian.
