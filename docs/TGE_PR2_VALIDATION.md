@@ -3079,3 +3079,23 @@ nie mieszając okresów. Publikacja i zakończenie pobrania przechodzą bramki
 chronologii/cutoff, a wejście pozostaje niezmienione. Lokalnie 3/3 testy
 PK5 22.11 przeszły. Nie dodano Fix1 22.11, sparowanej doby treningu ani prognozy.
 Starszy dowód pozostaje zachowany; produkcja i FROZEN bez zmian.
+
+
+## Checkpoint 2026-11-21 — ceny i dowody źródłowe przy konflikcie Fix1
+
+Read-only audyt manifestów dodaje teraz price_conflicts wyłącznie dla dób
+z rzeczywistą rozbieżnością wartości. Dla każdego konfliktowego okresu UTC
+wymienia posortowane numerycznie ceny oraz dowody każdej z nich: hash raw,
+hash referencji, parser, URL i czas pobrania. Nie wybiera ceny poprawnej,
+nie zapisuje bazy i nie modyfikuje kwarantanny. Doby bez konfliktu zachowują
+identyczny dotychczasowy raport, w tym zapisany checkpoint korpusu 28 pobrań.
+
+Rozszerzony test jawnie syntetycznej kopii H01 21.11 sprawdza dwie ceny
+783.16 / 784.16 oraz dokładne powiązanie z obiema referencjami i raw HTML,
+zgodność CLI/API i niezależność od kolejności. Źródła pozostają niezmienione.
+Nowa regresja używa niezmienionego rzeczywistego HTML, zmieniając jedynie
+zapis 783.16 na 783.1600 we własnej kopii CSV i jej hash: dwa różne dowody
+referencji nadal mają CONSISTENT i zero konfliktów. Grupowanie cen używa
+wartości Decimal, a nie tekstowej reprezentacji. Lokalnie 6/6 testów audytu
+manifestów przeszło. Nie znaleziono ani nie zadeklarowano nowego konfliktu
+oficjalnych cen; zmiana dotyczy diagnostyki. Produkcja i archiwa bez zmian.

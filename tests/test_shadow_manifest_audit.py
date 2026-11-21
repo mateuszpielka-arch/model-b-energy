@@ -142,8 +142,46 @@ class ManifestAuditTests(unittest.TestCase):
             self.assertEqual((day['price_consensus'], day['captures'], day['periods']), ('CONFLICT', 2, 24))
             self.assertEqual(day['conflicting_periods_utc'], ['2026-11-20T23:00:00+00:00'])
             self.assertEqual(len(day['evidence']), 2)
+            detail, = day['price_conflicts']
+            self.assertEqual(detail['period_start_utc'], '2026-11-20T23:00:00+00:00')
+            self.assertEqual([item['price_pln_mwh'] for item in detail['prices']], ['783.16', '784.16'])
+            original_entry, = json.loads(original.read_text())['entries']
+            for price, source_entry in zip(detail['prices'], (original_entry, entry), strict=True):
+                evidence, = price['evidence']
+                self.assertEqual(evidence['raw_sha256'], source_entry['raw_sha256'])
+                self.assertEqual(evidence['reference_sha256'], source_entry['reference_sha256'])
+                self.assertEqual(evidence['source_url'], source_entry['url'])
+                self.assertEqual(evidence['retrieved_at_utc'], source_entry['retrieved_at_utc'])
+                self.assertIn(evidence, day['evidence'])
+            completed = subprocess.run(self.command([original, manifest]),
+                                       capture_output=True, text=True)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(json.loads(completed.stdout), report)
             self.assertEqual({path: path.read_bytes() for path in target.iterdir()}, before)
         self.assertEqual({path: path.read_bytes() for path in original_files}, original_files)
+
+
+    def test_equivalent_decimal_reference_spelling_is_not_a_price_conflict(self):
+        original = self.paths()[-1]
+        with TemporaryDirectory() as temporary:
+            target = Path(temporary) / 'equivalent-reference'
+            shutil.copytree(original.parent, target)
+            manifest = target / 'manifest.json'
+            data = json.loads(manifest.read_text())
+            entry, = data['entries']
+            reference_path = target / entry['reference_file']
+            reference = reference_path.read_bytes().replace(b'783.16', b'783.1600', 1)
+            self.assertNotEqual(reference, reference_path.read_bytes())
+            reference_path.write_bytes(reference)
+            entry['reference_sha256'] = sha256(reference).hexdigest()
+            manifest.write_text(json.dumps(data))
+            report = audit_manifests([original, manifest])
+            self.assertEqual(report, audit_manifests([manifest, original]))
+            day, = report['days']
+            self.assertEqual((day['captures'], day['price_consensus']), (2, 'CONSISTENT'))
+            self.assertEqual(day['conflicting_periods_utc'], [])
+            self.assertNotIn('price_conflicts', day)
+            self.assertEqual(report['days_with_price_conflicts'], 0)
 
     def test_bad_manifest_aborts_cli_without_partial_report(self):
         with self.assertRaisesRegex(ValueError, 'At least one'):

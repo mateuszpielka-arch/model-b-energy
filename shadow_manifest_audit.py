@@ -13,6 +13,14 @@ from shadow_history_audit import missing_delivery_ranges
 from shadow_scoring import expected_periods
 
 
+def _evidence(batch):
+    return dict(
+        raw_sha256=batch.raw_sha256, reference_sha256=batch.reference_sha256,
+        parser_version=batch.parser_version, source_url=batch.source_url,
+        retrieved_at_utc=batch.retrieved_at.isoformat(),
+    )
+
+
 def audit_manifests(paths, *, start_day=None, end_day=None):
     for bound in (start_day, end_day):
         if bound is not None and (type(bound) is not date or bound in (date.min, date.max)):
@@ -40,17 +48,29 @@ def audit_manifests(paths, *, start_day=None, end_day=None):
                 values[period].add(price)
         conflicts = [period.isoformat() for period, prices in sorted(values.items())
                      if len(prices) > 1]
-        days.append(dict(
+        day_report = dict(
             delivery_date=day.isoformat(), periods=len(values), captures=len(batches),
             price_consensus='CONFLICT' if conflicts else 'CONSISTENT',
             conflicting_periods_utc=conflicts,
             first_observed_retrieved_at_utc=batches[0].retrieved_at.isoformat(),
-            evidence=[dict(
-                raw_sha256=batch.raw_sha256, reference_sha256=batch.reference_sha256,
-                parser_version=batch.parser_version, source_url=batch.source_url,
-                retrieved_at_utc=batch.retrieved_at.isoformat(),
-            ) for batch in batches],
-        ))
+            evidence=[_evidence(batch) for batch in batches],
+        )
+        if conflicts:
+            price_maps = [(batch, dict(batch.rows)) for batch in batches]
+            details = []
+            for period, prices in sorted(values.items()):
+                if len(prices) < 2:
+                    continue
+                by_price = defaultdict(list)
+                for batch, price_map in price_maps:
+                    by_price[price_map[period]].append(_evidence(batch))
+                details.append(dict(
+                    period_start_utc=period.isoformat(),
+                    prices=[dict(price_pln_mwh=str(price), evidence=evidence)
+                            for price, evidence in sorted(by_price.items())],
+                ))
+            day_report['price_conflicts'] = details
+        days.append(day_report)
     report = dict(
         read_only=True, validated_capture_entries=len(entries), distinct_captures=len(captures),
         duplicate_capture_entries=len(entries) - len(captures), delivery_days=len(days),
