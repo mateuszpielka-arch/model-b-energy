@@ -140,15 +140,64 @@ def prepare_history_collection(*, days):
     return dict(days=reports, periods=len(rows), rows=rows, history_audit=audit_rows(rows))
 
 
+def load_pk5_capture(capture_path, *, day):
+    """Read and validate one saved PK5 capture without requiring Fix1 evidence.
+
+    Only explicit local files are read. Capture timestamps remain caller-owned;
+    this validates their consistency and cutoff, not their authenticity.
+    """
+    from datetime import date
+    import gzip
+    import json
+    from pathlib import Path
+    from shadow_ingest_manifest import MAX_MANIFEST_BYTES, _inside
+    from shadow_pk5_snapshot import _unique_object, parse_capture_timestamp
+
+    if type(day) is not date or day in (date.min, date.max):
+        raise ValueError('Supported delivery date required')
+    capture_path = Path(capture_path)
+    with capture_path.open('rb') as stream:
+        metadata_bytes = stream.read(MAX_MANIFEST_BYTES + 1)
+    if len(metadata_bytes) > MAX_MANIFEST_BYTES:
+        raise ValueError('PK5 capture metadata exceeds 1 MiB')
+    metadata = json.loads(metadata_bytes, object_pairs_hook=_unique_object)
+    if not isinstance(metadata, dict):
+        raise ValueError('PK5 capture metadata must be an object')
+    filename = metadata.get('raw_file')
+    if (not isinstance(filename, str) or Path(filename).name != filename
+            or not filename.endswith('.json.gz')):
+        raise ValueError('PK5 capture requires a local JSON gzip filename')
+    if (type(metadata.get('http_status')) is not int or metadata['http_status'] != 200
+            or metadata.get('response_url') != metadata.get('url')
+            or type(metadata.get('rows')) is not int or metadata['rows'] != 24):
+        raise ValueError('PK5 capture HTTP/source/row metadata mismatch')
+    with gzip.open(_inside(capture_path.parent, filename), 'rb') as stream:
+        pk5_raw = stream.read(8 * 1024 * 1024 + 1)
+    if (len(pk5_raw) > 8 * 1024 * 1024 or type(metadata.get('bytes')) is not int
+            or metadata['bytes'] != len(pk5_raw)
+            or metadata.get('raw_sha256') != sha256(pk5_raw).hexdigest()):
+        raise ValueError('PK5 capture raw size or SHA-256 mismatch')
+    if metadata.get('delivery_date') != day.isoformat():
+        raise ValueError('PK5 capture delivery differs from requested day')
+    capture = dict(
+        raw=pk5_raw, source_url=metadata['url'],
+        retrieved_at=parse_capture_timestamp(metadata['retrieved_at_utc']),
+        retrieval_completed_at=parse_capture_timestamp(metadata['retrieval_completed_at_utc']),
+    )
+    # Always validate publication/retrieval/cutoff, including legacy metadata.
+    snapshot = prepare_pk5_snapshot(day=day.isoformat(), **capture)
+    if 'snapshot_id' in metadata and metadata['snapshot_id'] != snapshot['id']:
+        raise ValueError('PK5 capture snapshot_id mismatch')
+    return capture
+
+
 def load_history_day(actual_manifest, pk5_capture_paths):
     """Read one explicit local source package using the CLI evidence checks."""
-    import gzip
     import json
     from pathlib import Path
     from shadow_ingest_manifest import (
         MAX_MANIFEST_BYTES, MAX_REFERENCE_BYTES, _inside, _unique_manifest_object, load_batches,
     )
-    from shadow_pk5_snapshot import _unique_object, parse_capture_timestamp
 
     actual_manifest = Path(actual_manifest)
     pk5_capture_paths = [Path(path) for path in pk5_capture_paths]
@@ -158,43 +207,8 @@ def load_history_day(actual_manifest, pk5_capture_paths):
     if len(batches) != 1:
         raise ValueError('Exactly one Fixing I delivery day required')
     batch, actual_raw = batches[0]
-    captures = []
-    for capture_path in pk5_capture_paths:
-        with capture_path.open('rb') as stream:
-            metadata_bytes = stream.read(MAX_MANIFEST_BYTES + 1)
-        if len(metadata_bytes) > MAX_MANIFEST_BYTES:
-            raise ValueError('PK5 capture metadata exceeds 1 MiB')
-        metadata = json.loads(metadata_bytes, object_pairs_hook=_unique_object)
-        if not isinstance(metadata, dict):
-            raise ValueError('PK5 capture metadata must be an object')
-        filename = metadata.get('raw_file')
-        if (not isinstance(filename, str) or Path(filename).name != filename
-                or not filename.endswith('.json.gz')):
-            raise ValueError('PK5 capture requires a local JSON gzip filename')
-        if (type(metadata.get('http_status')) is not int or metadata['http_status'] != 200
-                or metadata.get('response_url') != metadata.get('url')
-                or type(metadata.get('rows')) is not int or metadata['rows'] != 24):
-            raise ValueError('PK5 capture HTTP/source/row metadata mismatch')
-        with gzip.open(_inside(capture_path.parent, filename), 'rb') as stream:
-            pk5_raw = stream.read(8 * 1024 * 1024 + 1)
-        if (len(pk5_raw) > 8 * 1024 * 1024 or type(metadata.get('bytes')) is not int
-                or metadata['bytes'] != len(pk5_raw)
-                or metadata.get('raw_sha256') != sha256(pk5_raw).hexdigest()):
-            raise ValueError('PK5 capture raw size or SHA-256 mismatch')
-        if metadata.get('delivery_date') != batch.delivery_date.isoformat():
-            raise ValueError('PK5 capture delivery differs from Fixing I')
-        capture = dict(
-            raw=pk5_raw, source_url=metadata['url'],
-            retrieved_at=parse_capture_timestamp(metadata['retrieved_at_utc']),
-            retrieval_completed_at=parse_capture_timestamp(metadata['retrieval_completed_at_utc']),
-        )
-        # Legacy captures omit this optional field; a declared identity must
-        # agree with the original bytes and exact retrieval start/end.
-        if 'snapshot_id' in metadata:
-            snapshot = prepare_pk5_snapshot(day=batch.delivery_date.isoformat(), **capture)
-            if metadata['snapshot_id'] != snapshot['id']:
-                raise ValueError('PK5 capture snapshot_id mismatch')
-        captures.append(capture)
+    captures = [load_pk5_capture(path, day=batch.delivery_date)
+                for path in pk5_capture_paths]
     with actual_manifest.open('rb') as stream:
         manifest_bytes = stream.read(MAX_MANIFEST_BYTES + 1)
     if len(manifest_bytes) > MAX_MANIFEST_BYTES:

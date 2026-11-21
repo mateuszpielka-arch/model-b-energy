@@ -3226,3 +3226,28 @@ niezmienione konserwatywne retrieved_at i koniec odczytu, dokładne zapisane raw
 Lokalnie 8/8 testów narzędzia przeszło. Nie wykonano nowego pobrania live;
 nie dodano nowej doby treningu ani prognozy. Produkcja, FROZEN, archiwa,
 harmonogramy i PR #2 pozostają bez zmian.
+
+
+## Checkpoint 2026-11-21 — odczyt dowodów PK5 niezależnie od obecności Fix1
+
+Wydzielono load_pk5_capture(path, day=...) ze wspólnego loadera historii.
+Pozwala odczytać i zweryfikować zachowane PK5 przed pojawieniem się cen Fix1
+tej samej doby. load_history_day korzysta z tej samej funkcji; zachowano
+kontrakt paczki wejściowej i reguły eksportu po połączeniu źródeł.
+
+Loader wymaga jawnej daty, lokalnej ścieżki, ograniczonego rozmiaru metadata/raw,
+HTTP 200, zgodnego URL, 24 wierszy, daty, liczby bajtów, hash i tożsamości
+snapshot, jeśli zadeklarowano ją w metadata. Walidacja oryginalnego JSON,
+publikacji, początku/końca pobrania i własnego cutoff D−1 09:50 odbywa się
+zawsze, również dla starszych metadata bez snapshot_id. Nie ma odczytu
+sieci, bazy, sekretów ani zapisu. Spójność dowodów nie uwierzytelnia niezależnie
+historycznych czasów zadeklarowanych przez dostawcę paczki.
+
+Trzy nowe testy przeszły lokalnie (3/3). Cztery rzeczywiste obserwacje dostawy
+22.11 przechodzą niezależnie od manifestu Fix1; obie kolejności wybierają
+całe czwarte pobranie. Testy starszego formatu bez ID odrzucają pobranie po
+cutoff i zmieniony hash. Błędne ID, data, status HTTP, URL, liczba wierszy,
+rozmiar i wyjście ścieżki poza katalog są odrzucane bez zmian plików.
+Błędny typ daty jest odrzucany przed otwarciem pliku. Nie dodano Fix1 22.11,
+nowych obserwacji live, doby treningowej ani rankingu. Produkcja, FROZEN,
+istniejące archiwa, harmonogramy i PR #2 bez zmian.
