@@ -29,6 +29,39 @@ def source(name):
 class November22Pk5Tests(unittest.TestCase):
 
 
+
+    def test_fourth_real_capture_is_selected_in_all_24_orders(self):
+        snapshots = [source(name)[3] for name in (
+            'pse_pk5_delivery_2026-11-22', 'pse_pk5_delivery_2026-11-22_second',
+            'pse_pk5_delivery_2026-11-22_third',
+        )]
+        metadata, raw, capture, latest = source('pse_pk5_delivery_2026-11-22_fourth')
+        snapshots.append(latest)
+        before = deepcopy(snapshots)
+        payload = json.loads(raw, parse_float=Decimal)['value']
+        published = datetime(2026, 11, 21, 7, 2, 42, 387000, tzinfo=timezone.utc)
+        self.assertEqual(Counter(row['publication_ts'] for row in latest['rows']), {published: 24})
+        self.assertEqual((len(raw), sha256(raw).hexdigest()),
+                         (metadata['bytes'], metadata['raw_sha256']))
+        self.assertEqual(latest['id'], metadata['snapshot_id'])
+        self.assertEqual((metadata['http_status'], metadata['rows']), (200, 24))
+        previous = dict(select_snapshot(date(2026, 11, 22), snapshots[:3]).rows)
+        for candidates in permutations(snapshots):
+            selected = select_snapshot(date(2026, 11, 22), candidates)
+            self.assertEqual(selected.snapshot_id, metadata['snapshot_id'])
+            self.assertEqual(selected.latest_publication_ts_utc, published)
+            self.assertLessEqual(published, capture['retrieved_at'])
+            self.assertLess(capture['retrieval_completed_at'], selected.cutoff_utc)
+            self.assertEqual([value for _, value in selected.rows],
+                             [row['fcst_gen_unit_stor_prov'] for row in payload])
+            self.assertEqual(sum(previous[period] != value for period, value in selected.rows), 24)
+            self.assertEqual((selected.rows[0][1], selected.rows[-1][1]),
+                             (Decimal('6326.00000'), Decimal('9744.00000')))
+            self.assertCountEqual(selected.rejected, [
+                (snapshot['id'], 'SUPERSEDED_JWCD_PUBLICATIONS') for snapshot in snapshots[:3]
+            ])
+        self.assertEqual(snapshots, before)
+
     def test_real_third_capture_wins_all_six_orders_without_blending_revisions(self):
         snapshots = [source(name)[3] for name in (
             'pse_pk5_delivery_2026-11-22', 'pse_pk5_delivery_2026-11-22_second',

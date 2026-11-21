@@ -3187,3 +3187,24 @@ wybudzenie przekroczy cutoff, bez plików dowodów. Dotychczasowe testy nadal
 potwierdzają odrzucenie niepełnego body/JSON/URL bez retry oraz ochronę istniejących
 plików. Lokalnie 6/6 testów przeszło. Nie wykonano nowego pobrania sieciowego,
 nie wydano prognozy i nie zmieniono produkcji, FROZEN ani archiwów.
+
+
+## Checkpoint 2026-11-21 — rzeczywiste pobranie PK5 nowym narzędziem z retry
+
+Uruchomiono aktualne capture_pk5_validation po dodaniu ograniczonych ponowień.
+Publiczny PSE zwrócił HTTP 200 i 24 okresy dostawy 22.11: publikacja 21.11
+08:02:42.387 Europe/Warsaw, początek pobrania 08:14:34.192048,
+koniec 08:14:41.928655, przed cutoff 09:50. Zapisano osobno JSON gzip i
+capture.json w pse_pk5_delivery_2026-11-22_fourth. To poprawny przebieg live,
+nie dowód wystąpienia przejściowego błędu sieciowego podczas tego pobrania.
+JSON: 18621 bajtów; SHA-256
+a34eb8ec73462006cc7c43e509de77c685605b3c4ea82307cb06df466ebe398f.
+H01 JWCD=6326.00000, H24=9744.00000 MW. Wszystkie 24 wartości różnią się od
+poprzedniego pobrania o 06:18.
+
+Nowa regresja sprawdza hash/rozmiar/ID, 24 publikacje i wartości surowego JSON,
+chronologię i cutoff oraz wybór całego czwartego pobrania we wszystkich 24
+kolejnościach czterech zachowanych rzeczywistych obserwacji. Wszystkie starsze
+są SUPERSEDED_JWCD_PUBLICATIONS; brak mieszania okresów i zmian wejścia.
+Lokalnie 5/5 testów PK5 22.11 przeszło. Nie dodano Fix1 22.11, doby treningu,
+prognozy ani rankingu. Starsze dowody, produkcja, FROZEN i harmonogramy bez zmian.
