@@ -3289,3 +3289,29 @@ okresów i pusty ranking dla tej jedno-dobowej próbki. Nie wydano prognozy
 ani nie zmieniono produkcji, FROZEN, starszych archiwów czy PR #2.
 Historyczny zamrożony raport korpusu pozostawiono bez zmian; nowa paczka
 może być jawnie dodana w kolejnym audycie.
+
+
+## Checkpoint 2026-11-21 — atomowość i kwarantanna rzeczywistej paczki Fix1 22.11
+
+Dodano tests/test_tge_november22_archive.py dla zachowanego oryginalnego HTML
+i referencji dostawy 22.11. Zmiana dotyczy wyłącznie testów; adapter archiwum,
+produkcja, FROZEN, konfiguracja Railway i istniejące dowody pozostają bez zmian.
+
+Pierwszy test wymusza CheckViolation dokładnie na ostatnim okresie UTC
+(22.11 22:00Z) w izolowanej tabeli cen. Sprawdza brak cen, paczek i kwarantanny
+po błędzie transakcji. Po usunięciu testowego ograniczenia ponowienie ma dać
+INSERT całych 24 okresów z oryginalnym HTML/hash/czasem pobrania, a następne
+wywołanie REPLAY z identycznym stanem wszystkich trzech tabel.
+
+Drugi test tworzy wyłącznie w pamięci jawnie syntetyczną zmianę H01
+356.76 → 357.76 wraz z poprawnym raw i hashem referencji. Nie jest to
+oficjalna korekta TGE i nie zmienia fixture. Sprawdza QUARANTINE, zachowanie
+oryginalnych 24 cen i starej paczki, zapis dowodu konfliktu oraz trwałość
+kwarantanny i identyczny stan przy ponowieniach obu paczek.
+
+Lokalnie zweryfikowano przygotowanie rzeczywistej paczki i syntetycznej kopii:
+24 okresy, różnica +1 tylko w H01, pozostałe 23 identyczne. PostgreSQL nie jest
+dostępny lokalnie; dwa testy SQL zostały tam jawnie pominięte, a ich wykonanie
+należy do istniejącego CI PostgreSQL 16 z osobną bazą fix1_shadow_test na loopback.
+Nie wykorzystano sekretów ani bazy produkcyjnej. Nie dodano prognozy, score,
+rankingu, pobrania sieciowego ani zadania automatycznego.
