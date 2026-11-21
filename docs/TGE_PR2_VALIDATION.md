@@ -3342,3 +3342,29 @@ Lokalny test czterech metryk przeszedł (1/1); SQL lokalnie jawnie pominięto
 z powodu braku PostgreSQL, do wykonania w istniejącym CI PostgreSQL 16.
 Nie zmieniono adapterów, produkcji JWCD 90D, FROZEN, Railway, archiwów,
 PR #2 ani harmonogramów; nie dodano modeli lub pobrania sieciowego.
+
+
+## Checkpoint 2026-11-21 — odtwarzalny audyt trzech rzeczywistych dób PK5/Fix1
+
+Zapisano docs/validation/paired_source_audit_2026-11-22.json z jawną listą
+paczek i source_commit 82b8d19823d9156433f2366df461d9c361eedbc1.
+Zakres: dostawy 20/21/22.11, 72 unikalne okresy UTC, trzy kompletne pary,
+trzy doby model_ready w samym audycie źródeł. Dla 20.11 użyto PK5 second,
+dla 21.11 third, dla 22.11 porównano wszystkie cztery obserwacje i wybrano
+całe fourth. Raport zachowuje hashe Fix1, referencje, czasy, cutoff,
+wybrane ID oraz odrzucone rewizje PK5. Nie zastępuje wcześniejszych raportów.
+
+Read-only walk-forward wykonano jawnie na cel 22.11 z oceną w chwili
+pobrania Fix1: 21.11 11:19:39.063666 Europe/Warsaw. Wcześniejsze dwie doby
+pozostają w historii treningowej; ich Fix1 jest dostępny przed cutoff celu.
+Brakuje 28/58/88 wcześniejszych dni dla okien 30/60/90D; brak dopuszczonego
+dnia porównania, wspólnych okresów i rankingu. model_ready oznacza poprawność
+wierszy, nie gotowość okien treningu. Nie dopisano cen ani brakujących dat.
+
+Dwa nowe testy przeszły lokalnie (2/2). Pełny zapisany raport odtwarza się
+we wszystkich sześciu kolejnościach trzech paczek; hashe wszystkich plików
+źródłowych pozostają identyczne. CLI i API dają identyczny pełny wynik
+dla obu kolejności wejścia, normalizując czas Europe/Warsaw do UTC.
+Zakres celu jest jednodniowy, ale eksport nadal zawiera całe 72 wiersze.
+Nie odczytywano PostgreSQL ani sieci; produkcja JWCD 90D, FROZEN,
+starsze archiwa, PR #2 i harmonogramy pozostają bez zmian.

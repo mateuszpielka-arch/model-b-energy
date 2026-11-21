@@ -1,0 +1,619 @@
+{
+  "source_commit": "82b8d19823d9156433f2366df461d9c361eedbc1",
+  "scope": "Only explicitly listed retained source packages; no database or network reads",
+  "evaluated_at_utc": "2026-11-21T10:19:39.063666+00:00",
+  "source_groups": [
+    [
+      "tests/fixtures/tge_delivery_2026-11-20/manifest.json",
+      "tests/fixtures/pse_pk5_delivery_2026-11-20_second/capture.json"
+    ],
+    [
+      "tests/fixtures/tge_delivery_2026-11-21/manifest.json",
+      "tests/fixtures/pse_pk5_delivery_2026-11-21_third/capture.json"
+    ],
+    [
+      "tests/fixtures/tge_delivery_2026-11-22/manifest.json",
+      "tests/fixtures/pse_pk5_delivery_2026-11-22/capture.json",
+      "tests/fixtures/pse_pk5_delivery_2026-11-22_second/capture.json",
+      "tests/fixtures/pse_pk5_delivery_2026-11-22_third/capture.json",
+      "tests/fixtures/pse_pk5_delivery_2026-11-22_fourth/capture.json"
+    ]
+  ],
+  "report": {
+    "periods": 72,
+    "days": [
+      {
+        "delivery_date": "2026-11-20",
+        "periods": 24,
+        "cutoff_utc": "2026-11-19T08:50:00+00:00",
+        "selected_snapshot_id": "pk5-capture-sha256:c68cee796a16be93165c5c2f5961cca3184f2099e456c835676de6fe4aa5fe44",
+        "pk5_captures": [
+          {
+            "snapshot_id": "pk5-capture-sha256:c68cee796a16be93165c5c2f5961cca3184f2099e456c835676de6fe4aa5fe44",
+            "raw_sha256": "dc2a104bc21897d58fff74b60cf7f5e59546b911ec3b75fbacc13762289aab3b",
+            "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-20%27",
+            "retrieved_at_utc": "2026-11-19T08:15:38.199847+00:00",
+            "retrieval_completed_at_utc": "2026-11-19T08:15:43.960574+00:00",
+            "latest_publication_ts_utc": "2026-11-19T08:12:42.315000+00:00",
+            "periods": 24,
+            "selected": true
+          }
+        ],
+        "rejected_captures": [],
+        "fix1_evidence": {
+          "raw_sha256": "6ab99a8520bc0414f84c6be6f3a6fc71536b28e4640d680a26ddc231b34f3b66",
+          "reference_sha256": "e336b1d4a87d6385d62e97c0e1478fb837a33efbe81e7128753a6008e00ad72e",
+          "parser_version": "rdn-layout-shadow-v2",
+          "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=19-11-2026",
+          "retrieved_at_utc": "2026-11-19T10:17:54.057511+00:00",
+          "actual_version": "2026-11-20:6ab99a8520bc0414f84c6be6f3a6fc71536b28e4640d680a26ddc231b34f3b66:e336b1d4a87d6385d62e97c0e1478fb837a33efbe81e7128753a6008e00ad72e:rdn-layout-shadow-v2"
+        }
+      },
+      {
+        "delivery_date": "2026-11-21",
+        "periods": 24,
+        "cutoff_utc": "2026-11-20T08:50:00+00:00",
+        "selected_snapshot_id": "pk5-capture-sha256:7cf8c8c1ef4c8ba36dd9c010e277a2059d6fff675b9d984f929a7021ae4d8969",
+        "pk5_captures": [
+          {
+            "snapshot_id": "pk5-capture-sha256:7cf8c8c1ef4c8ba36dd9c010e277a2059d6fff675b9d984f929a7021ae4d8969",
+            "raw_sha256": "4f0202160c8035e2b7d43095cf807a20bfa357ae8ad4965a466eab607209cb5a",
+            "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-21%27",
+            "retrieved_at_utc": "2026-11-20T08:13:37.534340+00:00",
+            "retrieval_completed_at_utc": "2026-11-20T08:13:47.559972+00:00",
+            "latest_publication_ts_utc": "2026-11-20T08:12:56.224000+00:00",
+            "periods": 24,
+            "selected": true
+          }
+        ],
+        "rejected_captures": [],
+        "fix1_evidence": {
+          "raw_sha256": "a2eb6068abbca961fcba56f17a9cca5f183b1d890fd0066aa7831e2109faa9e5",
+          "reference_sha256": "5c19435fcfe1e883b16b860bf2beec71a3a17f06e5cb9833595ade98097fb708",
+          "parser_version": "rdn-layout-shadow-v2",
+          "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=20-11-2026",
+          "retrieved_at_utc": "2026-11-20T10:14:16.158611+00:00",
+          "actual_version": "2026-11-21:a2eb6068abbca961fcba56f17a9cca5f183b1d890fd0066aa7831e2109faa9e5:5c19435fcfe1e883b16b860bf2beec71a3a17f06e5cb9833595ade98097fb708:rdn-layout-shadow-v2"
+        }
+      },
+      {
+        "delivery_date": "2026-11-22",
+        "periods": 24,
+        "cutoff_utc": "2026-11-21T08:50:00+00:00",
+        "selected_snapshot_id": "pk5-capture-sha256:87a12da1695f4575dc28a369da9283691a4673fab7a702ac681ac23bf958158d",
+        "pk5_captures": [
+          {
+            "snapshot_id": "pk5-capture-sha256:54176dabc93d9cb165c8c31d2f767b27c2609faa7f475029e100104e9dac8dc8",
+            "raw_sha256": "a73dd820bfd6f81b077c9f344ba16c2a47a13bab66c0f8477131df3dae33898a",
+            "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-22%27",
+            "retrieved_at_utc": "2026-11-21T01:14:07.280190+00:00",
+            "retrieval_completed_at_utc": "2026-11-21T01:14:14.746482+00:00",
+            "latest_publication_ts_utc": "2026-11-21T01:12:31.438000+00:00",
+            "periods": 24,
+            "selected": false
+          },
+          {
+            "snapshot_id": "pk5-capture-sha256:555145722b8862a1c42dcecf387a208c74d8b068950542d9c833a6789000e044",
+            "raw_sha256": "ab47fe9dd17f9f13df01963097c616227f305f3578de291f8793722633ac8892",
+            "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-22%27",
+            "retrieved_at_utc": "2026-11-20T20:20:32.063933+00:00",
+            "retrieval_completed_at_utc": "2026-11-20T20:20:40.007491+00:00",
+            "latest_publication_ts_utc": "2026-11-20T20:02:37.114000+00:00",
+            "periods": 24,
+            "selected": false
+          },
+          {
+            "snapshot_id": "pk5-capture-sha256:87a12da1695f4575dc28a369da9283691a4673fab7a702ac681ac23bf958158d",
+            "raw_sha256": "a34eb8ec73462006cc7c43e509de77c685605b3c4ea82307cb06df466ebe398f",
+            "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-22%27",
+            "retrieved_at_utc": "2026-11-21T07:14:34.192048+00:00",
+            "retrieval_completed_at_utc": "2026-11-21T07:14:41.928655+00:00",
+            "latest_publication_ts_utc": "2026-11-21T07:02:42.387000+00:00",
+            "periods": 24,
+            "selected": true
+          },
+          {
+            "snapshot_id": "pk5-capture-sha256:d7294947e12dca830fee4386b9c22033b7f24365bfa60e5cc199c5efcd03c35e",
+            "raw_sha256": "368fbb5c84305d6b7e4da4739b2b65ee68496658ec84633779bc5a90b8c05bdc",
+            "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-22%27",
+            "retrieved_at_utc": "2026-11-21T05:18:25.318220+00:00",
+            "retrieval_completed_at_utc": "2026-11-21T05:18:32.987931+00:00",
+            "latest_publication_ts_utc": "2026-11-21T05:13:06.353000+00:00",
+            "periods": 24,
+            "selected": false
+          }
+        ],
+        "rejected_captures": [
+          {
+            "snapshot_id": "pk5-capture-sha256:54176dabc93d9cb165c8c31d2f767b27c2609faa7f475029e100104e9dac8dc8",
+            "reason": "SUPERSEDED_JWCD_PUBLICATIONS"
+          },
+          {
+            "snapshot_id": "pk5-capture-sha256:555145722b8862a1c42dcecf387a208c74d8b068950542d9c833a6789000e044",
+            "reason": "SUPERSEDED_JWCD_PUBLICATIONS"
+          },
+          {
+            "snapshot_id": "pk5-capture-sha256:d7294947e12dca830fee4386b9c22033b7f24365bfa60e5cc199c5efcd03c35e",
+            "reason": "SUPERSEDED_JWCD_PUBLICATIONS"
+          }
+        ],
+        "fix1_evidence": {
+          "raw_sha256": "6435b1a6171a4c65bf04a3fa6aaf944e5c492651869d6146c645a2703a63291b",
+          "reference_sha256": "f8fa69544585150148c84cf9114afb16faf5246c6062ac424f91a5ee7c1b8847",
+          "parser_version": "rdn-layout-shadow-v2",
+          "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=21-11-2026",
+          "retrieved_at_utc": "2026-11-21T10:19:39.063666+00:00",
+          "actual_version": "2026-11-22:6435b1a6171a4c65bf04a3fa6aaf944e5c492651869d6146c645a2703a63291b:f8fa69544585150148c84cf9114afb16faf5246c6062ac424f91a5ee7c1b8847:rdn-layout-shadow-v2"
+        }
+      }
+    ],
+    "history_audit": {
+      "days": [
+        {
+          "day": "2026-11-20",
+          "expected_periods": 24,
+          "rows": 24,
+          "unique_periods": 24,
+          "complete_periods": true,
+          "missing_periods_utc": [],
+          "unexpected_periods_utc": [],
+          "duplicate_periods_utc": [],
+          "observed_periods_without_valid_fix1_utc": [],
+          "observed_periods_without_valid_jwcd_utc": [],
+          "observed_periods_with_conflicting_fix1_rows_utc": [],
+          "observed_periods_with_conflicting_jwcd_rows_utc": [],
+          "observed_periods_without_timely_jwcd_timestamps_utc": [],
+          "observed_periods_without_post_cutoff_fix1_timestamp_utc": [],
+          "conflicting_fix1_periods_utc": [],
+          "complete_pairs": true,
+          "valid_fix1_rows": 24,
+          "valid_jwcd_rows": 24,
+          "actual_after_issuance_rows": 24,
+          "actual_availability_invalid_timestamp_rows": 0,
+          "actual_availability_invalid_timestamp_periods_utc": [],
+          "actual_availability_at_or_before_cutoff_rows": 0,
+          "actual_availability_at_or_before_cutoff_periods_utc": [],
+          "availability_proven_rows": 24,
+          "verified_actual_rows": 24,
+          "availability_missing_timestamp_rows": 0,
+          "missing_timestamp_rows_by_field": {
+            "publication_ts": 0,
+            "retrieved_at": 0,
+            "retrieval_completed_at": 0,
+            "actual_available_at": 0
+          },
+          "missing_timestamp_periods_utc_by_field": {
+            "publication_ts": [],
+            "retrieved_at": [],
+            "retrieval_completed_at": [],
+            "actual_available_at": []
+          },
+          "availability_invalid_timestamp_rows": 0,
+          "invalid_jwcd_timestamp_rows_by_field": {
+            "publication_ts": 0,
+            "retrieved_at": 0,
+            "retrieval_completed_at": 0
+          },
+          "invalid_jwcd_timestamp_periods_utc_by_field": {
+            "publication_ts": [],
+            "retrieved_at": [],
+            "retrieval_completed_at": []
+          },
+          "retrieval_start_after_completion_rows": 0,
+          "publication_after_completion_rows": 0,
+          "retrieval_start_after_completion_periods_utc": [],
+          "publication_after_completion_periods_utc": [],
+          "availability_after_cutoff_rows": 0,
+          "after_cutoff_rows_by_field": {
+            "publication_ts": 0,
+            "retrieved_at": 0,
+            "retrieval_completed_at": 0
+          },
+          "after_cutoff_periods_utc_by_field": {
+            "publication_ts": [],
+            "retrieved_at": [],
+            "retrieval_completed_at": []
+          },
+          "model_ready": true,
+          "issues": []
+        },
+        {
+          "day": "2026-11-21",
+          "expected_periods": 24,
+          "rows": 24,
+          "unique_periods": 24,
+          "complete_periods": true,
+          "missing_periods_utc": [],
+          "unexpected_periods_utc": [],
+          "duplicate_periods_utc": [],
+          "observed_periods_without_valid_fix1_utc": [],
+          "observed_periods_without_valid_jwcd_utc": [],
+          "observed_periods_with_conflicting_fix1_rows_utc": [],
+          "observed_periods_with_conflicting_jwcd_rows_utc": [],
+          "observed_periods_without_timely_jwcd_timestamps_utc": [],
+          "observed_periods_without_post_cutoff_fix1_timestamp_utc": [],
+          "conflicting_fix1_periods_utc": [],
+          "complete_pairs": true,
+          "valid_fix1_rows": 24,
+          "valid_jwcd_rows": 24,
+          "actual_after_issuance_rows": 24,
+          "actual_availability_invalid_timestamp_rows": 0,
+          "actual_availability_invalid_timestamp_periods_utc": [],
+          "actual_availability_at_or_before_cutoff_rows": 0,
+          "actual_availability_at_or_before_cutoff_periods_utc": [],
+          "availability_proven_rows": 24,
+          "verified_actual_rows": 24,
+          "availability_missing_timestamp_rows": 0,
+          "missing_timestamp_rows_by_field": {
+            "publication_ts": 0,
+            "retrieved_at": 0,
+            "retrieval_completed_at": 0,
+            "actual_available_at": 0
+          },
+          "missing_timestamp_periods_utc_by_field": {
+            "publication_ts": [],
+            "retrieved_at": [],
+            "retrieval_completed_at": [],
+            "actual_available_at": []
+          },
+          "availability_invalid_timestamp_rows": 0,
+          "invalid_jwcd_timestamp_rows_by_field": {
+            "publication_ts": 0,
+            "retrieved_at": 0,
+            "retrieval_completed_at": 0
+          },
+          "invalid_jwcd_timestamp_periods_utc_by_field": {
+            "publication_ts": [],
+            "retrieved_at": [],
+            "retrieval_completed_at": []
+          },
+          "retrieval_start_after_completion_rows": 0,
+          "publication_after_completion_rows": 0,
+          "retrieval_start_after_completion_periods_utc": [],
+          "publication_after_completion_periods_utc": [],
+          "availability_after_cutoff_rows": 0,
+          "after_cutoff_rows_by_field": {
+            "publication_ts": 0,
+            "retrieved_at": 0,
+            "retrieval_completed_at": 0
+          },
+          "after_cutoff_periods_utc_by_field": {
+            "publication_ts": [],
+            "retrieved_at": [],
+            "retrieval_completed_at": []
+          },
+          "model_ready": true,
+          "issues": []
+        },
+        {
+          "day": "2026-11-22",
+          "expected_periods": 24,
+          "rows": 24,
+          "unique_periods": 24,
+          "complete_periods": true,
+          "missing_periods_utc": [],
+          "unexpected_periods_utc": [],
+          "duplicate_periods_utc": [],
+          "observed_periods_without_valid_fix1_utc": [],
+          "observed_periods_without_valid_jwcd_utc": [],
+          "observed_periods_with_conflicting_fix1_rows_utc": [],
+          "observed_periods_with_conflicting_jwcd_rows_utc": [],
+          "observed_periods_without_timely_jwcd_timestamps_utc": [],
+          "observed_periods_without_post_cutoff_fix1_timestamp_utc": [],
+          "conflicting_fix1_periods_utc": [],
+          "complete_pairs": true,
+          "valid_fix1_rows": 24,
+          "valid_jwcd_rows": 24,
+          "actual_after_issuance_rows": 24,
+          "actual_availability_invalid_timestamp_rows": 0,
+          "actual_availability_invalid_timestamp_periods_utc": [],
+          "actual_availability_at_or_before_cutoff_rows": 0,
+          "actual_availability_at_or_before_cutoff_periods_utc": [],
+          "availability_proven_rows": 24,
+          "verified_actual_rows": 24,
+          "availability_missing_timestamp_rows": 0,
+          "missing_timestamp_rows_by_field": {
+            "publication_ts": 0,
+            "retrieved_at": 0,
+            "retrieval_completed_at": 0,
+            "actual_available_at": 0
+          },
+          "missing_timestamp_periods_utc_by_field": {
+            "publication_ts": [],
+            "retrieved_at": [],
+            "retrieval_completed_at": [],
+            "actual_available_at": []
+          },
+          "availability_invalid_timestamp_rows": 0,
+          "invalid_jwcd_timestamp_rows_by_field": {
+            "publication_ts": 0,
+            "retrieved_at": 0,
+            "retrieval_completed_at": 0
+          },
+          "invalid_jwcd_timestamp_periods_utc_by_field": {
+            "publication_ts": [],
+            "retrieved_at": [],
+            "retrieval_completed_at": []
+          },
+          "retrieval_start_after_completion_rows": 0,
+          "publication_after_completion_rows": 0,
+          "retrieval_start_after_completion_periods_utc": [],
+          "publication_after_completion_periods_utc": [],
+          "availability_after_cutoff_rows": 0,
+          "after_cutoff_rows_by_field": {
+            "publication_ts": 0,
+            "retrieved_at": 0,
+            "retrieval_completed_at": 0
+          },
+          "after_cutoff_periods_utc_by_field": {
+            "publication_ts": [],
+            "retrieved_at": [],
+            "retrieval_completed_at": []
+          },
+          "model_ready": true,
+          "issues": []
+        }
+      ],
+      "invalid_date_rows": 0,
+      "missing_timestamp_rows_by_field": {
+        "publication_ts": 0,
+        "retrieved_at": 0,
+        "retrieval_completed_at": 0,
+        "actual_available_at": 0
+      },
+      "after_cutoff_rows_by_field": {
+        "publication_ts": 0,
+        "retrieved_at": 0,
+        "retrieval_completed_at": 0
+      },
+      "invalid_jwcd_timestamp_rows_by_field": {
+        "publication_ts": 0,
+        "retrieved_at": 0,
+        "retrieval_completed_at": 0
+      },
+      "retrieval_start_after_completion_rows": 0,
+      "publication_after_completion_rows": 0,
+      "actual_availability_invalid_timestamp_rows": 0,
+      "actual_availability_at_or_before_cutoff_rows": 0,
+      "complete_pair_days": 3,
+      "model_ready_days": 3,
+      "longest_model_ready_run": 3,
+      "first_comparison_candidate": {
+        "30D": null,
+        "60D": null,
+        "90D": null
+      },
+      "comparison_candidates": {
+        "30D": [],
+        "60D": [],
+        "90D": []
+      },
+      "comparison_blocked_by_late_fix1": {
+        "30D": {},
+        "60D": {},
+        "90D": {}
+      },
+      "missing_days_for_first_comparison": {
+        "30D": 28,
+        "60D": 58,
+        "90D": 88
+      }
+    },
+    "walkforward": {
+      "skipped_days_by_stage": {
+        "ols30": [
+          "2026-11-22"
+        ]
+      },
+      "simulation": true,
+      "evaluated_at": "2026-11-21T10:19:39.063666+00:00",
+      "requested_days": 1,
+      "common_days": 0,
+      "requested_periods": 24,
+      "excluded_periods": 24,
+      "coverage_by_hours": {
+        "23": {
+          "requested_days": 0,
+          "common_days": 0,
+          "excluded_days": 0,
+          "requested_periods": 0,
+          "common_periods": 0,
+          "excluded_periods": 0
+        },
+        "24": {
+          "requested_days": 1,
+          "common_days": 0,
+          "excluded_days": 1,
+          "requested_periods": 24,
+          "common_periods": 0,
+          "excluded_periods": 24
+        },
+        "25": {
+          "requested_days": 0,
+          "common_days": 0,
+          "excluded_days": 0,
+          "requested_periods": 0,
+          "common_periods": 0,
+          "excluded_periods": 0
+        }
+      },
+      "common_days_by_hours": {
+        "23": 0,
+        "24": 0,
+        "25": 0
+      },
+      "common_periods": 0,
+      "accepted": [],
+      "skipped": [
+        {
+          "day": "2026-11-22",
+          "stage": "ols30",
+          "reason": "Incomplete calendar training window: first missing day 2026-10-23",
+          "missing_training_days": [
+            "2026-10-23",
+            "2026-10-24",
+            "2026-10-25",
+            "2026-10-26",
+            "2026-10-27",
+            "2026-10-28",
+            "2026-10-29",
+            "2026-10-30",
+            "2026-10-31",
+            "2026-11-01",
+            "2026-11-02",
+            "2026-11-03",
+            "2026-11-04",
+            "2026-11-05",
+            "2026-11-06",
+            "2026-11-07",
+            "2026-11-08",
+            "2026-11-09",
+            "2026-11-10",
+            "2026-11-11",
+            "2026-11-12",
+            "2026-11-13",
+            "2026-11-14",
+            "2026-11-15",
+            "2026-11-16",
+            "2026-11-17",
+            "2026-11-18",
+            "2026-11-19"
+          ],
+          "training_days_excluded_by_csv_audit": {},
+          "training_days_absent_from_csv": [
+            "2026-10-23",
+            "2026-10-24",
+            "2026-10-25",
+            "2026-10-26",
+            "2026-10-27",
+            "2026-10-28",
+            "2026-10-29",
+            "2026-10-30",
+            "2026-10-31",
+            "2026-11-01",
+            "2026-11-02",
+            "2026-11-03",
+            "2026-11-04",
+            "2026-11-05",
+            "2026-11-06",
+            "2026-11-07",
+            "2026-11-08",
+            "2026-11-09",
+            "2026-11-10",
+            "2026-11-11",
+            "2026-11-12",
+            "2026-11-13",
+            "2026-11-14",
+            "2026-11-15",
+            "2026-11-16",
+            "2026-11-17",
+            "2026-11-18",
+            "2026-11-19"
+          ],
+          "training_csv_coverage_by_window": {
+            "30D": {
+              "absent_from_csv_days": 28,
+              "excluded_by_csv_audit_days": 0,
+              "admitted_by_csv_audit_days": 2,
+              "admitted_with_fix1_after_target_cutoff_days": 0,
+              "fix1_available_after_target_cutoff_utc_by_day": {}
+            },
+            "60D": {
+              "absent_from_csv_days": 58,
+              "excluded_by_csv_audit_days": 0,
+              "admitted_by_csv_audit_days": 2,
+              "admitted_with_fix1_after_target_cutoff_days": 0,
+              "fix1_available_after_target_cutoff_utc_by_day": {}
+            },
+            "90D": {
+              "absent_from_csv_days": 88,
+              "excluded_by_csv_audit_days": 0,
+              "admitted_by_csv_audit_days": 2,
+              "admitted_with_fix1_after_target_cutoff_days": 0,
+              "fix1_available_after_target_cutoff_utc_by_day": {}
+            }
+          }
+        }
+      ],
+      "unreadable_packets": {},
+      "ranking_metric": "mae",
+      "ranking": [],
+      "ranking_by_hours": {
+        "23": [],
+        "24": [],
+        "25": []
+      },
+      "ranking_by_day_type": {
+        "weekday": [],
+        "weekend": []
+      },
+      "ranking_by_local_hour": {},
+      "targets_excluded_by_csv_audit": {},
+      "target_from": "2026-11-22",
+      "target_to": "2026-11-22",
+      "target_missing_ranges": [],
+      "target_coverage": {
+        "calendar_days": 1,
+        "absent_from_csv_days": 0,
+        "excluded_by_csv_audit_days": 0,
+        "admitted_but_unscored_days": 1,
+        "scored_on_common_sample_days": 0
+      },
+      "observed_target_coverage_by_hours": {
+        "23": {
+          "observed_days": 0,
+          "excluded_by_csv_audit_days": 0,
+          "admitted_but_unscored_days": 0,
+          "scored_on_common_sample_days": 0
+        },
+        "24": {
+          "observed_days": 1,
+          "excluded_by_csv_audit_days": 0,
+          "admitted_but_unscored_days": 1,
+          "scored_on_common_sample_days": 0
+        },
+        "25": {
+          "observed_days": 0,
+          "excluded_by_csv_audit_days": 0,
+          "admitted_but_unscored_days": 0,
+          "scored_on_common_sample_days": 0
+        }
+      },
+      "calendar_target_coverage_by_hours": {
+        "23": {
+          "observed_days": 0,
+          "excluded_by_csv_audit_days": 0,
+          "admitted_but_unscored_days": 0,
+          "scored_on_common_sample_days": 0,
+          "calendar_days": 0,
+          "absent_from_csv_days": 0,
+          "calendar_periods": 0,
+          "scored_on_common_sample_periods": 0,
+          "unscored_periods": 0
+        },
+        "24": {
+          "observed_days": 1,
+          "excluded_by_csv_audit_days": 0,
+          "admitted_but_unscored_days": 1,
+          "scored_on_common_sample_days": 0,
+          "calendar_days": 1,
+          "absent_from_csv_days": 0,
+          "calendar_periods": 24,
+          "scored_on_common_sample_periods": 0,
+          "unscored_periods": 24
+        },
+        "25": {
+          "observed_days": 0,
+          "excluded_by_csv_audit_days": 0,
+          "admitted_but_unscored_days": 0,
+          "scored_on_common_sample_days": 0,
+          "calendar_days": 0,
+          "absent_from_csv_days": 0,
+          "calendar_periods": 0,
+          "scored_on_common_sample_periods": 0,
+          "unscored_periods": 0
+        }
+      }
+    }
+  }
+}
