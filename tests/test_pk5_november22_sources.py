@@ -1,3 +1,4 @@
+from collections import Counter
 from copy import deepcopy
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
@@ -25,6 +26,42 @@ def source(name):
 
 
 class November22Pk5Tests(unittest.TestCase):
+
+    def test_real_mixed_publication_revision_selects_one_whole_capture_in_both_orders(self):
+        _, _, _, early = source('pse_pk5_delivery_2026-11-22')
+        metadata, raw, capture, latest = source('pse_pk5_delivery_2026-11-22_second')
+        before = deepcopy((early, latest))
+        payload = json.loads(raw, parse_float=Decimal)['value']
+        expected_publications = {
+            datetime(2026, 11, 21, 1, 3, 6, 832000, tzinfo=timezone.utc): 10,
+            datetime(2026, 11, 21, 1, 12, 31, 438000, tzinfo=timezone.utc): 14,
+        }
+        self.assertEqual(Counter(row['publication_ts'] for row in latest['rows']),
+                         expected_publications)
+        self.assertEqual(
+            [row['publication_ts'] for row in latest['rows']],
+            [datetime.fromisoformat(row['publication_ts_utc']).replace(tzinfo=timezone.utc)
+             for row in payload],
+        )
+        self.assertEqual(sha256(raw).hexdigest(), metadata['raw_sha256'])
+        self.assertEqual(len(raw), metadata['bytes'])
+        self.assertEqual(latest['id'], metadata['snapshot_id'])
+        self.assertEqual((metadata['http_status'], metadata['rows']), (200, 24))
+        previous = dict(select_snapshot(date(2026, 11, 22), [early]).rows)
+        for candidates in ([early, latest], [latest, early]):
+            selected = select_snapshot(date(2026, 11, 22), candidates)
+            self.assertEqual(selected.snapshot_id, latest['id'])
+            self.assertEqual(selected.latest_publication_ts_utc, max(expected_publications))
+            self.assertLessEqual(selected.latest_publication_ts_utc, capture['retrieved_at'])
+            self.assertLess(capture['retrieval_completed_at'], selected.cutoff_utc)
+            self.assertEqual([value for _, value in selected.rows],
+                             [row['fcst_gen_unit_stor_prov'] for row in payload])
+            self.assertEqual(sum(previous[period] != value for period, value in selected.rows), 23)
+            self.assertEqual(selected.rows[0][1], Decimal('6170.00000'))
+            self.assertEqual(selected.rows[-1][1], Decimal('9472.00000'))
+            self.assertEqual(selected.rejected, ((early['id'], 'SUPERSEDED_JWCD_PUBLICATIONS'),))
+        self.assertEqual((early, latest), before)
+
     def test_real_early_weekend_capture_is_complete_and_selected_before_its_own_cutoff(self):
         metadata, raw, capture, snapshot = source('pse_pk5_delivery_2026-11-22')
         self.assertEqual((metadata['http_status'], metadata['rows'], metadata['bytes']),

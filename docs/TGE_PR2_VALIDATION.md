@@ -3055,3 +3055,27 @@ są odrzucane przed odczytem dowodów; CLI zwraca kod 2 bez częściowego stdout
 Lokalnie 5/5 testów audytu manifestów przeszło. Zakres dotyczy wyłącznie
 podanych paczek, nie zewnętrznej bazy ani całej historii projektu.
 Nie poszerzono przyjęcia źródeł DST, gotowości treningu lub produkcji.
+
+
+## Checkpoint 2026-11-21 — rzeczywisty PK5 z dwoma czasami publikacji w jednej dobie
+
+Narzędzie capture_pk5_validation pobrało kolejną obserwację dostawy 22.11:
+HTTP 200, 24 okresy, początek 21.11 o 02:14:07.280190 Europe/Warsaw,
+koniec 02:14:14.746482, przed własnym cutoff 09:50. Zachowano oryginalny JSON
+gzip i capture.json osobno w pse_pk5_delivery_2026-11-22_second.
+JSON: 18622 bajty; SHA-256
+a73dd820bfd6f81b077c9f344ba16c2a47a13bab66c0f8477131df3dae33898a.
+
+To rzeczywisty przypadek mieszanych czasów publikacji w jednym kompletnym
+pobraniu: 14 okresów opublikowano o 02:12:31.438, a 10 o 02:03:06.832
+Europe/Warsaw. Każdy okres zachowuje swój czas; metadata selekcji używa maksimum.
+W porównaniu z pobraniem 20.11 o 21:20 zmieniły się 23 wartości JWCD;
+H01=6170.00000, H24=9472.00000 MW.
+
+Nowa regresja sprawdza hash/rozmiar/ID, oba dokładne czasy i ich liczności,
+zgodność wszystkich wartości i publikacji z oryginalnym JSON. Obie kolejności
+kandydatów wybierają całe nowsze pobranie, starsze jest SUPERSEDED_JWCD_PUBLICATIONS,
+nie mieszając okresów. Publikacja i zakończenie pobrania przechodzą bramki
+chronologii/cutoff, a wejście pozostaje niezmienione. Lokalnie 3/3 testy
+PK5 22.11 przeszły. Nie dodano Fix1 22.11, sparowanej doby treningu ani prognozy.
+Starszy dowód pozostaje zachowany; produkcja i FROZEN bez zmian.
