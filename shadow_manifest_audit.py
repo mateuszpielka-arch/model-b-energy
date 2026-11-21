@@ -30,12 +30,16 @@ def audit_manifests(paths, *, start_day=None, end_day=None):
     paths = list(paths)
     if not paths:
         raise ValueError('At least one Fix1 capture manifest required')
-    # Validate every manifest before constructing any report.
-    entries = [item for path in paths for item in load_batches(path)]
+    # Validate all evidence before reporting, but retain only parsed batches.
+    # Keeping every raw HTML payload would grow with the entire corpus.
+    capture_entries = 0
     captures = {}
-    for batch, _ in entries:
-        key = (batch.identity, batch.retrieved_at, batch.source_url)
-        captures[key] = batch
+    for path in paths:
+        for batch, raw in load_batches(path):
+            capture_entries += 1
+            key = (batch.identity, batch.retrieved_at, batch.source_url)
+            captures[key] = batch
+            del raw
     grouped = defaultdict(list)
     for batch in captures.values():
         grouped[batch.delivery_date].append(batch)
@@ -72,8 +76,8 @@ def audit_manifests(paths, *, start_day=None, end_day=None):
             day_report['price_conflicts'] = details
         days.append(day_report)
     report = dict(
-        read_only=True, validated_capture_entries=len(entries), distinct_captures=len(captures),
-        duplicate_capture_entries=len(entries) - len(captures), delivery_days=len(days),
+        read_only=True, validated_capture_entries=capture_entries, distinct_captures=len(captures),
+        duplicate_capture_entries=capture_entries - len(captures), delivery_days=len(days),
         unique_delivery_periods=sum(day['periods'] for day in days),
         days_with_price_conflicts=sum(day['price_consensus'] == 'CONFLICT' for day in days),
         days=days,

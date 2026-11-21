@@ -183,6 +183,32 @@ class ManifestAuditTests(unittest.TestCase):
             self.assertNotIn('price_conflicts', day)
             self.assertEqual(report['days_with_price_conflicts'], 0)
 
+
+    def test_corrupt_raw_in_later_manifest_aborts_entire_audit_without_source_writes(self):
+        original = self.paths()[-1]
+        original_files = {path: path.read_bytes() for path in original.parent.iterdir() if path.is_file()}
+        with TemporaryDirectory() as temporary:
+            target = Path(temporary) / 'corrupt'
+            shutil.copytree(original.parent, target)
+            manifest = target / 'manifest.json'
+            entry, = json.loads(manifest.read_text())['entries']
+            raw_path = target / entry['raw_file']
+            raw = gzip.decompress(raw_path.read_bytes())
+            self.assertEqual(raw.count(b'783,16'), 1)
+            # Valid gzip and declared byte count; immutable evidence hash is wrong.
+            raw_path.write_bytes(gzip.compress(raw.replace(b'783,16', b'784,16', 1), mtime=0))
+            before = {path: path.read_bytes() for path in target.iterdir()}
+            first = self.paths()[0]
+            for paths in ([first, manifest], [manifest, first]):
+                with self.assertRaisesRegex(ValueError, 'Evidence hash mismatch'):
+                    audit_manifests(paths)
+                completed = subprocess.run(self.command(paths), capture_output=True, text=True)
+                self.assertEqual(completed.returncode, 2)
+                self.assertEqual(completed.stdout, '')
+                self.assertIn('Evidence hash mismatch', completed.stderr)
+            self.assertEqual({path: path.read_bytes() for path in target.iterdir()}, before)
+        self.assertEqual({path: path.read_bytes() for path in original_files}, original_files)
+
     def test_bad_manifest_aborts_cli_without_partial_report(self):
         with self.assertRaisesRegex(ValueError, 'At least one'):
             audit_manifests([])

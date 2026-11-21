@@ -3099,3 +3099,26 @@ referencji nadal mają CONSISTENT i zero konfliktów. Grupowanie cen używa
 wartości Decimal, a nie tekstowej reprezentacji. Lokalnie 6/6 testów audytu
 manifestów przeszło. Nie znaleziono ani nie zadeklarowano nowego konfliktu
 oficjalnych cen; zmiana dotyczy diagnostyki. Produkcja i archiwa bez zmian.
+
+
+## Checkpoint 2026-11-21 — audyt bez kumulowania raw HTML całego korpusu
+
+Audyt manifestów przetwarza teraz paczki kolejno i zachowuje tylko zweryfikowane
+ArchiveBatch oraz liczniki. Usunięto globalną listę wszystkich par batch/raw;
+surowe HTML nie są już utrzymywane przez cały audyt. load_batches nadal
+waliduje całą bieżącą paczkę, a raport powstaje dopiero po poprawnym odczycie
+wszystkich manifestów. Wyniki, deduplikacja, diagnostyka konfliktów i zakres
+kalendarza pozostają bez zmian. Nie zmieniono kodu zapisu ani PostgreSQL.
+
+Nowa regresja na kopii rzeczywistego HTML 21.11 zmienia jedną cenę, zachowując
+prawidłowy gzip i liczbę bajtów, ale pozostawiając oryginalny hash w manifeście.
+Błąd hash odrzuca całe API i CLI w obu kolejnościach z prawidłowym manifestem;
+stdout pozostaje pusty, a wszystkie źródła i wadliwa kopia są niezmienione.
+Lokalnie 7/7 testów audytu przeszło.
+
+Wykonano porównanie tracemalloc na trzech rzeczywistych manifestach 20/20-late/21.11
+powtórzonych po 10 razy: 30 argumentów, 3 odrębne dowody. Raporty starej i nowej
+wersji są dokładnie identyczne. Zaobserwowany szczyt alokacji Pythona spadł
+z 11096500 do 1777249 bajtów. To pomiar jednej lokalnej próby, nie RSS procesu
+ani gwarancja stałej pamięci: paczka bieżącego manifestu i dane wynikowe nadal
+zajmują pamięć. Produkcja, FROZEN i istniejące archiwa bez zmian.
