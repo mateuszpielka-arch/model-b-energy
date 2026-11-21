@@ -3315,3 +3315,30 @@ dostępny lokalnie; dwa testy SQL zostały tam jawnie pominięte, a ich wykonani
 należy do istniejącego CI PostgreSQL 16 z osobną bazą fix1_shadow_test na loopback.
 Nie wykorzystano sekretów ani bazy produkcyjnej. Nie dodano prognozy, score,
 rankingu, pobrania sieciowego ani zadania automatycznego.
+
+
+## Checkpoint 2026-11-21 — kontrolny scoring rzeczywistych źródeł 22.11
+
+Dodano tests/test_tge_november22_scores.py. Jawnie syntetyczny wektor JWCD/20
+korzysta wyłącznie z czwartego zachowanego PK5 dostawy 22.11, którego publikacja
+i oba czasy pobrania poprzedzają D−1 09:50 Europe/Warsaw. Nie jest to
+wytrenowany model ani wydana prognoza. Ceny rzeczywiste pochodzą z zachowanego
+HTML/CSV Fix1 22.11; ich dostępność zaczyna się od pobrania 11:19:39.063666.
+
+Niezależny rachunek Fraction łączy oryginalne etykiety PSE i CSV TGE
+bez użycia wyniku score_day. Test sprawdza wszystkie cztery metryki do 12
+miejsc dziesiętnych: MAE=195.941666666667 PLN/MWh,
+bias=-195.941666666667 PLN/MWh, MAPE=28.062222694008%,
+WAPE=31.997332761782%. Jest 24 okresów, wszystkie ceny rzeczywiste niezerowe.
+Te liczby mierzą kontrolny wektor syntetyczny, nie skuteczność OLS lub produkcji.
+
+Test integracyjny archiwizuje rzeczywistą paczkę wyłącznie w izolowanej bazie,
+odrzuca scoring mikrosekundę przed dostępnością Fix1 i wymaga pustej tabeli
+wyników. W chwili dostępności oczekuje INSERT jednego wyniku zgodnego z oracle,
+następnie REPLAY z referencją oraz bez ponownego jej dostarczenia. Sprawdza
+niezmieniony zapis wyniku, dokładne ceny archiwalne i brak kwarantanny.
+
+Lokalny test czterech metryk przeszedł (1/1); SQL lokalnie jawnie pominięto
+z powodu braku PostgreSQL, do wykonania w istniejącym CI PostgreSQL 16.
+Nie zmieniono adapterów, produkcji JWCD 90D, FROZEN, Railway, archiwów,
+PR #2 ani harmonogramów; nie dodano modeli lub pobrania sieciowego.
