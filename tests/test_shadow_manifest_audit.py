@@ -9,6 +9,7 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
+from zlib import error as ZlibError
 
 from shadow_manifest_audit import audit_manifests
 
@@ -27,6 +28,37 @@ class ManifestAuditTests(unittest.TestCase):
         return [sys.executable, str(Path(__file__).resolve().parents[1] /
                                    'shadow_manifest_audit.py'), *map(str, paths)]
 
+
+
+    def test_truncated_or_invalid_deflate_gzip_exits_two_without_partial_report(self):
+        original = self.paths()[-1]
+        files = {path: path.read_bytes() for path in original.parent.iterdir() if path.is_file()}
+        entry, = json.loads(original.read_text())['entries']
+        compressed = (original.parent / entry['raw_file']).read_bytes()
+        for damaged, error_type in (
+            (compressed[:10], EOFError),
+            (compressed[:10] + b'\\xff' * 16 + compressed[-8:], ZlibError),
+        ):
+            with self.subTest(error=error_type.__name__), TemporaryDirectory() as temporary:
+                target = Path(temporary) / 'damaged-gzip'
+                shutil.copytree(original.parent, target)
+                manifest = target / 'manifest.json'
+                (target / entry['raw_file']).write_bytes(damaged)
+                before = {path: path.read_bytes() for path in target.iterdir()}
+                for paths in ([original, manifest], [manifest, original]):
+                    with self.assertRaisesRegex(ValueError, 'Invalid gzip HTML evidence') as failure:
+                        audit_manifests(paths)
+                    self.assertIsInstance(failure.exception.__cause__, error_type)
+                    completed = subprocess.run(
+                        self.command(paths) + ['--fail-on-conflict'],
+                        capture_output=True, text=True,
+                    )
+                    self.assertEqual(completed.returncode, 2)
+                    self.assertEqual(completed.stdout, '')
+                    self.assertIn('error:', completed.stderr)
+                    self.assertNotIn('Traceback', completed.stderr)
+                self.assertEqual({path: path.read_bytes() for path in target.iterdir()}, before)
+        self.assertEqual({path: path.read_bytes() for path in files}, files)
 
     def test_calendar_scope_reports_absent_dst_days_without_changing_capture_results(self):
         paths = self.paths()

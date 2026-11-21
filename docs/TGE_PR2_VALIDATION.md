@@ -3368,3 +3368,24 @@ dla obu kolejności wejścia, normalizując czas Europe/Warsaw do UTC.
 Zakres celu jest jednodniowy, ale eksport nadal zawiera całe 72 wiersze.
 Nie odczytywano PostgreSQL ani sieci; produkcja JWCD 90D, FROZEN,
 starsze archiwa, PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-21 — uszkodzone gzip w read-only audycie manifestów
+
+Rozszerzono testy audytu o dwa jawnie uszkodzone warianty kopii rzeczywistego
+HTML 21.11: gzip ucięty do nagłówka oraz nieprawidłowy strumień DEFLATE
+z zachowanym nagłówkiem/trailerem. To test odporności dowodów wejściowych,
+nie nowa obserwacja TGE i nie zmiana ceny w archiwum.
+
+Walidacja potwierdziła, że _read_raw_evidence już normalizuje EOFError i
+zlib.error do ValueError('Invalid gzip HTML evidence'). Nowa regresja sprawdza
+również dokładny typ wyjątku źródłowego w __cause__. Nie wprowadzono zbędnej
+zmiany kodu wykonawczego. Dla obu uszkodzeń oraz obu kolejności z prawidłowym
+manifestem CLI z --fail-on-conflict zwraca kod 2, pusty stdout i diagnostykę
+bez traceback. Nie powstaje częściowy raport, także gdy poprawna paczka
+występuje pierwsza. Wszystkie bajty oryginalnych źródeł oraz uszkodzonej
+kopii pozostają identyczne po audycie.
+
+Lokalnie 9/9 testów audytu manifestów przeszło. Zapis obejmuje wyłącznie
+test i checkpoint. Nie użyto sieci ani PostgreSQL, nie zmieniono parsera,
+archiwów, produkcji JWCD 90D, FROZEN, Railway, PR #2 ani harmonogramów.
