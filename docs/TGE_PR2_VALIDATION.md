@@ -3141,3 +3141,23 @@ potwierdza kod 0 oraz zgodność raportu z API. Wadliwy manifest przed/po prawid
 zwraca kod 2 bez częściowego JSON również z nową opcją. Lokalnie 8/8 testów audytu
 przeszło. Nie zmieniono reguł publication_ts/retrieved_at ani cutoff D−1 09:50.
 Produkcja, FROZEN, istniejące archiwa i PR #2 pozostają bez zmian.
+
+
+## Checkpoint 2026-11-21 — trzecia rzeczywista rewizja PK5 dostawy 22.11
+
+Narzędzie capture_pk5_validation pobrało komplet 24 okresów: publikacja
+21.11 o 06:13:06.353 Europe/Warsaw, początek pobrania 06:18:25.318220,
+koniec 06:18:32.987931, HTTP 200, przed cutoff 09:50. Zachowano oryginalny
+JSON gzip i capture.json w pse_pk5_delivery_2026-11-22_third.
+JSON ma 18623 bajty; SHA-256
+368fbb5c84305d6b7e4da4739b2b65ee68496658ec84633779bc5a90b8c05bdc.
+H01 JWCD=6198.00000, H24=9553.00000 MW. Wszystkie 24 wartości zmieniły się
+wobec pobrania o 02:14, a każda publikacja okresu jest teraz taka sama.
+
+Nowa regresja sprawdza hash/rozmiar/ID, publikacje wszystkich okresów, chronologię,
+cutoff i dokładne wartości surowego JSON. We wszystkich sześciu kolejnościach
+trzech rzeczywistych obserwacji selekcja wybiera całe trzecie pobranie, obie
+starsze publikacje są SUPERSEDED_JWCD_PUBLICATIONS, bez mieszania okresów
+ani zmiany wejścia. Lokalnie 4/4 testy PK5 22.11 przeszły.
+To kolejna rewizja jednej doby, nie nowa doba treningu. Nie dodano Fix1 22.11,
+nie wydano prognozy i nie zmieniono produkcji, FROZEN ani starszych dowodów.
