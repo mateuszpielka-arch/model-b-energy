@@ -74,6 +74,44 @@ class PK5CaptureTests(unittest.TestCase):
                 self.assertEqual(pause.call_args_list, pauses)
                 self.assertEqual(list(Path(temporary).iterdir()), [])
 
+
+    def test_retry_after_rejects_nonstandard_integer_spellings(self):
+        original, _, _, times = self.inputs()
+        for value in ('-1', '+2', '1_0', '1.0', '１２', ' '):
+            with self.subTest(value=value), TemporaryDirectory() as temporary, patch(
+                'tools.capture_pk5_validation.urlopen',
+                side_effect=HTTPError(original['url'], 429, 'busy',
+                                      {'Retry-After': value}, None),
+            ) as fetch, patch('tools.capture_pk5_validation.datetime') as clock, patch(
+                'tools.capture_pk5_validation.sleep',
+            ) as pause:
+                clock.now.return_value = times[0]
+                with self.assertRaises(HTTPError):
+                    capture(date(2026, 11, 21), Path(temporary))
+                self.assertEqual(fetch.call_count, 1)
+                pause.assert_not_called()
+                self.assertEqual(list(Path(temporary).iterdir()), [])
+
+    def test_retry_after_ascii_seconds_respects_server_delay(self):
+        original, raw, response, times = self.inputs()
+        for value, delay in (('0', 1), (' 2 ', 2), ('005', 5)):
+            with self.subTest(value=value), TemporaryDirectory() as temporary, patch(
+                'tools.capture_pk5_validation.urlopen',
+                side_effect=[HTTPError(original['url'], 429, 'busy',
+                                       {'Retry-After': value}, None), response],
+            ) as fetch, patch('tools.capture_pk5_validation.datetime') as clock, patch(
+                'tools.capture_pk5_validation.sleep',
+            ) as pause:
+                start, end = times
+                clock.now.side_effect = [start, start, start, end]
+                result = capture(date(2026, 11, 21), Path(temporary))
+                self.assertEqual(fetch.call_count, 2)
+                pause.assert_called_once_with(delay)
+                self.assertEqual(result['retrieved_at_utc'], start.isoformat())
+                self.assertEqual(result['retrieval_completed_at_utc'], end.isoformat())
+                self.assertEqual(gzip.decompress(
+                    (Path(temporary) / result['raw_file']).read_bytes()), raw)
+
     def test_retry_cannot_wait_or_open_after_cutoff(self):
         original, _, _, _ = self.inputs()
         cutoff = cutoff_for_day(date(2026, 11, 21))

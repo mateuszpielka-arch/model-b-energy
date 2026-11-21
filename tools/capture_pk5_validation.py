@@ -42,7 +42,10 @@ def _open_with_retry(request, day):
             if retry_after:
                 # Unsupported HTTP-date or excessive waits are not retried.
                 try:
-                    delay = max(delay, int(retry_after))
+                    seconds = retry_after.strip()
+                    if not seconds.isascii() or not seconds.isdecimal():
+                        raise ValueError('Retry-After requires nonnegative ASCII seconds')
+                    delay = max(delay, int(seconds))
                 except (TypeError, ValueError):
                     raise exc from None
                 if delay > 5:

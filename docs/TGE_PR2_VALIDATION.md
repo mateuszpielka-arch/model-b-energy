@@ -3208,3 +3208,21 @@ kolejnościach czterech zachowanych rzeczywistych obserwacji. Wszystkie starsze
 są SUPERSEDED_JWCD_PUBLICATIONS; brak mieszania okresów i zmian wejścia.
 Lokalnie 5/5 testów PK5 22.11 przeszło. Nie dodano Fix1 22.11, doby treningu,
 prognozy ani rankingu. Starsze dowody, produkcja, FROZEN i harmonogramy bez zmian.
+
+
+## Checkpoint 2026-11-21 — ścisła składnia Retry-After w pobieraniu PK5
+
+Narzędzie capture_pk5_validation akceptuje teraz Retry-After wyłącznie jako
+nieujemne sekundy zapisane cyframi ASCII (z dopuszczalnym zewnętrznym białym
+znakiem nagłówka). Wcześniejsze int() dopuszczało również znak liczby,
+podkreślenia i cyfry Unicode. Takie niepoprawne nagłówki kończą teraz żądanie
+bez sleep, następnego otwarcia i plików dowodów. Limit 5 sekund, maksymalnie
+3 próby oraz oba sprawdzenia cutoff D−1 09:50 pozostają obowiązkowe.
+
+Dwie nowe regresje z emulowanym HTTP i zachowanymi oryginalnymi bajtami PK5
+21.11 obejmują sześć niepoprawnych zapisów oraz poprawne 0 / 2 / 005 sekund:
+minimalne oczekiwanie 1 s, rzeczywiste oczekiwanie 2 i 5 s, dwa otwarcia,
+niezmienione konserwatywne retrieved_at i koniec odczytu, dokładne zapisane raw.
+Lokalnie 8/8 testów narzędzia przeszło. Nie wykonano nowego pobrania live;
+nie dodano nowej doby treningu ani prognozy. Produkcja, FROZEN, archiwa,
+harmonogramy i PR #2 pozostają bez zmian.
