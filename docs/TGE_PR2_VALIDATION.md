@@ -3257,3 +3257,35 @@ Pełne CI pierwszej wersji wykonało 566 testów i wykazało dwa niepowodzenia
 podtestów CSV/JSON wyłącznie przez zmianę treści komunikatu niezgodnej daty.
 Przywrócono dotychczasowy komunikat „PK5 capture delivery differs from Fixing I”,
 zachowując istniejący interfejs diagnostyczny; testów eksportu nie zmieniono.
+
+
+## Checkpoint 2026-11-21 — rzeczywisty Fix1 dostawy 22.11 połączony z PK5
+
+Publiczna sesja TGE z 21.11 zwróciła HTTP 200 i komplet 24 cen Fixing I
+na 22.11. Odczyt zakończono 21.11 o 11:19:39.063666 Europe/Warsaw.
+Zachowano oryginalny HTML w gzip (mtime=0), CSV referencji XPath z tego
+samego HTML i manifest w tests/fixtures/tge_delivery_2026-11-22.
+Nie jest to niezależny eksport oficjalny; XPath i parser porównują ten sam raw.
+HTML: 280499 bajtów, SHA-256
+6435b1a6171a4c65bf04a3fa6aaf944e5c492651869d6146c645a2703a63291b.
+CSV SHA-256:
+f8fa69544585150148c84cf9114afb16faf5246c6062ac424f91a5ee7c1b8847.
+H01=356.76, H24=686.52 PLN/MWh. Wszystkie 24 etykiety i ceny parsera
+zgadzają się z XPath, CSV i jawną siatką UTC standardowej doby.
+
+Nowe regresje łączą rzeczywisty Fix1 z czterema zachowanymi obserwacjami PK5
+22.11. Obie kolejności wejścia dają identyczny raport i wybierają całe
+czwarte pobranie: publikacja 08:02:42.387, początek 08:14:34.192048,
+koniec 08:14:41.928655 Europe/Warsaw, przed własnym D−1 09:50.
+Każdy okres zachowuje publikację i oba czasy pobrania; trzy starsze
+obserwacje są SUPERSEDED_JWCD_PUBLICATIONS. H01 JWCD=6326.00000,
+H24=9744.00000 MW. Dostępność Fix1 przyjęto dopiero od końca tego
+rzeczywistego pobrania, bez cofania czasu do publikacji lub cutoff.
+
+Lokalnie 3/3 nowe testy przeszły. Ta paczka wnosi jedną rzeczywistą
+sparowaną dobę (24 okresy); sama nie tworzy okien treningu 30/60/90D.
+Walk-forward przed i w chwili dostępności Fix1 nadal ma zero wspólnych
+okresów i pusty ranking dla tej jedno-dobowej próbki. Nie wydano prognozy
+ani nie zmieniono produkcji, FROZEN, starszych archiwów czy PR #2.
+Historyczny zamrożony raport korpusu pozostawiono bez zmian; nowa paczka
+może być jawnie dodana w kolejnym audycie.
