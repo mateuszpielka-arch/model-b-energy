@@ -2,6 +2,7 @@
 
 Counts distinct evidence separately from delivery days. Does not select an
 archive winner, write a database, authenticate HTTP times or admit JWCD history.
+With --fail-on-conflict, complete conflict reports exit 3; invalid inputs exit 2.
 """
 import argparse
 from collections import Counter, defaultdict
@@ -117,6 +118,8 @@ def main():
     parser.add_argument('manifest', nargs='+', help='Explicit saved Fix1 manifest paths')
     parser.add_argument('--start-day', type=date.fromisoformat, help='Calendar coverage start, inclusive')
     parser.add_argument('--end-day', type=date.fromisoformat, help='Calendar coverage end, inclusive')
+    parser.add_argument('--fail-on-conflict', action='store_true',
+                        help='Return status 3 after complete JSON when price conflicts exist (invalid input: 2)')
     args = parser.parse_args()
     try:
         report = audit_manifests(args.manifest, start_day=args.start_day, end_day=args.end_day)
@@ -124,6 +127,8 @@ def main():
     except (OSError, ValueError, TypeError, KeyError) as exc:
         parser.error(str(exc))
     print(result, end='')
+    if args.fail_on_conflict and report['days_with_price_conflicts']:
+        raise SystemExit(3)
 
 
 if __name__ == '__main__':

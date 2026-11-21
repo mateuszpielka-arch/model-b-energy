@@ -157,6 +157,12 @@ class ManifestAuditTests(unittest.TestCase):
                                        capture_output=True, text=True)
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertEqual(json.loads(completed.stdout), report)
+            for paths in ([original, manifest], [manifest, original]):
+                strict = subprocess.run(self.command(paths) + ['--fail-on-conflict'],
+                                        capture_output=True, text=True)
+                self.assertEqual(strict.returncode, 3, strict.stderr)
+                self.assertEqual(strict.stderr, '')
+                self.assertEqual(json.loads(strict.stdout), report)
             self.assertEqual({path: path.read_bytes() for path in target.iterdir()}, before)
         self.assertEqual({path: path.read_bytes() for path in original_files}, original_files)
 
@@ -208,6 +214,26 @@ class ManifestAuditTests(unittest.TestCase):
                 self.assertIn('Evidence hash mismatch', completed.stderr)
             self.assertEqual({path: path.read_bytes() for path in target.iterdir()}, before)
         self.assertEqual({path: path.read_bytes() for path in original_files}, original_files)
+
+
+    def test_strict_status_preserves_complete_success_and_empty_invalid_input_output(self):
+        paths = self.paths()
+        expected = audit_manifests(paths)
+        for inputs in (paths, [*paths, paths[0]]):
+            completed = subprocess.run(self.command(inputs) + ['--fail-on-conflict'],
+                                       capture_output=True, text=True)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(json.loads(completed.stdout), audit_manifests(inputs))
+        self.assertEqual(expected['days_with_price_conflicts'], 0)
+        with TemporaryDirectory() as temporary:
+            bad = Path(temporary) / 'manifest.json'
+            bad.write_text('{"entries": [], "errors": []}')
+            for inputs in ([paths[0], bad], [bad, paths[0]]):
+                completed = subprocess.run(self.command(inputs) + ['--fail-on-conflict'],
+                                           capture_output=True, text=True)
+                self.assertEqual(completed.returncode, 2)
+                self.assertEqual(completed.stdout, '')
+                self.assertIn('Incomplete capture manifest', completed.stderr)
 
     def test_bad_manifest_aborts_cli_without_partial_report(self):
         with self.assertRaisesRegex(ValueError, 'At least one'):

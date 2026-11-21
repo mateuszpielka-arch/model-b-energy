@@ -3122,3 +3122,22 @@ wersji są dokładnie identyczne. Zaobserwowany szczyt alokacji Pythona spadł
 z 11096500 do 1777249 bajtów. To pomiar jednej lokalnej próby, nie RSS procesu
 ani gwarancja stałej pamięci: paczka bieżącego manifestu i dane wynikowe nadal
 zajmują pamięć. Produkcja, FROZEN i istniejące archiwa bez zmian.
+
+
+## Checkpoint 2026-11-21 — opcjonalny kod zakończenia dla konfliktu cen
+
+CLI shadow_manifest_audit obsługuje --fail-on-conflict. Z tą opcją poprawnie
+zwalidowany audyt bez rozbieżności kończy się kodem 0; wykryte konflikty cen
+zwracają kod 3 po wypisaniu kompletnego raportu JSON z cenami i dowodami.
+Błędne/niepełne wejście nadal zwraca kod 2 i pusty stdout. Bez opcji zachowano
+dotychczasowy tryb diagnostyczny, API oraz format raportu. Ułatwia to jawne
+rozróżnienie konfliktu danych od błędu ich walidacji przez narzędzie wywołujące.
+Nie dodano zadań, zapisów PostgreSQL ani automatycznego rozstrzygania konfliktu.
+
+Rozszerzona regresja syntetycznej zmiany H01 21.11 potwierdza kod 3 i dokładnie
+ten sam pełny raport w obu kolejnościach paczek, przy pustym stderr i bez zmian
+źródeł. Nowy test dla rzeczywistych manifestów 20/20-late/21.11 i duplikatu
+potwierdza kod 0 oraz zgodność raportu z API. Wadliwy manifest przed/po prawidłowym
+zwraca kod 2 bez częściowego JSON również z nową opcją. Lokalnie 8/8 testów audytu
+przeszło. Nie zmieniono reguł publication_ts/retrieved_at ani cutoff D−1 09:50.
+Produkcja, FROZEN, istniejące archiwa i PR #2 pozostają bez zmian.
