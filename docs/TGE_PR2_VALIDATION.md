@@ -3251,3 +3251,9 @@ rozmiar i wyjście ścieżki poza katalog są odrzucane bez zmian plików.
 Błędny typ daty jest odrzucany przed otwarciem pliku. Nie dodano Fix1 22.11,
 nowych obserwacji live, doby treningowej ani rankingu. Produkcja, FROZEN,
 istniejące archiwa, harmonogramy i PR #2 bez zmian.
+
+
+Pełne CI pierwszej wersji wykonało 566 testów i wykazało dwa niepowodzenia
+podtestów CSV/JSON wyłącznie przez zmianę treści komunikatu niezgodnej daty.
+Przywrócono dotychczasowy komunikat „PK5 capture delivery differs from Fixing I”,
+zachowując istniejący interfejs diagnostyczny; testów eksportu nie zmieniono.

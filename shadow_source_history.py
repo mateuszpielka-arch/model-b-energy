@@ -178,7 +178,7 @@ def load_pk5_capture(capture_path, *, day):
             or metadata.get('raw_sha256') != sha256(pk5_raw).hexdigest()):
         raise ValueError('PK5 capture raw size or SHA-256 mismatch')
     if metadata.get('delivery_date') != day.isoformat():
-        raise ValueError('PK5 capture delivery differs from requested day')
+        raise ValueError('PK5 capture delivery differs from Fixing I')
     capture = dict(
         raw=pk5_raw, source_url=metadata['url'],
         retrieved_at=parse_capture_timestamp(metadata['retrieved_at_utc']),
