@@ -3034,3 +3034,24 @@ Podwojenie listy wejścia daje 56 wpisów i 28 duplikatów, ale nadal te same
 przeszły. To spójność zachowanych źródeł Fix1, nie 26 nowych dni operacyjnej
 obserwacji ani potwierdzenie PK5 przed D−1 09:50; nie zwiększono gotowości
 treningu i nie wygenerowano rankingu. Produkcja i archiwa pozostają bez zmian.
+
+
+## Checkpoint 2026-11-21 — kalendarzowe luki audytu manifestów z podziałem 23/24/25h
+
+Read-only audit_manifests i jego CLI obsługują opcjonalne start_day/end_day
+oraz --start-day/--end-day. W tym trybie raport dodaje calendar_coverage:
+zakres, liczbę obserwowanych/brakujących dób, zwarte missing_ranges oraz
+oczekiwane i brakujące okresy osobno dla kalendarzowych dób 23/24/25h.
+Brakująca granica odpowiada skrajnej dacie źródeł. Pełne dane dowodów i zgodności
+cen pozostają bez zmian; bez podania granic format wcześniejszego raportu
+jest identyczny, więc utrwalony checkpoint 28 pobrań pozostaje odtwarzalny.
+
+Dwie nowe regresje sprawdzają CLI i API w obu kolejnościach źródeł. Dla próby
+rzeczywistych manifestów 20/21.11 i kalendarza 25.10–21.11: 28 dób kalendarzowych,
+2 obserwowane, 26 brakujących; brakuje 25 okresów doby jesiennej oraz 600 okresów
+zwykłych dób. Zakres wyłącznie 29.03 pokazuje brak jednej doby 23h, bez dopisania
+jej danych lub mapowania źródłowego. Błędne typy/granice API i odwrócony zakres
+są odrzucane przed odczytem dowodów; CLI zwraca kod 2 bez częściowego stdout.
+Lokalnie 5/5 testów audytu manifestów przeszło. Zakres dotyczy wyłącznie
+podanych paczek, nie zewnętrznej bazy ani całej historii projektu.
+Nie poszerzono przyjęcia źródeł DST, gotowości treningu lub produkcji.

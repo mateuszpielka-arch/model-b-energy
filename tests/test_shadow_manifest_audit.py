@@ -1,4 +1,6 @@
 import gzip
+from datetime import date
+from unittest.mock import patch
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -24,6 +26,67 @@ class ManifestAuditTests(unittest.TestCase):
     def command(self, paths):
         return [sys.executable, str(Path(__file__).resolve().parents[1] /
                                    'shadow_manifest_audit.py'), *map(str, paths)]
+
+
+    def test_calendar_scope_reports_absent_dst_days_without_changing_capture_results(self):
+        paths = self.paths()
+        baseline = audit_manifests(paths)
+        for first, last, hours, calendar_days, missing in (
+            (date(2026, 10, 25), date(2026, 11, 21), 25, 28, 26),
+            (date(2026, 3, 29), date(2026, 3, 29), 23, 1, 1),
+        ):
+            with self.subTest(first=first, last=last):
+                report = audit_manifests(paths, start_day=first, end_day=last)
+                coverage = report.pop('calendar_coverage')
+                self.assertEqual(report, baseline)
+                self.assertEqual(coverage['scope'], 'provided_manifests')
+                self.assertEqual((coverage['calendar_days'], coverage['missing_days']),
+                                 (calendar_days, missing))
+                self.assertEqual(coverage['by_hours'][str(hours)], dict(
+                    calendar_days=1, observed_days=0, missing_days=1,
+                    calendar_periods=hours, missing_periods=hours,
+                ))
+                if hours == 25:
+                    self.assertEqual(coverage['observed_days'], 2)
+                    self.assertEqual(coverage['by_hours']['24']['missing_periods'], 600)
+                    self.assertEqual(coverage['missing_ranges'], [
+                        {'start_day': '2026-10-25', 'end_day': '2026-11-19', 'days': 26},
+                    ])
+                else:
+                    self.assertEqual(coverage['observed_days'], 0)
+                    self.assertEqual(coverage['by_hours']['24']['calendar_days'], 0)
+                completed = subprocess.run(
+                    self.command(paths) + ['--start-day', first.isoformat(), '--end-day', last.isoformat()],
+                    capture_output=True, text=True,
+                )
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                self.assertEqual(json.loads(completed.stdout),
+                                 {**baseline, 'calendar_coverage': coverage})
+                self.assertEqual(
+                    audit_manifests(reversed(paths), start_day=first, end_day=last),
+                    json.loads(completed.stdout),
+                )
+
+    def test_invalid_calendar_bounds_abort_before_evidence_read(self):
+        for kwargs in (
+            {'start_day': date(2026, 11, 22), 'end_day': date(2026, 11, 21)},
+            {'start_day': date.max}, {'end_day': date.min}, {'start_day': '2026-11-20'},
+        ):
+            with self.subTest(kwargs=kwargs), patch(
+                'shadow_manifest_audit.load_batches', side_effect=AssertionError('Unexpected evidence read'),
+            ) as loader:
+                with self.assertRaisesRegex(ValueError, 'calendar date bounds|Start day'):
+                    audit_manifests(self.paths(), **kwargs)
+                loader.assert_not_called()
+        for extra, reason in (
+            (['--start-day', '2026-11-22', '--end-day', '2026-11-21'], 'Start day'),
+            (['--start-day', 'invalid'], 'invalid'),
+        ):
+            completed = subprocess.run(self.command(self.paths()) + extra,
+                                       capture_output=True, text=True)
+            self.assertEqual(completed.returncode, 2)
+            self.assertEqual(completed.stdout, '')
+            self.assertIn(reason, completed.stderr)
 
     def test_real_recaptures_and_duplicate_inputs_do_not_inflate_delivery_days(self):
         paths = self.paths()
