@@ -3161,3 +3161,29 @@ starsze publikacje są SUPERSEDED_JWCD_PUBLICATIONS, bez mieszania okresów
 ani zmiany wejścia. Lokalnie 4/4 testy PK5 22.11 przeszły.
 To kolejna rewizja jednej doby, nie nowa doba treningu. Nie dodano Fix1 22.11,
 nie wydano prognozy i nie zmieniono produkcji, FROZEN ani starszych dowodów.
+
+
+## Checkpoint 2026-11-21 — ograniczone ponowienia otwarcia żądania PK5 przed cutoff
+
+Narzędzie capture_pk5_validation ponawia teraz wyłącznie przejściowe błędy
+urlopen: timeout połączenia oraz HTTP 429/500/502/503/504. Maksymalnie 3 próby;
+podstawowe oczekiwanie 1 i 2 sekundy, Retry-After w sekundach respektowane
+do limitu 5 sekund na oczekiwanie. Dłuższy lub nieobsługiwany nagłówek daty
+nie powoduje ponowienia. HTTPError jest zamykany. Stałe błędy, przekierowania,
+niepełne body, błędny JSON i niezgodność dowodów nie są ponawiane.
+
+Przed oczekiwaniem sprawdzane jest, czy następna próba zmieści się przed
+D−1 09:50 Europe/Warsaw; przed jej otwarciem cutoff jest sprawdzany ponownie.
+Metadane zachowują konserwatywny początek przed pierwszą próbą oraz rzeczywisty
+koniec poprawnego odczytu. Istniejąca końcowa walidacja publikacji i pobrania
+pozostaje obowiązkowa; pliki powstają dopiero po niej. Nie zmieniono collectora
+produkcyjnego ani harmonogramu.
+
+Trzy nowe testy na zapisanych oryginalnych bajtach PK5 21.11 z emulowanym HTTP
+obejmują 503 → timeout → sukces, dokładne czasy i treść zapisanych dowodów,
+zamknięcie błędu HTTP, limit prób i odmowę długiego Retry-After/DNS/HTTP400.
+Sprawdzono brak następnego żądania, gdy planowane oczekiwanie lub rzeczywiste
+wybudzenie przekroczy cutoff, bez plików dowodów. Dotychczasowe testy nadal
+potwierdzają odrzucenie niepełnego body/JSON/URL bez retry oraz ochronę istniejących
+plików. Lokalnie 6/6 testów przeszło. Nie wykonano nowego pobrania sieciowego,
+nie wydano prognozy i nie zmieniono produkcji, FROZEN ani archiwów.

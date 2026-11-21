@@ -2,14 +2,17 @@
 
 Usage: python -m tools.capture_pk5_validation --day YYYY-MM-DD --output NEW_DIRECTORY
 Only a complete standard-day response passing the SHADOW adapter is saved.
+Transient request-open failures have at most three attempts, bounded by cutoff.
 """
 import argparse
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 import gzip
 from hashlib import sha256
 from http.client import IncompleteRead
 import json
 from pathlib import Path
+from time import sleep
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -19,6 +22,37 @@ from shadow_scoring import expected_periods
 from tools.capture_tge_validation import _write_new_evidence
 
 MAX_PK5_BYTES = 8 * 1024 * 1024
+
+
+
+def _open_with_retry(request, day):
+    """Retry only transient connection/HTTP failures, never invalid payloads."""
+    cutoff = cutoff_for_day(day)
+    for attempt in range(3):
+        if attempt and datetime.now(timezone.utc) > cutoff:
+            raise ValueError('PK5 retry started after D-1 09:50 Europe/Warsaw')
+        delay = 2 ** attempt
+        try:
+            return urlopen(request, timeout=35)
+        except HTTPError as exc:
+            exc.close()
+            if attempt == 2 or exc.code not in (429, 500, 502, 503, 504):
+                raise
+            retry_after = exc.headers.get('Retry-After') if exc.headers else None
+            if retry_after:
+                # Unsupported HTTP-date or excessive waits are not retried.
+                try:
+                    delay = max(delay, int(retry_after))
+                except (TypeError, ValueError):
+                    raise exc from None
+                if delay > 5:
+                    raise
+        except (TimeoutError, URLError) as exc:
+            if attempt == 2 or (isinstance(exc, URLError) and not isinstance(exc.reason, TimeoutError)):
+                raise
+        if datetime.now(timezone.utc) + timedelta(seconds=delay) > cutoff:
+            raise ValueError('PK5 retry would start after D-1 09:50 Europe/Warsaw')
+        sleep(delay)
 
 
 def capture(day, directory):
@@ -34,7 +68,7 @@ def capture(day, directory):
         '$filter': f"business_date eq '{day.isoformat()}'",
     })
     request = Request(url, headers={'User-Agent': 'model-b-energy-shadow-validation/1.0'})
-    with urlopen(request, timeout=35) as response:
+    with _open_with_retry(request, day) as response:
         if response.status != 200 or response.geturl() != url:
             raise ValueError('PK5 HTTP/source mismatch')
         length = response.length
