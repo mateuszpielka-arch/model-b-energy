@@ -17,9 +17,9 @@ DIRECTORY = Path(__file__).parent / 'fixtures/pse_pk5_delivery_2026-11-24'
 DAY = date(2026, 11, 24)
 
 
-def source():
-    metadata = json.loads((DIRECTORY / 'capture.json').read_text())
-    raw = gzip.decompress((DIRECTORY / metadata['raw_file']).read_bytes())
+def source(directory=DIRECTORY):
+    metadata = json.loads((directory / 'capture.json').read_text())
+    raw = gzip.decompress((directory / metadata['raw_file']).read_bytes())
     capture = dict(raw=raw, day=DAY.isoformat(), source_url=metadata['url'],
                    retrieved_at=datetime.fromisoformat(metadata['retrieved_at_utc']),
                    retrieval_completed_at=datetime.fromisoformat(metadata['retrieval_completed_at_utc']))
@@ -27,6 +27,40 @@ def source():
 
 
 class November24Pk5Tests(unittest.TestCase):
+
+    def test_second_real_revision_wins_whole_capture_in_both_orders(self):
+        _, _, early_capture = source()
+        metadata, raw, latest_capture = source(DIRECTORY.with_name(DIRECTORY.name + '_second'))
+        early = prepare_pk5_snapshot(**early_capture)
+        latest = prepare_pk5_snapshot(**latest_capture)
+        before = deepcopy((early, latest))
+        self.assertEqual((len(raw), sha256(raw).hexdigest()), (
+            18661, 'ee1a8d8ff8066f343265285f2ba1fdc087a6d04369a020e0284e38dac1b98699'))
+        self.assertEqual(latest['id'], metadata['snapshot_id'])
+        self.assertEqual(latest['id'],
+                         'pk5-capture-sha256:f19185d51f1e25ddfbde34e69fd3edef88cbb1b3db277ddf6654ac41e3863ad1')
+        published = datetime(2026, 11, 22, 23, 14, 20, 888000, tzinfo=timezone.utc)
+        self.assertEqual(Counter(row['publication_ts'] for row in latest['rows']), {published: 24})
+        self.assertEqual(metadata['retrieved_at_utc'], '2026-11-22T23:16:29.078131+00:00')
+        self.assertEqual(metadata['retrieval_completed_at_utc'], '2026-11-22T23:16:38.369227+00:00')
+        self.assertLessEqual(published, latest_capture['retrieved_at'])
+        self.assertLessEqual(latest_capture['retrieved_at'], latest_capture['retrieval_completed_at'])
+        self.assertLess(latest_capture['retrieval_completed_at'], cutoff_for_day(DAY))
+        payload = json.loads(raw, parse_float=Decimal)['value']
+        old_prices = dict(select_snapshot(DAY, [early]).rows)
+        for candidates in ([early, latest], [latest, early]):
+            selected = select_snapshot(DAY, candidates)
+            self.assertEqual(selected.snapshot_id, latest['id'])
+            self.assertEqual(selected.latest_publication_ts_utc, published)
+            self.assertEqual([value for _, value in selected.rows],
+                             [row['fcst_gen_unit_stor_prov'] for row in payload])
+            self.assertEqual((selected.rows[0][1], selected.rows[-1][1]),
+                             (Decimal('8522.00000'), Decimal('12169.00000')))
+            self.assertEqual(sum(old_prices[period] != value for period, value in selected.rows), 23)
+            self.assertEqual(selected.rejected,
+                             ((early['id'], 'SUPERSEDED_JWCD_PUBLICATIONS'),))
+        self.assertEqual((early, latest), before)
+
     def test_real_early_capture_retains_all_values_publications_and_exact_proof(self):
         metadata, raw, capture = source()
         before = deepcopy(capture)
