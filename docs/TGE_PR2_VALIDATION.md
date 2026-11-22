@@ -3439,3 +3439,32 @@ niezmienione, a oryginalna obserwacja nadal przechodzi selekcję.
 To wczesne PK5, nie sparowana doba treningu: brak Fix1 24.11, brak nowej
 prognozy, score lub rankingu. Nie zmieniono produkcji JWCD 90D, FROZEN,
 Railway, istniejących archiwów, PR #2 ani harmonogramów.
+
+
+## Checkpoint 2026-11-22 — osobny read-only audyt zapisanych obserwacji PK5
+
+Dodano shadow_pk5_audit.py: jawny CLI --day YYYY-MM-DD CAPTURE.json [...]
+oraz audit_pk5_captures(paths, day=...). Korzysta ze wspólnego loadera
+dowodów PK5 i dotychczasowej selekcji całych obserwacji. Nie wymaga Fix1,
+nie czyta sieci lub bazy i niczego nie zapisuje. Najpierw waliduje wszystkie
+oryginalne paczki, dopiero potem tworzy kompletny JSON.
+
+Raport zawiera własny cutoff D−1 09:50 Europe/Warsaw w UTC, wybrane ID,
+hash raw i URL każdego kandydata, początek/koniec pobrania, liczności
+czasów publikacji wszystkich okresów, odrzucone obserwacje z powodami oraz
+24 wybrane wiersze UTC/JWCD/publikacja. Nie deklaruje gotowości treningu.
+Brak zwycięzcy (np. duplikat ID) jest pełną diagnostyką z pustymi wybranymi
+wierszami i kodem 0; nieprawidłowy lub spóźniony dowód zwraca kod 2,
+pusty stdout i diagnostykę bez traceback, bez częściowego wyboru.
+
+Lokalnie 3/3 nowe testy przeszły. Na czterech rzeczywistych rewizjach 22.11
+wszystkie 24 kolejności dają identyczny raport i wybór fourth; zachowano
+mieszane publikacje second (10+14 okresów). API i CLI są zgodne w obu
+kolejnościach. Wczesne PK5 24.11 przechodzi bez Fix1, a jego duplikat
+daje MISSING_OR_DUPLICATE_SNAPSHOT_ID bez wyboru. Wadliwy JSON, błędny hash
+i koniec pobrania po cutoff zatrzymują cały audyt w obu kolejnościach.
+Hashe źródeł oraz bajty wadliwych kopii pozostają niezmienione.
+
+Nie zmieniono historycznych checkpointów, produkcji JWCD 90D, FROZEN,
+archiwów PostgreSQL, Railway, PR #2 ani harmonogramów. Nie wydano prognozy
+i nie dodano nowej obserwacji live ani doby treningowej.
