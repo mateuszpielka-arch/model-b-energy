@@ -3412,3 +3412,30 @@ Lokalnie 2/2 nowe testy przeszły. Nie zmieniono obliczeń OLS, selekcji PK5,
 scoringu, bramek publication_ts/retrieved_at ani D−1 09:50 Europe/Warsaw.
 Odczyt offline FROZEN i dane archiwalne pozostają bez zmian. Brak zapisów
 PostgreSQL, pobrań live, zmian produkcji lub Railway i zmian PR #2/harmonogramów.
+
+
+## Checkpoint 2026-11-22 — rzeczywisty wczesny PK5 dostawy 24.11
+
+Narzędzie capture_pk5_validation pobrało z oficjalnego filtrowanego endpointu
+PSE 24 okresy dostawy 24.11, HTTP 200 bez zmiany URL. Publikacja wszystkich
+okresów: 22.11 22:05:07.376 Europe/Warsaw; początek pobrania
+22:12:48.103863, koniec 22:12:55.417751. Własny cutoff to 23.11 09:50
+Europe/Warsaw (08:50Z). Nie próbowano zastępować tej doby danymi 23.11.
+
+Zachowano oryginalny JSON gzip (mtime=0) i capture.json w
+tests/fixtures/pse_pk5_delivery_2026-11-24. Rozmiar raw: 18663 bajty,
+SHA-256 f3a18364f4a41446dc67b163c3b258c5ce7665dd43ede9f0f705cc7ed88b55c5.
+snapshot_id:
+pk5-capture-sha256:7b073cbe000adecf5232208a45d48bc1430e17ca11f7d038e501819967e19e10.
+H01 JWCD=8615.00000, H24=12155.00000 MW.
+
+Dwa nowe testy przeszły lokalnie (2/2): dokładne hashe/rozmiar/ID i czasy,
+24 wartości JWCD zgodne z raw, kompletna siatka UTC, 24 identyczne publikacje
+oraz poprawna chronologia przed własnym cutoff. Drugi test odrzuca użycie
+tej obserwacji dla dostawy 23.11 jako WRONG_DELIVERY_DATE i syntetyczne
+przekroczenie początku/końca pobrania ponad własny cutoff. Wejście pozostaje
+niezmienione, a oryginalna obserwacja nadal przechodzi selekcję.
+
+To wczesne PK5, nie sparowana doba treningu: brak Fix1 24.11, brak nowej
+prognozy, score lub rankingu. Nie zmieniono produkcji JWCD 90D, FROZEN,
+Railway, istniejących archiwów, PR #2 ani harmonogramów.
