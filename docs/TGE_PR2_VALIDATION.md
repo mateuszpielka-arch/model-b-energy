@@ -3389,3 +3389,26 @@ kopii pozostają identyczne po audycie.
 Lokalnie 9/9 testów audytu manifestów przeszło. Zapis obejmuje wyłącznie
 test i checkpoint. Nie użyto sieci ani PostgreSQL, nie zmieniono parsera,
 archiwów, produkcji JWCD 90D, FROZEN, Railway, PR #2 ani harmonogramów.
+
+
+## Checkpoint 2026-11-22 — kontrolowane błędy wejściowego CSV walk-forward
+
+CLI shadow_walkforward_csv obejmuje teraz odczyt wszystkich CSV, ocenę i
+serializację JSON wspólną obsługą OSError, ValueError i csv.Error. Błędy
+struktury CSV, brak pliku oraz nieprawidłowy UTF-8 zwracają kod 2 i zwięzłą
+diagnostykę argparse bez traceback. Cały wynik powstaje przed pierwszym
+zapisem stdout; wadliwy późniejszy plik nie udostępnia częściowego raportu.
+Wcześniej te błędy odczytu dawały nieobsłużony wyjątek i kod 1.
+
+Dodano tests/test_walkforward_csv_cli_input_errors.py. Pięć przypadków
+(duplikat kolumn, zła liczba pól, niedomknięty cudzysłów, błędne UTF-8,
+brak pliku) sprawdzono przed i po prawidłowym rzeczywistym CSV Fix1 22.11.
+Regresja wymaga kodu 2, pustego stdout, diagnostyki bez traceback i
+niezmienionych źródeł. Poprawny CSV bez pełnego pochodzenia JWCD nadal
+kończy się kodem 0 z pełnym audytem, zero dopuszczonych dób i pustym rankingiem,
+dokładnie zgodnym z API; nie utożsamiono niegotowości modelu z błędem pliku.
+
+Lokalnie 2/2 nowe testy przeszły. Nie zmieniono obliczeń OLS, selekcji PK5,
+scoringu, bramek publication_ts/retrieved_at ani D−1 09:50 Europe/Warsaw.
+Odczyt offline FROZEN i dane archiwalne pozostają bez zmian. Brak zapisów
+PostgreSQL, pobrań live, zmian produkcji lub Railway i zmian PR #2/harmonogramów.

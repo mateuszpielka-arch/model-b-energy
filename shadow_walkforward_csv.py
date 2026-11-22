@@ -1,6 +1,7 @@
 """Run the offline SHADOW comparison on audited, canonical hourly CSV history."""
 
 import argparse
+import csv
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 from dataclasses import asdict
@@ -220,12 +221,16 @@ def main():
             frozen = read_frozen_90d(args.frozen_90d_json)
         except (OSError, ValueError) as exc:
             parser.error(str(exc))
-    rows = (row for path in args.csv for row in read_csv(path))
-    result = evaluate_csv_rows(
-        rows, evaluated_at=args.evaluated_at, target_from=args.target_from, target_to=args.target_to,
-        frozen_90d_by_day=frozen,
-    )
-    print(json.dumps(result, default=_json_value, indent=2))
+    try:
+        rows = (row for path in args.csv for row in read_csv(path))
+        result = evaluate_csv_rows(
+            rows, evaluated_at=args.evaluated_at, target_from=args.target_from, target_to=args.target_to,
+            frozen_90d_by_day=frozen,
+        )
+        output = json.dumps(result, default=_json_value, indent=2)
+    except (OSError, ValueError, csv.Error) as exc:
+        parser.error(str(exc))
+    print(output)
 
 
 if __name__ == "__main__":
