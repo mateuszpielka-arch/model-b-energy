@@ -4050,3 +4050,37 @@ nowy surowy dowód bez zmiany zaakceptowanych cen i źródła. Poprawiono test:
 po pierwszym ponowieniu wymaga dwóch obserwacji raw, oryginalnego przypisania
 cen i czasu accepted_capture, a kolejne importy porównują całe tabele bez
 dalszych przyrostów. Kod adaptera pozostaje bez zmian.
+
+
+## Checkpoint 2026-11-23 — scoring po REPLAY nie zmienia czasu dostępności
+
+Dodano integrację w tests/test_tge_november24_recapture.py dla obu kolejności
+rzeczywistych paczek Fix1 24.11: pierwsza obserwacja potem ponowny odczyt
+oraz odwrotnie. Każda kolejność zaczyna się w czystej, izolowanej bazie.
+Scoring używa zachowanego szóstego PK5 sprzed cutoff 23.11 09:50
+Europe/Warsaw i jawnie syntetycznego wektora JWCD/20; nie jest to model
+wytrenowany na oknie ani prognoza.
+
+Test wymaga odmowy scoringu mikrosekundę przed czasem pierwszej
+zaakceptowanej paczki i INSERT dokładnie w tym czasie. Po dodaniu drugiego
+HTML przez REPLAY mają pozostać dwie obserwacje, 24 ceny i zero kwarantanny.
+accepted_capture, actual_version wyniku i actual_captured_at_utc w payload
+muszą nadal odnosić się do pierwszej zaakceptowanej paczki. Dotyczy to
+zarówno braku przesunięcia czasu naprzód przez późniejszy odczyt, jak
+i braku cofnięcia go przez wcześniej pobrany dowód dodany później.
+
+Po REPLAY obie ścieżki (oryginalny CSV i ponowne parsowanie raw bez CSV)
+nadal odmawiają oceny przed tą samą granicą i zwracają identyczny REPLAY
+w jej chwili. Wszystkie cztery tabele są porównywane bez zmian, wraz
+z hashami, payload i czasami. Cztery metryki sprawdzane są względem
+dotychczasowego niezależnego oracle Fraction. Pliki źródłowe nie są zmieniane.
+
+Lokalnie dwa testy źródeł/metryk przeszły; cztery integracje SQL zostały
+jawnie pominięte przy braku serwera. Nowa integracja z dwoma scenariuszami
+wymaga wykonania w istniejącym CI PostgreSQL 16. Poprzedni etap 3c45a56
+zakończył się pełnym sukcesem: 617 testów OK (run 45237656595).
+
+Nie zmieniono kodu adapterów ani polityki niezmienności archiwum. Brak
+nowych pobrań live, nowych dni treningowych lub prognoz. Produkcja JWCD 90D,
+FROZEN, Railway, istniejące archiwa i fixture, PR #2 oraz harmonogramy
+pozostają bez zmian.
