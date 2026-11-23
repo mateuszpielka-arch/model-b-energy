@@ -3736,3 +3736,32 @@ To zapis dowodu przed-cutoff, nie poranna prognoza lub zamiennik raportu 09:50.
 Brak jeszcze Fix1 24.11 do sparowania; nie dodano okien treningu, score ani
 rankingu. Produkcja JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy
 pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — rzeczywisty HTTP 200 TGE bez opublikowanych cen 24.11
+
+Pobrano oficjalną sesję TGE 23.11 dla dostawy 24.11: początek
+23.11 10:12:11.049087 Europe/Warsaw, koniec 10:12:20.779548, HTTP 200,
+URL zgodny z żądaniem. Tabela rdn zawiera wszystkie etykiety H01..H24,
+ale KAŻDA cena Fixing I ma znak „-”. HTTP 200 i obecność 24 etykiet nie
+oznaczają opublikowanego kompletu cen.
+
+Zachowano wyłącznie surowy HTML gzip i capture.json w
+tge_delivery_2026-11-24_unavailable. Raw ma 258957 bajtów; SHA-256:
+b4afb7c156c20545cd9827c2b3912e83aaadaa0f610b034e30d8d952494de933.
+Metadata zawiera oryginalny błąd XPath:
+Fixing I price unavailable for 2026-11-24_H01.
+Nie utworzono CSV referencyjnego ani manifestu dopuszczenia do archiwizacji.
+
+Dwie nowe regresje przeszły lokalnie (2/2). Pierwsza weryfikuje dokładne
+czasy/hash/rozmiar/HTTP i wszystkie 24 rzeczywiste etykiety z ceną „-”:
+parser oraz niezależna ekstrakcja XPath odrzucają odpowiedź. Druga podaje
+te same oryginalne bajty narzędziu capture z emulowanym odczytem HTTP
+i potwierdza brak jakichkolwiek plików zaakceptowanej paczki. Nie zamienia
+się brakujących cen na zero ani na inny fixing. Dowód źródłowy nie zmienia się.
+
+To dowód jednego odczytu przed dostępnością cen, nie ustalenie godziny
+oficjalnej publikacji. Brak Fix1 24.11 do sparowania z zachowanym PK5;
+nie utworzono doby treningowej, prognozy, score lub rankingu. Nie zmieniono
+parsera produkcyjnego, JWCD 90D, FROZEN, Railway, archiwów, PR #2
+ani harmonogramów. Nie zastępuje to porannego raportu ani raportu 18:00.
