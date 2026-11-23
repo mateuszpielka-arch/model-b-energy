@@ -3799,3 +3799,31 @@ okresów i pusty ranking. Nie wydano prognozy ani nie zastąpiono raportu 09:50.
 
 Produkcja JWCD 90D, FROZEN, Railway, starsze archiwa, checkpointy korpusu,
 PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — scoring kontrolny rzeczywistych źródeł 24.11
+
+Dodano tests/test_tge_november24_scores.py. Jawnie syntetyczny wektor
+JWCD/20 korzysta z szóstego PK5 24.11, którego publikacja i oba czasy
+pobrania poprzedzają cutoff 23.11 09:50 Europe/Warsaw. To kontrola
+mechanizmu scoringu, nie wytrenowany model, ocena produkcji lub wydana prognoza.
+Ceny Fix1 pochodzą z zachowanego HTML/CSV 24.11 z dostępnością dopiero
+od końca pobrania 23.11 11:14:34.948376 Europe/Warsaw.
+
+Niezależny rachunek Fraction łączy etykiety oryginalnego PSE i CSV TGE,
+nie używając wyjścia score_day. Test sprawdza wszystkie metryki do 12 miejsc:
+MAE=440.462500000000 PLN/MWh, bias=-440.462500000000 PLN/MWh,
+MAPE=40.578297996866%, WAPE=41.498908656941%. Są 24 okresy i 24 niezerowe
+ceny rzeczywiste. Wyniki dotyczą wyłącznie kontrolnego wektora JWCD/20.
+
+Test integracyjny archiwizuje rzeczywistą paczkę w osobnej bazie testowej.
+Mikrosekundę przed dostępnością Fix1 wymaga odmowy scoringu i pustej tabeli
+wyników. W chwili dostępności ma powstać jeden INSERT z metrykami zgodnymi
+z oracle; kolejne wywołania z referencją i bez niej mają dać REPLAY,
+niezmieniony zapis wyniku, dokładne 24 ceny archiwalne i brak kwarantanny.
+
+Lokalny test metryk przeszedł (1/1). SQL jawnie pominięto lokalnie przy braku
+PostgreSQL; jego wykonanie przewidziano w istniejącym CI PostgreSQL 16
+na loopback / fix1_shadow_test. Nie wykorzystuje się sekretów produkcyjnych.
+Nie zmieniono adapterów scoringu, JWCD 90D, FROZEN, Railway, istniejących
+archiwów, PR #2 ani harmonogramów; nie dodano rankingu lub pobrania live.
