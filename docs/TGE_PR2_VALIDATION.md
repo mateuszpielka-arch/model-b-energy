@@ -3629,3 +3629,31 @@ Lokalnie 5/5 testów PK5 24.11 przeszło.
 Nie nadpisano starszych dowodów, nie dodano Fix1 24.11 ani sparowanej doby
 treningowej. Nie wydano prognozy lub rankingu i nie zmieniono produkcji
 JWCD 90D, FROZEN, Railway, archiwów, PR #2 ani harmonogramów.
+
+
+## Checkpoint 2026-11-23 — rzeczywisty Fix1 dostawy 23.11 i audyt samych cen
+
+Oficjalna sesja TGE z 22.11 zwróciła HTTP 200 i komplet 24 cen Fixing I
+dostawy 23.11. Odczyt zakończono 23.11 o 06:13:41.794372 Europe/Warsaw;
+nie cofnięto tego czasu do wczorajszej publikacji. Zachowano oryginalny
+HTML gzip (mtime=0), referencję CSV i manifest w tge_delivery_2026-11-23.
+Referencja pochodzi z niezależnej ekstrakcji XPath TEGO SAMEGO HTML,
+nie z odrębnego oficjalnego eksportu.
+
+HTML: 426420 bajtów, SHA-256
+ac5c3139d9e00c323f48475d899cda7af87f3c7114773c06da4fa62fdf6ab194.
+CSV SHA-256:
+68784f149172d92dcefd115c8ead9f522b9264cb71c7d1031b4fcd2539f0bebe.
+H01=597.82, H24=468.67 PLN/MWh. Parser, XPath, CSV i jawna siatka UTC
+są zgodne dla wszystkich 24 okresów.
+
+Dwa nowe testy przeszły lokalnie (2/2). Read-only audyt jawnie wskazanych
+manifestów 22/23.11 ma dwie doby, 48 okresów, brak luk kalendarza i zero
+konfliktów cen, niezależnie od kolejności wejścia. Hashe źródeł nie zmieniają
+się. Sam CSV cen 23.11 ma 24 prawidłowe Fix1, zero JWCD i zero model_ready
+lub complete_pair_days: nowy komplet cen nie udaje sparowanej doby treningu.
+Nie dodano ani nie odtworzono wstecznie dowodów przed-cutoff PK5 23.11.
+
+Nie zmieniono wcześniejszych checkpointów korpusu, archiwów PostgreSQL,
+produkcji JWCD 90D, FROZEN, Railway, PR #2 ani harmonogramów. Brak nowej
+prognozy, score lub rankingu i brak zmian kodu parsera produkcyjnego.
