@@ -3907,3 +3907,38 @@ pełne CI: 607 testów OK (run 45182707614).
 Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy
 pozostają bez zmian. Nie wykonano pobrań live ani oceny modeli na brakujących
 oknach 30/60/90D.
+
+
+## Checkpoint 2026-11-23 — read-only audyt historii PK5 bez wymagania Fix1
+
+Dodano shadow_pk5_history_audit.py z API audit_pk5_history i CLI przyjmującym
+powtarzalne --source-day YYYY-MM-DD capture.json [capture.json ...].
+Każda jawna grupa przechodzi istniejący loader oryginalnego gzip/metadata,
+kontrolę hashy, publikacji, początku i końca pobrania względem własnego
+D-1 09:50 Europe/Warsaw oraz wybór jednej całej obserwacji. Wynik zawiera
+pełne dotychczasowe raporty dobowe, liczbę wybranych/niewybranych dób
+i okresów oraz luki między najwcześniejszą a najpóźniejszą podaną dostawą.
+Luki opisują wyłącznie dostarczony zbiór, nie stan zewnętrznego archiwum.
+
+API odrzuca puste/błędne grupy, nieobsługiwane daty i powtórzoną dobę przed
+odczytem plików. Wszystkie źródła muszą przejść walidację przed zwróceniem
+raportu; CLI przy błędzie ma kod 2 i pusty stdout. --require-selection
+zwraca kod 3 z pełnym JSON, jeśli któraś dostarczona doba nie ma wyboru;
+nie traktuje samej luki między grupami jako błędu walidacji źródła.
+model_readiness_assessed=false: PK5 bez Fix1 nie jest gotową historią modelową.
+
+Cztery testy lokalne przeszły. Oryginalne obserwacje second/fourth dla 22.11
+oraz early/sixth dla 24.11 dają dwa wybory / 48 okresów PK5 i jawną lukę 23.11.
+Wszystkie osiem kolejności grup i kandydatów zachowuje identyczne raporty,
+wybór fourth/sixth i własne cutoff 21/23.11 08:50 UTC. CLI/API są zgodne.
+Testy obejmują też duplikat ID bez wyboru, kod 3, uszkodzony hash w obu
+kolejnościach grup bez częściowego JSON oraz niezmienność plików źródłowych.
+
+Przykład audytu dwóch pojedynczych zachowanych obserwacji:
+python shadow_pk5_history_audit.py --source-day 2026-11-22 tests/fixtures/pse_pk5_delivery_2026-11-22_fourth/capture.json --source-day 2026-11-24 tests/fixtures/pse_pk5_delivery_2026-11-24_sixth/capture.json --require-selection
+
+Poprzedni etap 35386ba przeszedł pełne CI: 608 testów OK (run 45192025724),
+w tym rzeczywisty scenariusz rollbacku kwarantanny w izolowanym PostgreSQL.
+Nowy moduł nie wykonuje sieci/SQL/zapisów ani prognoz; nie pobrano nowych
+danych i nie uzupełniono brakujących dni. Produkcja JWCD 90D, FROZEN,
+Railway, istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.
