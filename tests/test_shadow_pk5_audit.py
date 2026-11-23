@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta
 from hashlib import sha256
 from itertools import permutations
 import json
+import gzip
 from pathlib import Path
 import shutil
 import subprocess
@@ -22,10 +23,64 @@ class PK5AuditTests(unittest.TestCase):
         return [FIXTURES / ('pse_pk5_delivery_2026-11-22' + suffix) / 'capture.json'
                 for suffix in ('', '_second', '_third', '_fourth')]
 
-    def cli(self, paths, day='2026-11-22'):
+    def cli(self, paths, day='2026-11-22', extra=()):
         return subprocess.run([sys.executable, str(ROOT / 'shadow_pk5_audit.py'),
-                               '--day', day, *map(str, paths)],
+                               '--day', day, *map(str, paths), *extra],
                               capture_output=True, text=True)
+
+
+    def test_required_selection_accepts_superseded_history_and_rejects_duplicates(self):
+        paths = self.paths()
+        expected = audit_pk5_captures(paths, day=date(2026, 11, 22))
+        completed = self.cli(paths, extra=['--require-selection'])
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(json.loads(completed.stdout), expected)
+        self.assertEqual(completed.stderr, '')
+        duplicate_paths = [paths[-1], paths[-1]]
+        diagnostic = self.cli(duplicate_paths)
+        strict = self.cli(duplicate_paths, extra=['--require-selection'])
+        self.assertEqual(diagnostic.returncode, 0, diagnostic.stderr)
+        self.assertEqual(strict.returncode, 3, strict.stderr)
+        self.assertEqual(strict.stderr, '')
+        self.assertEqual(strict.stdout, diagnostic.stdout)
+        self.assertIsNone(json.loads(strict.stdout)['selected_snapshot_id'])
+        with TemporaryDirectory() as directory:
+            missing = Path(directory) / 'missing.json'
+            invalid = self.cli([paths[-1], missing], extra=['--require-selection'])
+            self.assertEqual(invalid.returncode, 2)
+            self.assertEqual(invalid.stdout, '')
+            self.assertNotIn('Traceback', invalid.stderr)
+
+    def test_required_selection_reports_synthetic_same_publication_conflict_without_writes(self):
+        original = FIXTURES / 'pse_pk5_delivery_2026-11-24/capture.json'
+        original_files = {path: path.read_bytes() for path in original.parent.iterdir() if path.is_file()}
+        metadata = json.loads(original.read_text())
+        with TemporaryDirectory() as directory:
+            target = Path(directory) / 'synthetic-conflict'
+            shutil.copytree(original.parent, target)
+            raw_path = target / metadata['raw_file']
+            payload = json.loads(gzip.decompress(raw_path.read_bytes()))
+            payload['value'][0]['fcst_gen_unit_stor_prov'] += 1
+            raw = json.dumps(payload).encode()
+            raw_path.write_bytes(gzip.compress(raw, mtime=0))
+            # Legacy optional ID omission: the loader recomputes identity from original bytes.
+            changed = {key: value for key, value in metadata.items() if key != 'snapshot_id'}
+            changed.update(bytes=len(raw), raw_sha256=sha256(raw).hexdigest())
+            capture = target / 'capture.json'
+            capture.write_text(json.dumps(changed))
+            before = {path: path.read_bytes() for path in target.iterdir()}
+            for paths in ([original, capture], [capture, original]):
+                expected = audit_pk5_captures(paths, day=date(2026, 11, 24))
+                self.assertIsNone(expected['selected_snapshot_id'])
+                self.assertEqual(expected['selected_rows'], [])
+                self.assertIn('CONFLICTING_LATEST_SNAPSHOTS',
+                              {item['reason'] for item in expected['rejected_captures']})
+                completed = self.cli(paths, day='2026-11-24', extra=['--require-selection'])
+                self.assertEqual(completed.returncode, 3, completed.stderr)
+                self.assertEqual(completed.stderr, '')
+                self.assertEqual(json.loads(completed.stdout), expected)
+            self.assertEqual({path: path.read_bytes() for path in target.iterdir()}, before)
+        self.assertEqual({path: path.read_bytes() for path in original_files}, original_files)
 
     def test_four_real_revisions_report_selection_and_mixed_publications_in_every_order(self):
         paths = self.paths()

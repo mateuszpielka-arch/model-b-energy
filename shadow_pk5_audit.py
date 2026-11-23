@@ -50,13 +50,18 @@ def audit_pk5_captures(paths, *, day):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--day', required=True, type=date.fromisoformat)
+    parser.add_argument('--require-selection', action='store_true',
+                        help='Exit 3 after full diagnostics when no whole capture can be selected')
     parser.add_argument('capture', nargs='+', type=Path, help='Saved capture.json paths')
     args = parser.parse_args()
     try:
-        result = json.dumps(audit_pk5_captures(args.capture, day=args.day), indent=2) + '\n'
+        report = audit_pk5_captures(args.capture, day=args.day)
+        result = json.dumps(report, indent=2) + '\n'
     except (OSError, EOFError, ZlibError, ValueError, TypeError, KeyError) as exc:
         parser.error(str(exc))
     print(result, end='')
+    if args.require_selection and report['selected_snapshot_id'] is None:
+        raise SystemExit(3)
 
 
 if __name__ == '__main__':

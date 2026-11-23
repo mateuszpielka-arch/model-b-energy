@@ -3494,3 +3494,28 @@ okresów rewizji. Lokalnie 3/3 testy PK5 24.11 przeszły.
 Nie dodano Fix1 24.11, sparowanej doby treningu, prognozy lub rankingu.
 Produkcja JWCD 90D, FROZEN, Railway, starsze archiwa, PR #2 i harmonogramy
 pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — opcjonalny wymagany wybór w audycie PK5
+
+CLI shadow_pk5_audit obsługuje --require-selection. Po pełnej walidacji
+i utworzeniu kompletnego JSON zwraca kod 3, gdy istniejąca selekcja nie
+może wskazać całej obserwacji (np. duplikat ID lub konflikt). Udany wybór
+zwraca 0, także jeśli raport wymienia starsze, prawidłowo zastąpione rewizje.
+Wadliwy dowód nadal zwraca 2 i pusty stdout. Bez opcji zachowano dotychczasowy
+tryb diagnostyczny, kody i identyczny JSON; API oraz bramki selekcji bez zmian.
+
+Dwie nowe regresje sprawdzają kod 0 dla czterech rzeczywistych rewizji 22.11,
+kod 3 i identyczny pełny raport przy duplikacie oraz kod 2 bez raportu przy
+brakującym pliku. Drugi test tworzy wyłącznie w katalogu tymczasowym
+syntetyczne JWCD H01 +1 z raw PK5 24.11, z aktualnym hashem/rozmiarem
+i ponownie wyliczoną przez loader tożsamością. Czasy publikacji i pobrania
+pozostają identyczne: selekcja zwraca CONFLICTING_LATEST_SNAPSHOTS, bez
+wybranych wierszy. W obu kolejnościach --require-selection zwraca kod 3
+i pełny raport zgodny z API; oryginalne źródło i syntetyczna kopia pozostają
+niezmienione. Nie jest to nowa oficjalna rewizja ani kwarantanna PostgreSQL.
+
+Lokalnie 5/5 testów audytu PK5 przeszło. Nie zmieniono reguł publication_ts,
+retrieved_at, końca pobrania ani cutoff D−1 09:50 Europe/Warsaw. Brak nowych
+pobrań live, zapisów bazodanowych, prognoz lub rankingu. Produkcja JWCD 90D,
+FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.
