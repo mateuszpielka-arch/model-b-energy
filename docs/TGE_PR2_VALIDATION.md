@@ -4182,3 +4182,36 @@ zachowanych dowodów. Nie zmieniono starszych raportów lub adapterów.
 Poprzedni commit 923a454 przeszedł CI: 621 testów OK (run 45268685950).
 Brak nowej pary Fix1/PK5 i kompletnych okien 30/60/90D. Produkcja JWCD 90D,
 FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-24 — trzecia rzeczywista publikacja PK5 25.11
+
+Zachowano osobną paczkę tests/fixtures/pse_pk5_delivery_2026-11-25_third:
+oryginalny JSON gzip mtime=0 i capture.json. Oficjalne PSE zwróciło
+HTTP 200 / 24 okresy, bez zmiany URL. Pobranie 24.11 od
+00:16:19.726697 do 00:16:28.652854 Europe/Warsaw; wszystkie okresy mają
+publikację 24.11 00:14:26.244 Europe/Warsaw. Publikacja i oba czasy
+pobrania poprzedzają własny cutoff 24.11 09:50 Europe/Warsaw.
+
+Oryginał: 18646 bajtów, SHA-256
+bf1d0ce19d44913440e949c374071ac5c5fc1d9fd32f6faf4e31c7cd146884e1.
+Snapshot:
+pk5-capture-sha256:55689b2cccb61e5667821a7a8317aa4eadc5aff88cfa80905d541007b5380e6b.
+H01 JWCD=12765.00000 MW, H24=14232.00000 MW. Wszystkie 24 wartości
+różnią się od każdej z dwóch wcześniejszych obserwacji.
+
+Nowy test sprawdza hashe i wybór całej trzeciej publikacji względem
+niezależnej mapy JWCD z oryginalnego JSON z przeliczeniem końców UTC
+na początki okresów. Starsze obserwacje mają SUPERSEDED_JWCD_PUBLICATIONS;
+obie listy 24 zmienionych okresów są zgodne z oryginałami. Wszystkie sześć
+kolejności trzech paczek daje identyczny raport; CLI w obu kierunkach
+również, z kodem 0 i --require-selection. Bajty wszystkich źródeł pozostają
+niezmienione. Lokalnie pełny moduł źródeł 25.11: 4/4 testy OK.
+
+Nie zmieniono pierwszych dwóch obserwacji ani checkpointu audytu pięciu dób:
+ten raport nadal odtwarza swój jawny zbiór 17 obserwacji z source_commit
+923a454. Nowa obserwacja nie dopisuje Fix1 ani dnia treningowego i nie
+uzupełnia luki 23.11. Nie wykonano prognozy ani oceny okien 30/60/90D.
+Poprzedni etap 3c6cb16 przeszedł CI: 623 testy OK (run 45278484636).
+Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2
+i harmonogramy pozostają bez zmian; kod selekcji nie został zmieniony.
