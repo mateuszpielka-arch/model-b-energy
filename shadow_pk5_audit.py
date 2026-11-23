@@ -26,10 +26,24 @@ def audit_pk5_captures(paths, *, day):
         snapshots.append(prepare_pk5_snapshot(day=day.isoformat(), **capture))
     selected = select_snapshot(day, snapshots)
     chosen = next((item for item in snapshots if item['id'] == selected.snapshot_id), None)
+    differences = None
+    if chosen is not None:
+        selected_values = dict(selected.rows)
+        differences = []
+        for item in sorted(snapshots, key=lambda item: item['id']):
+            changed = sorted(
+                row['period_start_utc'].isoformat() for row in item['rows']
+                if row['jwcd_mw'] != selected_values[row['period_start_utc']]
+            )
+            differences.append(dict(
+                snapshot_id=item['id'], changed_periods=len(changed),
+                changed_periods_utc=changed,
+            ))
     return dict(
         read_only=True, delivery_date=day.isoformat(),
         cutoff_utc=selected.cutoff_utc.isoformat(),
         selected_snapshot_id=selected.snapshot_id,
+        revision_differences_from_selected=differences,
         captures=[dict(
             snapshot_id=item['id'], raw_sha256=item['raw_sha256'],
             source_url=item['source_url'], periods=len(item['rows']),

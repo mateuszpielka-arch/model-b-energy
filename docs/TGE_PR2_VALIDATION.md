@@ -3545,3 +3545,28 @@ Lokalnie 4/4 testy PK5 24.11 przeszły.
 To kolejna obserwacja PK5 jednej doby, nie nowa para PK5/Fix1. Nie dodano
 Fix1 24.11, okien treningu, prognozy, score ani rankingu. Produkcja JWCD 90D,
 FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — okresy różniące rewizje PK5 od wybranej obserwacji
+
+Read-only audyt PK5 dodaje revision_differences_from_selected. Dla każdego
+kandydata wymienia ID, liczbę changed_periods oraz posortowaną listę
+changed_periods_utc, porównując wartości JWCD z całą wybraną obserwacją.
+Porównanie jest liczbowe (Decimal), bez obliczania modelu, uśredniania lub
+mieszania okresów. Wybrana obserwacja ma zero różnic względem siebie.
+Przy braku zwycięzcy, również duplikacie lub konflikcie, pole ma null:
+nie deklaruje zera zmian i nie wyznacza arbitralnej referencji.
+
+Nowa regresja korzysta z oryginalnych JSON trzech obserwacji PK5 24.11.
+Niezależnie zestawia ich wartości z siatką UTC i sprawdza dokładne listy
+okresów: 23 zmiany pierwszej do drugiej oraz 24 drugiej do trzeciej.
+Wszystkie sześć kolejności trzech paczek daje identyczny pełny raport;
+CLI z --require-selection zgadza się z API. Hashe i bajty źródeł pozostają
+niezmienione. Rozszerzono też kontrole duplikatu i syntetycznego konfliktu
+o null zamiast pozornego wyniku porównania.
+
+Lokalnie 6/6 testów audytu przeszło. Reguły selekcji, publikacji, początku
+i końca pobrania oraz cutoff D−1 09:50 Europe/Warsaw pozostają bez zmian.
+Nie wykonano nowego pobrania live, zapisu bazy, prognozy ani rankingu.
+Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy
+pozostają bez zmian.

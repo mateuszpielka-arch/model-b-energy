@@ -3,6 +3,7 @@ from hashlib import sha256
 from itertools import permutations
 import json
 import gzip
+from decimal import Decimal
 from pathlib import Path
 import shutil
 import subprocess
@@ -11,6 +12,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from shadow_asof import cutoff_for_day
+from shadow_scoring import expected_periods
 from shadow_pk5_audit import audit_pk5_captures
 
 
@@ -28,6 +30,42 @@ class PK5AuditTests(unittest.TestCase):
                                '--day', day, *map(str, paths), *extra],
                               capture_output=True, text=True)
 
+
+
+    def test_real_revision_differences_match_original_pk5_values_and_utc_periods(self):
+        day = date(2026, 11, 24)
+        paths = [FIXTURES / ('pse_pk5_delivery_2026-11-24' + suffix) / 'capture.json'
+                 for suffix in ('', '_second', '_third')]
+        metadata = [json.loads(path.read_text()) for path in paths]
+        files = {path for capture in paths for path in capture.parent.iterdir() if path.is_file()}
+        before = {path: path.read_bytes() for path in files}
+        original_values = [
+            [row['fcst_gen_unit_stor_prov'] for row in json.loads(gzip.decompress(
+                (path.parent / entry['raw_file']).read_bytes()), parse_float=Decimal)['value']]
+            for path, entry in zip(paths, metadata, strict=True)
+        ]
+        for candidates, latest in ((paths[:2], 1), (paths, 2)):
+            report = audit_pk5_captures(candidates, day=day)
+            changes = {entry['snapshot_id']: entry
+                       for entry in report['revision_differences_from_selected']}
+            for index in range(latest + 1):
+                expected = [period.isoformat() for period, old, new in zip(
+                    expected_periods(day), original_values[index], original_values[latest], strict=True)
+                            if old != new]
+                self.assertEqual(changes[metadata[index]['snapshot_id']], dict(
+                    snapshot_id=metadata[index]['snapshot_id'], changed_periods=len(expected),
+                    changed_periods_utc=expected))
+            self.assertEqual(changes[metadata[latest]['snapshot_id']]['changed_periods'], 0)
+            if latest == 1:
+                self.assertEqual(changes[metadata[0]['snapshot_id']]['changed_periods'], 23)
+            else:
+                self.assertEqual(changes[metadata[1]['snapshot_id']]['changed_periods'], 24)
+                for ordering in permutations(paths):
+                    self.assertEqual(audit_pk5_captures(ordering, day=day), report)
+            completed = self.cli(candidates, day=day.isoformat(), extra=['--require-selection'])
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(json.loads(completed.stdout), report)
+        self.assertEqual({path: path.read_bytes() for path in files}, before)
 
     def test_required_selection_accepts_superseded_history_and_rejects_duplicates(self):
         paths = self.paths()
@@ -71,6 +109,7 @@ class PK5AuditTests(unittest.TestCase):
             before = {path: path.read_bytes() for path in target.iterdir()}
             for paths in ([original, capture], [capture, original]):
                 expected = audit_pk5_captures(paths, day=date(2026, 11, 24))
+                self.assertIsNone(expected['revision_differences_from_selected'])
                 self.assertIsNone(expected['selected_snapshot_id'])
                 self.assertEqual(expected['selected_rows'], [])
                 self.assertIn('CONFLICTING_LATEST_SNAPSHOTS',
@@ -119,6 +158,7 @@ class PK5AuditTests(unittest.TestCase):
         self.assertNotIn('model_ready', report)
         self.assertEqual(report['rejected_captures'], [])
         duplicate = audit_pk5_captures([path, path], day=date(2026, 11, 24))
+        self.assertIsNone(duplicate['revision_differences_from_selected'])
         self.assertIsNone(duplicate['selected_snapshot_id'])
         self.assertEqual(duplicate['selected_rows'], [])
         self.assertEqual({item['reason'] for item in duplicate['rejected_captures']},
