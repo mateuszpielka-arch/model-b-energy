@@ -3765,3 +3765,37 @@ oficjalnej publikacji. Brak Fix1 24.11 do sparowania z zachowanym PK5;
 nie utworzono doby treningowej, prognozy, score lub rankingu. Nie zmieniono
 parsera produkcyjnego, JWCD 90D, FROZEN, Railway, archiwów, PR #2
 ani harmonogramów. Nie zastępuje to porannego raportu ani raportu 18:00.
+
+
+## Checkpoint 2026-11-23 — kompletny Fix1 24.11 po odpowiedzi z brakującymi cenami
+
+Nowe pobranie oficjalnej sesji TGE 23.11 zwróciło HTTP 200 i 24 ceny
+Fixing I dostawy 24.11. Odczyt zakończono 23.11 o 11:14:34.948376
+Europe/Warsaw. Oryginalny HTML gzip (mtime=0), CSV XPath i manifest
+zapisano osobno w tge_delivery_2026-11-24. Wcześniejszy dowód z 10:12,
+w którym wszystkie ceny miały „-”, pozostaje niezmieniony i niedopuszczony.
+Nie utożsamiono końca nowego pobrania z dokładnym czasem oficjalnej publikacji.
+
+HTML: 281609 bajtów, SHA-256
+4c5dfb6aaea7e753dabe720595abd59962b5047334105d6dcb42b8a262ca3279.
+CSV SHA-256:
+484d664e1f954e30545cb9c9842a41708cc8a9c723e4bc70ecb59b210c058488.
+H01=692.18, H24=896.86 PLN/MWh. Parser, XPath, CSV i jawna siatka UTC
+są zgodne dla wszystkich okresów. XPath czyta ten sam oryginalny HTML,
+nie jest odrębnym oficjalnym eksportem.
+
+Nowe testy łączą tę paczkę z sześcioma odrębnymi zapisanymi obserwacjami
+PK5 24.11. Obie kolejności dają identyczny raport i wybór całego sixth:
+publikacja 09:13:42.117, początek pobrania 09:19:27.368850,
+koniec 09:19:34.382677 Europe/Warsaw, przed własnym cutoff 09:50.
+Pięć starszych obserwacji ma SUPERSEDED_JWCD_PUBLICATIONS, bez mieszania
+okresów. H01 JWCD=8108.00000, H24=11941.00000 MW.
+
+Dostępność Fix1 przypisano dopiero do 11:14:34.948376, bez cofania przed
+cutoff. Lokalnie 3/3 nowe testy przeszły. Paczka wnosi jedną rzeczywistą
+parę / 24 okresy; sama nie tworzy okien treningu 30/60/90D. Walk-forward
+dla tej pojedynczej paczki przed i w chwili dostępności Fix1 ma zero wspólnych
+okresów i pusty ranking. Nie wydano prognozy ani nie zastąpiono raportu 09:50.
+
+Produkcja JWCD 90D, FROZEN, Railway, starsze archiwa, checkpointy korpusu,
+PR #2 i harmonogramy pozostają bez zmian.
