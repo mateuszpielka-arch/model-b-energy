@@ -3942,3 +3942,34 @@ w tym rzeczywisty scenariusz rollbacku kwarantanny w izolowanym PostgreSQL.
 Nowy moduł nie wykonuje sieci/SQL/zapisów ani prognoz; nie pobrano nowych
 danych i nie uzupełniono brakujących dni. Produkcja JWCD 90D, FROZEN,
 Railway, istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — kalendarzowe pokrycie PK5 dla dób 23/24/25h
+
+Raport shadow_pk5_history_audit rozszerzono o calendar_coverage_by_hours.
+Osobno dla 23/24/25h podaje doby kalendarza, brakujące w dostarczonym
+zbiorze, dostarczone bez wyboru oraz wybrane, a także okresy kalendarza,
+wybrane i niepokryte. Zakres nadal obejmuje tylko pierwszą–ostatnią podaną
+dostawę; długość doby wynika z istniejącej siatki UTC Europe/Warsaw.
+Brak grupy źródeł i grupa bez dopuszczonej obserwacji są rozróżnione.
+
+Rzeczywiste obserwacje 22/24.11 dają trzy doby 24h: 72 okresy kalendarza,
+48 wybranych i 24 niepokryte z powodu luki 23.11. Przy duplikacie ID dla
+24.11 pozostaje 24 wybranych i 48 niepokrytych okresów, rozdzielonych
+na jedną brakującą dobę i jedną dostarczoną bez wyboru. Dotychczasowe testy
+sprawdzają nowe pola także we wszystkich kolejnościach paczek i przez CLI,
+przy zachowaniu niezmienności plików źródłowych.
+
+Dodano dwa testy: wyłącznie kalendarzowe luki wokół 29.03.2026 i 25.10.2026
+mają odpowiednio 23 i 25 brakujących okresów (łącznie z sąsiednimi dobami
+71/73 okresy), a pojedyncza dostarczona doba bez wyboru nie jest oznaczana
+jako brakująca. Te testy nie zawierają nowych obserwacji PK5 ani dowodów
+dopuszczenia rzeczywistych źródeł 23/25h. Lokalnie cały moduł: 6/6 OK.
+
+Nie zmieniono wyboru snapshotów ani kontroli publication_ts i obu czasów
+pobrania względem własnego D-1 09:50 Europe/Warsaw. PK5 nadal nie dowodzi
+gotowości modelu bez Fix1 (model_readiness_assessed=false). Poprzedni commit
+dd63158 przeszedł pełne CI: 612 testów OK (run 45203006580).
+Brak nowych pobrań live, zapisów SQL, prognoz lub uzupełniania brakujących
+dni. Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2
+i harmonogramy pozostają bez zmian.

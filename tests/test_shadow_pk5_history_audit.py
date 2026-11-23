@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from shadow_pk5_audit import audit_pk5_captures
-from shadow_pk5_history_audit import audit_pk5_history
+from shadow_pk5_history_audit import _calendar_coverage, audit_pk5_history
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / 'tests/fixtures'
@@ -48,6 +48,11 @@ class PK5HistoryAuditTests(unittest.TestCase):
         self.assertEqual((report['observed_periods'], report['selected_periods']), (48, 48))
         self.assertEqual(report['missing_delivery_ranges'],
                          [dict(start_day='2026-11-23', end_day='2026-11-23', days=1)])
+        self.assertEqual(report['calendar_coverage_by_hours']['24'], dict(
+            calendar_days=3, absent_days=1, observed_unselected_days=0,
+            selected_days=2, calendar_periods=72, selected_periods=48, uncovered_periods=24))
+        for hours in ('23', '25'):
+            self.assertEqual(set(report['calendar_coverage_by_hours'][hours].values()), {0})
         self.assertEqual(report['days'], [audit_pk5_captures(g['captures'], day=g['day'])
                                           for g in groups])
         self.assertEqual([item['cutoff_utc'] for item in report['days']],
@@ -70,6 +75,9 @@ class PK5HistoryAuditTests(unittest.TestCase):
         report = audit_pk5_history(groups)
         self.assertEqual((report['selected_days'], report['unselected_days']), (1, 1))
         self.assertEqual(report['selected_periods'], 24)
+        self.assertEqual(report['calendar_coverage_by_hours']['24'], dict(
+            calendar_days=3, absent_days=1, observed_unselected_days=1,
+            selected_days=1, calendar_periods=72, selected_periods=24, uncovered_periods=48))
         self.assertIsNone(report['days'][-1]['selected_snapshot_id'])
         self.assertEqual(report['days'][-1]['selected_rows'], [])
         self.assertEqual({item['reason'] for item in report['days'][-1]['rejected_captures']},
@@ -100,6 +108,36 @@ class PK5HistoryAuditTests(unittest.TestCase):
                 self.assertEqual(completed.stdout, '')
                 self.assertNotIn('Traceback', completed.stderr)
             self.assertEqual({p: p.read_bytes() for p in target.iterdir()}, before)
+
+
+    def test_calendar_only_dst_gaps_count_23_and_25_missing_periods_without_evidence(self):
+        # These are calendar-only selections, not invented source captures or admission.
+        for start, end, missing_hours in (
+            (date(2026, 3, 28), date(2026, 3, 30), 23),
+            (date(2026, 10, 24), date(2026, 10, 26), 25),
+        ):
+            with self.subTest(start=start):
+                coverage = _calendar_coverage({start: True, end: True})
+                self.assertEqual(coverage[str(missing_hours)], dict(
+                    calendar_days=1, absent_days=1, observed_unselected_days=0,
+                    selected_days=0, calendar_periods=missing_hours,
+                    selected_periods=0, uncovered_periods=missing_hours))
+                self.assertEqual(coverage['24'], dict(
+                    calendar_days=2, absent_days=0, observed_unselected_days=0,
+                    selected_days=2, calendar_periods=48,
+                    selected_periods=48, uncovered_periods=0))
+                other = '25' if missing_hours == 23 else '23'
+                self.assertEqual(set(coverage[other].values()), {0})
+                self.assertEqual(sum(v['calendar_periods'] for v in coverage.values()),
+                                 48 + missing_hours)
+                self.assertEqual(sum(v['uncovered_periods'] for v in coverage.values()),
+                                 missing_hours)
+
+    def test_single_day_without_selection_is_uncovered_not_absent(self):
+        coverage = _calendar_coverage({date(2026, 11, 22): False})
+        self.assertEqual(coverage['24'], dict(
+            calendar_days=1, absent_days=0, observed_unselected_days=1,
+            selected_days=0, calendar_periods=24, selected_periods=0, uncovered_periods=24))
 
     def test_group_errors_are_rejected_before_any_evidence_read(self):
         good = dict(day=date(2026, 11, 22), captures=[Path('must-not-be-opened.json')])

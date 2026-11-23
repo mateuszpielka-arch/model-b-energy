@@ -9,6 +9,31 @@ from shadow_pk5_audit import audit_pk5_captures
 from shadow_scoring import expected_periods
 
 
+
+def _calendar_coverage(selections):
+    """Count calendar hours separately from supplied, selected PK5 evidence."""
+    counts = {
+        str(hours): dict(calendar_days=0, absent_days=0, observed_unselected_days=0,
+                         selected_days=0)
+        for hours in (23, 24, 25)
+    }
+    for ordinal in range(min(selections).toordinal(), max(selections).toordinal() + 1):
+        day = date.fromordinal(ordinal)
+        bucket = counts[str(len(expected_periods(day)))]
+        bucket['calendar_days'] += 1
+        if day not in selections:
+            bucket['absent_days'] += 1
+        elif selections[day]:
+            bucket['selected_days'] += 1
+        else:
+            bucket['observed_unselected_days'] += 1
+    for hours, bucket in counts.items():
+        bucket['calendar_periods'] = int(hours) * bucket['calendar_days']
+        bucket['selected_periods'] = int(hours) * bucket['selected_days']
+        bucket['uncovered_periods'] = bucket['calendar_periods'] - bucket['selected_periods']
+    return counts
+
+
 def audit_pk5_history(groups):
     """Audit explicit day/capture groups, retaining each whole-capture decision.
 
@@ -48,7 +73,12 @@ def audit_pk5_history(groups):
         unselected_days=len(days) - len(selected),
         observed_periods=sum(len(expected_periods(day)) for day in labels),
         selected_periods=sum(len(item['selected_rows']) for item in selected),
-        missing_delivery_ranges=gaps, days=days,
+        missing_delivery_ranges=gaps,
+        calendar_coverage_by_hours=_calendar_coverage({
+            date.fromisoformat(item['delivery_date']): item['selected_snapshot_id'] is not None
+            for item in days
+        }),
+        days=days,
     )
 
 
