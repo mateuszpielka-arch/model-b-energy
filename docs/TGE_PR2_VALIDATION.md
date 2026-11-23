@@ -4150,3 +4150,35 @@ obserwacji do okien 30/60/90D. Poprzedni etap 2470c96 przeszedł pełne CI:
 620 testów OK (run 45258019879). Kod selekcji pozostał bez zmian.
 Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2
 i harmonogramy pozostają bez zmian; nie wydano prognozy.
+
+
+## Checkpoint 2026-11-23 — odtwarzalny audyt pięciu dób samego PK5
+
+Zapisano docs/validation/pk5_history_audit_2026-11-25.json z source_commit
+923a454e7d9ad4a875bf3edf6f8a2d97aedfac83 i jawnymi ścieżkami wszystkich
+17 zachowanych obserwacji PK5 dla dostaw 20/21/22/24/25.11.
+Raport zachowuje oryginalne hashe, czasy początku/końca pobrania, rozkłady
+publikacji, powody odrzucenia starszych obserwacji i wybrane całe profile.
+Każda doba jest oceniana względem własnego D-1 09:50 Europe/Warsaw.
+
+Wybrano second 20.11, third 21.11, fourth 22.11, sixth 24.11 i second 25.11:
+pięć dób / 120 okresów PK5. Zakres kalendarza 20–25.11 ma sześć dób / 144
+okresy; brak 23.11 oznacza 24 niepokryte okresy. Nie dopisano brakującej
+obserwacji. Dla 23/25h nie ma obserwowanych dób w tym zestawie; raport nie
+stanowi dowodu kompletności DST. model_readiness_assessed=false:
+sam wybór PK5 nie potwierdza Fix1, treningu lub oceny modelu.
+
+Dodano tests/test_five_day_pk5_checkpoint.py. Wszystkie 120 kolejności pięciu
+grup oraz odwrócenie kolejności kandydatów odtwarzają cały zapisany raport.
+Wybrane obserwacje są dodatkowo sprawdzane względem hashy i obu czasów
+oryginalnych metadanych, także starszych paczek bez opcjonalnego snapshot_id.
+CLI w obu kolejnościach daje identyczny JSON i kod 0 z --require-selection.
+Testy kontrolują niezmienność wszystkich 34 plików źródłowych i checkpointu.
+
+Lokalnie 2/2 nowe testy przeszły.
+
+Nie wykonano nowych pobrań live ani zapisów SQL; użyto wyłącznie wcześniej
+zachowanych dowodów. Nie zmieniono starszych raportów lub adapterów.
+Poprzedni commit 923a454 przeszedł CI: 621 testów OK (run 45268685950).
+Brak nowej pary Fix1/PK5 i kompletnych okien 30/60/90D. Produkcja JWCD 90D,
+FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.
