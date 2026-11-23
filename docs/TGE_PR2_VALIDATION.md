@@ -3827,3 +3827,33 @@ PostgreSQL; jego wykonanie przewidziano w istniejącym CI PostgreSQL 16
 na loopback / fix1_shadow_test. Nie wykorzystuje się sekretów produkcyjnych.
 Nie zmieniono adapterów scoringu, JWCD 90D, FROZEN, Railway, istniejących
 archiwów, PR #2 ani harmonogramów; nie dodano rankingu lub pobrania live.
+
+
+## Checkpoint 2026-11-23 — odtwarzalny audyt czterech sparowanych dób z luką 23.11
+
+Zapisano nowy docs/validation/paired_source_audit_2026-11-24.json z jawnymi
+ścieżkami paczek i source_commit a1a2c9883b8a3ada96a4e98c48b71d9054bad19f.
+Obejmuje dostawy 20/21/22/24.11, 96 unikalnych okresów UTC, cztery kompletne
+pary i cztery doby poprawne w audycie wierszy. Najdłuższy ciąg wynosi trzy
+doby. Zachowano dowody Fix1 i kandydatów PK5; dla 24.11 sześć obserwacji
+wybiera całe sixth sprzed cutoff. Starszego checkpointu trzech dób nie zmieniono.
+
+Zakres celów 23–24.11 jawnie wykazuje brak SPAROWANEJ doby 23.11. Jej
+rzeczywisty Fix1 jest zachowany osobno, lecz brak dowodu PK5 sprzed własnego
+cutoff, więc nie dopisano go do model_ready ani nie uzupełniono interpolacją.
+Ocena odbywa się na jawny czas dostępności Fix1 24.11:
+23.11 11:14:34.948376 Europe/Warsaw. Dla celu 24.11 istnieją trzy wcześniejsze
+doby źródłowe z cenami dostępnymi przed cutoff celu; brakuje 27/57/87 dni
+w oknach 30/60/90D. Brak wspólnych okresów i rankingu sześciu modeli.
+To poprawność źródeł, nie gotowość okien treningowych.
+
+Lokalnie 2/2 nowe testy przeszły. Wszystkie 24 kolejności czterech paczek
+odtwarzają zapisany raport; loader doba po dobie jest zgodny z dotychczasowym
+API i nie zmienia hashy źródeł. CLI dla obu kolejności zachowuje 96 wierszy
+historii mimo ograniczenia celu do dwóch dni i daje identyczny pełny wynik.
+Pokrycie celu: dwa dni kalendarza, jeden bez pary, jeden dopuszczony źródłowo
+ale niescorowany, zero dni na wspólnej próbce.
+
+Brak nowych pobrań live lub zapisów PostgreSQL. Produkcja JWCD 90D, FROZEN,
+Railway, istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.
+Nie wydano prognozy ani nie zastąpiono raportu 09:50 lub 18:00.
