@@ -6,8 +6,9 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 
-from shadow_source_history import load_history_day, prepare_history_collection
+from shadow_source_history import load_history_day, prepare_history_collection, load_history_collection
 from shadow_walkforward_csv import evaluate_csv_rows
 
 
@@ -63,6 +64,8 @@ class ThreeDayCheckpointTests(unittest.TestCase):
         before = {path: sha256(path.read_bytes()).hexdigest() for path in files}
         for groups in itertools.permutations(source_groups()):
             report = prepare(groups)
+            streamed = load_history_collection([[ROOT / path for path in group] for group in groups])
+            self.assertEqual(streamed, report)
             self.assertEqual(retained_summary(report), saved['report'])
             self.assertEqual(len({row['period_start_utc'] for row in report['rows']}), 72)
         audit = report['history_audit']
@@ -81,6 +84,17 @@ class ThreeDayCheckpointTests(unittest.TestCase):
             self.assertEqual(coverage['absent_from_csv_days'], window - 2)
             self.assertEqual(coverage['admitted_with_fix1_after_target_cutoff_days'], 0)
         self.assertEqual({path: sha256(path.read_bytes()).hexdigest() for path in files}, before)
+
+
+    def test_streamed_loader_rejects_malformed_groups_before_opening_sources(self):
+        for groups in (None, [], {}, 'paths', [None], [['only-manifest']], [['a', 'b'], []]):
+            with self.subTest(groups=groups), patch(
+                'shadow_source_history.load_history_day',
+                side_effect=AssertionError('Unexpected source read'),
+            ) as loader:
+                with self.assertRaisesRegex(ValueError, 'source path group'):
+                    load_history_collection(groups)
+                loader.assert_not_called()
 
     def test_three_day_cli_keeps_prior_training_rows_and_matches_api(self):
         expected = prepare(source_groups())

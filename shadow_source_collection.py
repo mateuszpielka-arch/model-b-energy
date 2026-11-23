@@ -14,7 +14,7 @@ from pathlib import Path
 import sys
 from zlib import error as ZlibError
 
-from shadow_source_history import load_history_day, prepare_history_collection
+from shadow_source_history import load_history_collection
 from shadow_history_audit import _stamp
 from shadow_walkforward_csv import evaluate_csv_rows, _json_value
 
@@ -58,8 +58,7 @@ def main():
     try:
         if any(len(group) < 2 for group in args.day):
             raise ValueError('Each --day requires a Fix1 manifest and at least one PK5 capture')
-        days = [load_history_day(group[0], group[1:]) for group in args.day]
-        report = prepare_history_collection(days=days)
+        report = load_history_collection(args.day)
         if args.walk_forward_at is not None:
             report['evaluation'] = dict(
                 evaluated_at_utc=args.walk_forward_at.isoformat(),

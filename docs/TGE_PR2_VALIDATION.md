@@ -3570,3 +3570,36 @@ i końca pobrania oraz cutoff D−1 09:50 Europe/Warsaw pozostają bez zmian.
 Nie wykonano nowego pobrania live, zapisu bazy, prognozy ani rankingu.
 Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy
 pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — kolekcja źródeł bez kumulacji raw wszystkich dób
+
+Dodano load_history_collection(groups), który wczytuje i waliduje jedną
+paczkę PK5/Fix1 naraz, zachowując jedynie przygotowane raporty. Po walidacji
+bieżącej doby zwalnia jej paczkę raw przed odczytem następnej. CLI
+shadow_source_collection korzysta z nowego loadera zamiast wcześniejszej
+listy wszystkich paczek z oryginalnym HTML/JSON w pamięci.
+
+prepare_history_collection zachowuje dotychczasowy kontrakt list/tuple
+gotowych paczek. Oba wejścia współdzielą końcową kontrolę duplikatów dób,
+sortowanie, łączenie wierszy i audyt. Wynik pozostaje kompletny przed
+jakimkolwiek stdout lub atomowym eksportem; nie zmieniono formatu raportu,
+doboru rewizji, dostępności publikacji/pobrania ani cutoff D−1 09:50.
+
+Lokalnie 3/3 testy checkpointu trzech dób przeszły. We wszystkich sześciu
+kolejnościach paczek nowy loader daje dokładnie taki sam pełny raport jak
+dotychczasowe API i odtwarza niezmieniony zapisany checkpoint 72 okresów.
+CLI nadal zachowuje wcześniejsze wiersze treningowe przy ograniczeniu celu.
+Nowy test odrzuca puste i błędne grupy ścieżek przed otwarciem źródeł.
+Hashe wszystkich zapisanych źródeł pozostają niezmienione.
+
+Po rozgrzaniu obu ścieżek wykonano jedną lokalną próbę tracemalloc na
+rzeczywistych paczkach 20/21/22.11: szczyt śledzonych alokacji Pythona
+wyniósł 17840896 bajtów dla listy wszystkich paczek oraz 17300151 dla
+odczytu doba po dobie. SHA-256 znormalizowanych JSON obu pełnych raportów
+jest identyczny: 7cc8197a1e81982f1ed97b518c931f64725314d6fc120f18e6bd8efa19193054.
+To pomiar jednej próby, nie RSS ani gwarancja stałej pamięci: bieżąca
+doba, parser i raporty wynikowe nadal wymagają pamięci.
+
+Nie wykonano pobrań live lub zapisów PostgreSQL. Produkcja JWCD 90D,
+FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.

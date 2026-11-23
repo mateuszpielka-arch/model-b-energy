@@ -131,13 +131,33 @@ def prepare_history_collection(*, days):
         raise ValueError('Nonempty list or tuple of source day packages required')
     if any(not isinstance(package, Mapping) or set(package) != fields for package in days):
         raise ValueError('Source day package requires captures and Fix1 batch/raw/reference only')
-    reports = [prepare_history_report_from_captures(**package) for package in days]
+    return _combine_history_reports(
+        [prepare_history_report_from_captures(**package) for package in days],
+    )
+
+
+def _combine_history_reports(reports):
     labels = [report['delivery_date'] for report in reports]
     if len(set(labels)) != len(labels):
         raise ValueError('Duplicate delivery date in source history collection')
     reports.sort(key=lambda report: report['delivery_date'])
     rows = tuple(row for report in reports for row in report['rows'])
     return dict(days=reports, periods=len(rows), rows=rows, history_audit=audit_rows(rows))
+
+
+
+def load_history_collection(groups):
+    """Read and validate one source day at a time, retaining only prepared reports."""
+    if not isinstance(groups, (list, tuple)) or not groups:
+        raise ValueError('Nonempty list or tuple of source path groups required')
+    if any(not isinstance(group, (list, tuple)) or len(group) < 2 for group in groups):
+        raise ValueError('Each source path group requires a Fix1 manifest and PK5 captures')
+    reports = []
+    for group in groups:
+        package = load_history_day(group[0], group[1:])
+        reports.append(prepare_history_report_from_captures(**package))
+        del package
+    return _combine_history_reports(reports)
 
 
 def load_pk5_capture(capture_path, *, day):
