@@ -4118,3 +4118,35 @@ lub prognozy. Nie dodano jej do gotowych okien 30/60/90D. Wcześniejsze
 obserwacje 20/21/22/24.11 oraz archiwa pozostają niezmienione.
 Poprzedni commit e0f8ebb przeszedł pełne CI: 618 testów OK (run 45246661234).
 Produkcja JWCD 90D, FROZEN, Railway, PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — druga rzeczywista publikacja PK5 25.11
+
+Zachowano osobną paczkę tests/fixtures/pse_pk5_delivery_2026-11-25_second.
+Oficjalne PSE zwróciło HTTP 200 / 24 okresy, URL bez przekierowania.
+Pobranie 23.11 od 22:18:47.522200 do 22:18:55.444056 Europe/Warsaw.
+Wszystkie okresy mają nowszą publikację 23.11 22:05:12.606 Europe/Warsaw.
+Publikacja i oba czasy pobrania poprzedzają własny cutoff
+24.11 09:50 Europe/Warsaw. Pierwszej obserwacji nie zmieniono.
+
+Oryginalny JSON: 18645 bajtów, SHA-256
+d79a3599e74f5802fc5ab3bb1805afa509b01aa4550d11bf93f0bc00b43867f7.
+Snapshot:
+pk5-capture-sha256:0cbbb9cbc0710615ea462198bb1f834023c2b8a0548eec64707260133577ad13.
+H01 JWCD=12791.00000, H24=14185.00000 MW. Surowy gzip mtime=0 i capture.json
+zawierają dowód tej obserwacji. Zachowano pełny payload, ale używane są
+wyłącznie JWCD oraz pola okresu/proweniencji.
+
+Nowy test porównuje wszystkie 24 wartości z niezależną mapą z oryginalnego
+JSON (końce UTC minus godzina). Dokładnie siedem okresów różni się od
+pierwszego odczytu. Raport wyboru i lista zmienionych okresów są zgodne;
+wybrana jest cała druga obserwacja z jedną publikacją, a pierwsza ma
+SUPERSEDED_JWCD_PUBLICATIONS. Obie kolejności wejścia dają identyczne
+API/CLI, kod 0 z --require-selection i niezmienione bajty obu paczek.
+Lokalnie wszystkie 3/3 testy źródeł 25.11 przeszły.
+
+Brak Fix1 dla 25.11, nowej pary treningowej i oceny modeli. Nie dodano
+obserwacji do okien 30/60/90D. Poprzedni etap 2470c96 przeszedł pełne CI:
+620 testów OK (run 45258019879). Kod selekcji pozostał bez zmian.
+Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2
+i harmonogramy pozostają bez zmian; nie wydano prognozy.
