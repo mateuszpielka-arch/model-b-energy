@@ -73,6 +73,7 @@ class November24RecaptureArchiveTests(unittest.TestCase):
                          'fix1_shadow_test.batches RESTART IDENTITY CASCADE')
             self.assertEqual(archive_batch(conn, first, original_raw), 'INSERT')
             before = [conn.execute(query).fetchall() for query in queries]
+            replayed = None
             for directory in (RECAPTURE, ORIGINAL, RECAPTURE):
                 report = ingest_manifest(directory / 'manifest.json', conn=conn)
                 self.assertEqual((report['days_by_status'], report['inserted_periods']),
@@ -81,14 +82,23 @@ class November24RecaptureArchiveTests(unittest.TestCase):
                 self.assertFalse(result['scoring_blocked_by_quarantine'])
                 self.assertEqual(result['accepted_capture'], dict(
                     raw_sha256=first.raw_sha256, retrieved_at_utc=first.retrieved_at.isoformat()))
-                self.assertEqual([conn.execute(query).fetchall() for query in queries], before)
+                after = [conn.execute(query).fetchall() for query in queries]
+                self.assertEqual(after[0], before[0])
+                self.assertEqual(after[2], before[2])
+                self.assertEqual(after[1][0], before[1][0])
+                self.assertEqual(len(after[1]), 2)
+                if replayed is None:
+                    # Retain the genuinely new raw capture without replacing accepted prices.
+                    replayed = after
+                else:
+                    self.assertEqual(after, replayed)
             self.assertEqual(conn.execute(
-                'SELECT raw_html,retrieved_at FROM fix1_shadow_test.batches',
-            ).fetchall(), [(original_raw, first.retrieved_at)])
+                'SELECT raw_html,retrieved_at FROM fix1_shadow_test.batches ORDER BY id',
+            ).fetchall(), [(original_raw, first.retrieved_at), (later_raw, later.retrieved_at)])
             self.assertEqual(conn.execute(
                 'SELECT period_start_utc,price FROM fix1_shadow_test.prices ORDER BY period_start_utc',
             ).fetchall(), list(first.rows))
-            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (1,))
+            self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.batches').fetchone(), (2,))
             self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.quarantine').fetchone(), (0,))
         self.assertEqual(evidence_bytes(), files)
 

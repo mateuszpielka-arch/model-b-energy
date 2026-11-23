@@ -4028,9 +4028,10 @@ Dodano tests/test_tge_november24_recapture.py: test źródeł porównuje cały
 nowy HTML/CSV z wcześniejszym dowodem i sprawdza niezmienność plików.
 Test PostgreSQL wstawia wyłącznie pierwszą paczkę, a następnie importuje
 kolejno nową, pierwszą i nową. Każda ma dać REPLAY / zero wstawionych okresów,
-bez kwarantanny; pełne tabele mają pozostać identyczne. accepted_capture
+bez kwarantanny; ceny i pierwotny wiersz źródła mają pozostać identyczne. accepted_capture
 musi nadal wskazywać pierwszy hash i czas dostępności, bez przesunięcia go
-na godzinę ponownego pobrania. W bazie pozostaje jeden oryginalny raw i 24 ceny.
+na godzinę ponownego pobrania. Nowy raw jest zachowany jako druga obserwacja, bez przepinania 24 cen
+na nowy batch. Kolejne importy mają pozostawić wszystkie tabele identyczne.
 
 Lokalnie test źródeł przeszedł (1 OK); SQL jawnie pominięto przy braku
 lokalnego PostgreSQL i pozostawiono do istniejącego izolowanego CI.
@@ -4041,3 +4042,11 @@ historycznego PK5; nie zwiększa kompletności okien 30/60/90D.
 Nie zmieniono adapterów, produkcji JWCD 90D, FROZEN, Railway, istniejących
 archiwów i wcześniejszych fixture, PR #2 ani harmonogramów. Nie wydano
 prognozy i nie zastąpiono raportu 09:50 lub 18:00.
+
+
+Weryfikacja SQL pierwszej wersji testu (run 45237109122) wykazała błędne
+założenie testowe o braku dodatkowego batch przy REPLAY. Adapter zachowuje
+nowy surowy dowód bez zmiany zaakceptowanych cen i źródła. Poprawiono test:
+po pierwszym ponowieniu wymaga dwóch obserwacji raw, oryginalnego przypisania
+cen i czasu accepted_capture, a kolejne importy porównują całe tabele bez
+dalszych przyrostów. Kod adaptera pozostaje bez zmian.
