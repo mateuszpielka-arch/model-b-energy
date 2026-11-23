@@ -4005,3 +4005,39 @@ Poprzedni etap 30cc046 przeszedł CI: 614 testów OK (run 45215625757).
 Brak nowych pobrań live, produkcyjnych połączeń lub wydanych prognoz.
 Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa i pliki źródłowe,
 PR #2 oraz harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — rzeczywisty ponowny odczyt Fix1 24.11 i REPLAY
+
+Oficjalna sesja TGE 23.11 została ponownie odczytana dla dostawy 24.11.
+HTTP 200, odczyt zakończony 23.11 o 19:17:07.872014 Europe/Warsaw.
+Nową paczkę zapisano osobno w tests/fixtures/tge_delivery_2026-11-24_recaptured:
+dokładny HTML jako gzip mtime=0, CSV XPath z jawnymi okresami UTC i manifest.
+Poprzedniej paczki z 11:14:34.948376 Europe/Warsaw nie zmieniono.
+Końca pobrania nie utożsamiono z dokładnym czasem oficjalnej publikacji.
+
+Nowy HTML: 425640 bajtów, SHA-256
+f2bcba1575766fd4f7ee1bc0cd70d660b6cdc1510a2f11b6cabd659cb87f0cff.
+Różni się od poprzedniego HTML (281609 bajtów), ale wszystkie 24 ceny
+Fixing I są identyczne. CSV również jest identyczny bajtowo:
+SHA-256 484d664e1f954e30545cb9c9842a41708cc8a9c723e4bc70ecb59b210c058488.
+H01=692.18, H24=896.86 PLN/MWh. Parser, XPath oraz walidowane partie UTC
+dają te same wartości. XPath czyta ten sam oficjalny HTML, nie osobny eksport.
+
+Dodano tests/test_tge_november24_recapture.py: test źródeł porównuje cały
+nowy HTML/CSV z wcześniejszym dowodem i sprawdza niezmienność plików.
+Test PostgreSQL wstawia wyłącznie pierwszą paczkę, a następnie importuje
+kolejno nową, pierwszą i nową. Każda ma dać REPLAY / zero wstawionych okresów,
+bez kwarantanny; pełne tabele mają pozostać identyczne. accepted_capture
+musi nadal wskazywać pierwszy hash i czas dostępności, bez przesunięcia go
+na godzinę ponownego pobrania. W bazie pozostaje jeden oryginalny raw i 24 ceny.
+
+Lokalnie test źródeł przeszedł (1 OK); SQL jawnie pominięto przy braku
+lokalnego PostgreSQL i pozostawiono do istniejącego izolowanego CI.
+Poprzedni commit 5a8dbdc przeszedł CI: 615 testów OK (run 45225414738).
+To kolejny odczyt tej samej doby, nie nowy dzień treningowy ani dowód
+historycznego PK5; nie zwiększa kompletności okien 30/60/90D.
+
+Nie zmieniono adapterów, produkcji JWCD 90D, FROZEN, Railway, istniejących
+archiwów i wcześniejszych fixture, PR #2 ani harmonogramów. Nie wydano
+prognozy i nie zastąpiono raportu 09:50 lub 18:00.
