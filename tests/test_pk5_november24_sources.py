@@ -5,6 +5,7 @@ from decimal import Decimal
 import gzip
 from hashlib import sha256
 import json
+from itertools import permutations
 from pathlib import Path
 import unittest
 
@@ -27,6 +28,44 @@ def source(directory=DIRECTORY):
 
 
 class November24Pk5Tests(unittest.TestCase):
+
+
+    def test_third_real_revision_wins_all_six_orders_without_period_blending(self):
+        _, _, early_capture = source()
+        _, _, second_capture = source(DIRECTORY.with_name(DIRECTORY.name + '_second'))
+        metadata, raw, latest_capture = source(DIRECTORY.with_name(DIRECTORY.name + '_third'))
+        snapshots = [prepare_pk5_snapshot(**capture)
+                     for capture in (early_capture, second_capture, latest_capture)]
+        before = deepcopy(snapshots)
+        self.assertEqual((metadata['http_status'], metadata['rows'], metadata['bytes']), (200, 24, 18662))
+        self.assertEqual((len(raw), sha256(raw).hexdigest()), (
+            metadata['bytes'], '8b585dc921d36ff5cf1acda0f3e0163d754161f8fba6248eae2657dbf6c37e7d'))
+        latest = snapshots[-1]
+        self.assertEqual(latest['id'], metadata['snapshot_id'])
+        self.assertEqual(latest['id'],
+                         'pk5-capture-sha256:82207eb47c997127091073af89607944eb67dfffd8e0f97c914c4d983530374a')
+        published = datetime(2026, 11, 23, 1, 13, 27, 462000, tzinfo=timezone.utc)
+        self.assertEqual(Counter(row['publication_ts'] for row in latest['rows']), {published: 24})
+        self.assertEqual(metadata['retrieved_at_utc'], '2026-11-23T01:18:59.865233+00:00')
+        self.assertEqual(metadata['retrieval_completed_at_utc'], '2026-11-23T01:19:09.192381+00:00')
+        self.assertLessEqual(published, latest_capture['retrieved_at'])
+        self.assertLessEqual(latest_capture['retrieved_at'], latest_capture['retrieval_completed_at'])
+        self.assertLess(latest_capture['retrieval_completed_at'], cutoff_for_day(DAY))
+        payload = json.loads(raw, parse_float=Decimal)['value']
+        previous_prices = dict(select_snapshot(DAY, snapshots[:2]).rows)
+        for candidates in permutations(snapshots):
+            selected = select_snapshot(DAY, candidates)
+            self.assertEqual(selected.snapshot_id, latest['id'])
+            self.assertEqual(selected.latest_publication_ts_utc, published)
+            self.assertEqual([value for _, value in selected.rows],
+                             [row['fcst_gen_unit_stor_prov'] for row in payload])
+            self.assertEqual((selected.rows[0][1], selected.rows[-1][1]),
+                             (Decimal('8421.00000'), Decimal('12057.00000')))
+            self.assertEqual(sum(previous_prices[period] != value for period, value in selected.rows), 24)
+            self.assertCountEqual(selected.rejected, [
+                (snapshot['id'], 'SUPERSEDED_JWCD_PUBLICATIONS') for snapshot in snapshots[:2]
+            ])
+        self.assertEqual(snapshots, before)
 
     def test_second_real_revision_wins_whole_capture_in_both_orders(self):
         _, _, early_capture = source()
