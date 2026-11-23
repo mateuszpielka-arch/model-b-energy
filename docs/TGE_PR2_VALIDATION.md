@@ -3657,3 +3657,28 @@ Nie dodano ani nie odtworzono wstecznie dowodów przed-cutoff PK5 23.11.
 Nie zmieniono wcześniejszych checkpointów korpusu, archiwów PostgreSQL,
 produkcji JWCD 90D, FROZEN, Railway, PR #2 ani harmonogramów. Brak nowej
 prognozy, score lub rankingu i brak zmian kodu parsera produkcyjnego.
+
+
+## Checkpoint 2026-11-23 — atomowy import dwóch rzeczywistych dób Fix1
+
+Dodano tests/test_real_two_day_manifest_archive.py. Test składa wyłącznie
+w katalogu tymczasowym wspólny manifest zachowanych paczek 22/23.11, kopiując
+oryginalne raw gzip i referencje CSV. Wpisy są celowo odwrócone, a loader
+zwraca je w kolejności dat. Nie utworzono nowego oficjalnego dowodu ani
+nie zmieniono istniejących fixture lub adaptera zapisu.
+
+Test dry-run potwierdza pełną walidację dwóch dób / 48 okresów, zero zapisanych
+okresów oraz identyczne bajty plików po odczycie. Test PostgreSQL wymusza
+CheckViolation na ostatnim okresie drugiej doby, 23.11 22:00Z, i wymaga
+wycofania cen, paczek i kwarantanny OBU dób, również pierwszej już przetworzonej.
+Po usunięciu testowego ograniczenia ponowienie ma dać dwa INSERT / 48 okresów
+z dokładnymi cenami, oryginalnym HTML i prawidłowymi hash/czasami zaakceptowanych
+pobrań. Następny import ma dać dwa REPLAY / zero nowych okresów oraz
+identyczny stan wszystkich trzech tabel.
+
+Lokalny dry-run przeszedł (1/1); SQL jawnie pominięto z powodu braku lokalnego
+PostgreSQL, do wykonania w istniejącym CI PostgreSQL 16 z bazą fix1_shadow_test
+na loopback. Nie wykorzystuje się sekretów ani bazy produkcyjnej.
+Nie zmieniono produkcji JWCD 90D, FROZEN, Railway, archiwów, PR #2,
+harmonogramów lub reguł cutoff/publication_ts/retrieved_at. Nie dodano
+sparowanej historii PK5, prognozy, score ani rankingu.
