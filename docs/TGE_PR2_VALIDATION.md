@@ -3603,3 +3603,29 @@ doba, parser i raporty wynikowe nadal wymagają pamięci.
 
 Nie wykonano pobrań live lub zapisów PostgreSQL. Produkcja JWCD 90D,
 FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — czwarta rzeczywista rewizja PK5 dostawy 24.11
+
+Pobrano komplet 24 okresów PK5 dostawy 24.11 z oficjalnego endpointu,
+HTTP 200 bez zmiany URL. Publikacja wszystkich okresów: 23.11
+05:13:37.112 Europe/Warsaw. Początek pobrania: 05:16:33.099925,
+koniec: 05:16:40.125791, przed własnym cutoff 09:50. Oryginalny JSON gzip
+i capture.json zapisano osobno w pse_pk5_delivery_2026-11-24_fourth.
+Raw ma 18662 bajty, SHA-256:
+b52e3be34a8134c6d138e1678a9a1c8e06b3b1534894fc4b760f7249f93262a7.
+snapshot_id:
+pk5-capture-sha256:84fc58e86395342b9d10855b5a36f38616e3ddec5844907048887642056ab498.
+H01 JWCD=8396.00000, H24=12055.00000 MW. Wobec trzeciego pobrania
+o 02:19 zmieniły się 23 wartości.
+
+Nowa regresja sprawdza dokładny hash, rozmiar, ID, metadata HTTP/24 okresy,
+publikacje, czasy i chronologię przed cutoff. Wszystkie 24 kolejności
+czterech zachowanych obserwacji wybierają całe czwarte pobranie, trzy starsze
+są SUPERSEDED_JWCD_PUBLICATIONS. Wartości wybranego wektora zgadzają się
+z oryginalnym JSON; nie miesza się okresów ani nie zmienia wejścia.
+Lokalnie 5/5 testów PK5 24.11 przeszło.
+
+Nie nadpisano starszych dowodów, nie dodano Fix1 24.11 ani sparowanej doby
+treningowej. Nie wydano prognozy lub rankingu i nie zmieniono produkcji
+JWCD 90D, FROZEN, Railway, archiwów, PR #2 ani harmonogramów.
