@@ -3682,3 +3682,29 @@ na loopback. Nie wykorzystuje się sekretów ani bazy produkcyjnej.
 Nie zmieniono produkcji JWCD 90D, FROZEN, Railway, archiwów, PR #2,
 harmonogramów lub reguł cutoff/publication_ts/retrieved_at. Nie dodano
 sparowanej historii PK5, prognozy, score ani rankingu.
+
+
+## Checkpoint 2026-11-23 — piąta rzeczywista obserwacja PK5 przed cutoff
+
+Oficjalny PSE zwrócił HTTP 200 i 24 okresy dostawy 24.11. Publikacja
+wszystkich okresów: 23.11 08:13:42.104 Europe/Warsaw. Początek pobrania
+08:18:12.912361, koniec 08:18:19.542186, przed własnym cutoff 09:50.
+Zachowano oryginalny JSON gzip (mtime=0) i capture.json osobno w
+pse_pk5_delivery_2026-11-24_fifth, bez nadpisywania wcześniejszych obserwacji.
+
+Raw: 18677 bajtów, SHA-256
+5bc11ccd1a56b700fbffafb9d208c0b2ca95dc0bc6d47dc880304aa09c1fdc77.
+snapshot_id:
+pk5-capture-sha256:5e8bd37d651c7608c20935969b96a3ba5f115a81cecfe209c0536ab252eeb4b6.
+H01 JWCD=8169.00000, H24=11982.00000 MW. Wszystkie 24 wartości zmieniły
+się wobec pobrania o 05:16.
+
+Nowa regresja potwierdza metadata HTTP/rozmiar/24 okresy, hash/ID, publikacje,
+dokładne czasy i chronologię/cutoff. Wszystkie 120 kolejności pięciu zapisanych
+obserwacji wybierają całe piąte pobranie; cztery starsze mają
+SUPERSEDED_JWCD_PUBLICATIONS. Wybrane wartości zgadzają się z raw,
+bez mieszania okresów i zmiany wejścia. Lokalnie 6/6 testów PK5 24.11 przeszło.
+
+Brak jeszcze Fix1 24.11 do sparowania; nie dodano doby treningowej, prognozy,
+score ani rankingu. Nie zastępuje to osobnego raportu 09:50. Produkcja
+JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy pozostają bez zmian.

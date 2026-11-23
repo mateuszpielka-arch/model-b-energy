@@ -31,6 +31,43 @@ class November24Pk5Tests(unittest.TestCase):
 
 
 
+    def test_fifth_real_revision_wins_all_120_orders_without_period_blending(self):
+        older = [prepare_pk5_snapshot(**source(
+            DIRECTORY.with_name(DIRECTORY.name + suffix))[2])
+                 for suffix in ('', '_second', '_third', '_fourth')]
+        metadata, raw, capture = source(DIRECTORY.with_name(DIRECTORY.name + '_fifth'))
+        latest = prepare_pk5_snapshot(**capture)
+        snapshots = [*older, latest]
+        before = deepcopy(snapshots)
+        self.assertEqual((metadata['http_status'], metadata['rows'], metadata['bytes']), (200, 24, 18677))
+        self.assertEqual((len(raw), sha256(raw).hexdigest()), (
+            metadata['bytes'], '5bc11ccd1a56b700fbffafb9d208c0b2ca95dc0bc6d47dc880304aa09c1fdc77'))
+        self.assertEqual(latest['id'], metadata['snapshot_id'])
+        self.assertEqual(latest['id'],
+                         'pk5-capture-sha256:5e8bd37d651c7608c20935969b96a3ba5f115a81cecfe209c0536ab252eeb4b6')
+        published = datetime(2026, 11, 23, 7, 13, 42, 104000, tzinfo=timezone.utc)
+        self.assertEqual(Counter(row['publication_ts'] for row in latest['rows']), {published: 24})
+        self.assertEqual(metadata['retrieved_at_utc'], '2026-11-23T07:18:12.912361+00:00')
+        self.assertEqual(metadata['retrieval_completed_at_utc'], '2026-11-23T07:18:19.542186+00:00')
+        self.assertLessEqual(published, capture['retrieved_at'])
+        self.assertLessEqual(capture['retrieved_at'], capture['retrieval_completed_at'])
+        self.assertLess(capture['retrieval_completed_at'], cutoff_for_day(DAY))
+        payload = json.loads(raw, parse_float=Decimal)['value']
+        previous_prices = dict(select_snapshot(DAY, older).rows)
+        for candidates in permutations(snapshots):
+            selected = select_snapshot(DAY, candidates)
+            self.assertEqual(selected.snapshot_id, latest['id'])
+            self.assertEqual(selected.latest_publication_ts_utc, published)
+            self.assertEqual([value for _, value in selected.rows],
+                             [row['fcst_gen_unit_stor_prov'] for row in payload])
+            self.assertEqual((selected.rows[0][1], selected.rows[-1][1]),
+                             (Decimal('8169.00000'), Decimal('11982.00000')))
+            self.assertEqual(sum(previous_prices[period] != value for period, value in selected.rows), 24)
+            self.assertCountEqual(selected.rejected, [
+                (snapshot['id'], 'SUPERSEDED_JWCD_PUBLICATIONS') for snapshot in older
+            ])
+        self.assertEqual(snapshots, before)
+
     def test_fourth_real_revision_wins_all_24_orders_without_period_blending(self):
         older = [prepare_pk5_snapshot(**source(
             DIRECTORY.with_name(DIRECTORY.name + suffix))[2])
