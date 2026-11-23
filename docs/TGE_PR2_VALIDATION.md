@@ -4084,3 +4084,37 @@ Nie zmieniono kodu adapterów ani polityki niezmienności archiwum. Brak
 nowych pobrań live, nowych dni treningowych lub prognoz. Produkcja JWCD 90D,
 FROZEN, Railway, istniejące archiwa i fixture, PR #2 oraz harmonogramy
 pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — rzeczywisty PK5 dla dostawy 25.11 przed cutoff
+
+Odczytano oryginalny JSON oficjalnego PSE pk5l-wp dla business_date=2026-11-25.
+HTTP 200, brak zmiany URL, 24 okresy. Początek pobrania:
+23.11 21:16:14.449130 Europe/Warsaw, zakończenie 21:16:22.749083.
+Wszystkie wiersze mają publikację 23.11 21:03:47.599 Europe/Warsaw.
+Publikacja i oba czasy pobrania poprzedzają własny cutoff dostawy:
+24.11 09:50 Europe/Warsaw (08:50 UTC). Nie przypisano im wcześniejszych
+czasów ani nie uzupełniono brakujących obserwacji.
+
+Surowy JSON gzip mtime=0 i capture.json zapisano osobno w
+tests/fixtures/pse_pk5_delivery_2026-11-25. Oryginał: 18645 bajtów, SHA-256
+3b0386623f9984e6a5be31d538adbd27cf5521c360fd0a135435421cce7c78af.
+Snapshot:
+pk5-capture-sha256:319f72ac7c9d463b433577cd10982f146e72aef85b5896b2af569a0560bb3c4d.
+H01 JWCD=12794.00000 MW, H24=14185.00000 MW. Zachowano cały oryginalny
+payload, ale adapter i testy korzystają wyłącznie z JWCD
+fcst_gen_unit_stor_prov oraz pól okresu/proweniencji.
+
+Dodano tests/test_pk5_november25_sources.py. Niezależne przeliczenie końców
+okresów PSE na początki UTC i etykiety 00-01…23-24 jest zgodne ze wszystkimi
+24 wartościami wybranej obserwacji. Hash, rozmiar, identyfikator snapshotu,
+publikacje i loader/audyt/CLI są zgodne. Osobny test na jawnie syntetycznych
+kopiowaniach w pamięci przesuwa koniec pobrania lub jedną publikację
+mikrosekundę po cutoff: oba warianty są odrzucane bez wybranego snapshotu.
+Oryginalne pliki pozostają identyczne. Lokalnie 2/2 testy przeszły.
+
+To jedna kompletna obserwacja PK5, bez Fix1 25.11, nowej pary treningowej
+lub prognozy. Nie dodano jej do gotowych okien 30/60/90D. Wcześniejsze
+obserwacje 20/21/22/24.11 oraz archiwa pozostają niezmienione.
+Poprzedni commit e0f8ebb przeszedł pełne CI: 618 testów OK (run 45246661234).
+Produkcja JWCD 90D, FROZEN, Railway, PR #2 i harmonogramy pozostają bez zmian.
