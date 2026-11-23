@@ -114,6 +114,55 @@ class November24PostgresScoreTests(unittest.TestCase):
             self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.quarantine').fetchone(), (0,))
 
 
+    def test_later_real_day_quarantine_blocks_existing_score_replay_and_new_identity(self):
+        """Inject a stored-price fault only in the disposable test database."""
+        batch, raw, reference, inputs, _ = scoring_case()
+        queries = [
+            'SELECT * FROM fix1_shadow_test.scores ORDER BY forecast_id',
+            'SELECT * FROM fix1_shadow_test.prices ORDER BY period_start_utc',
+            'SELECT * FROM fix1_shadow_test.batches ORDER BY id',
+            'SELECT * FROM fix1_shadow_test.quarantine ORDER BY batch_id',
+        ]
+        with connect_test_database(DSN) as conn:
+            initialize(conn)
+            initialize_scores(conn)
+            conn.execute('TRUNCATE fix1_shadow_test.quarantine, fix1_shadow_test.prices, '
+                         'fix1_shadow_test.batches RESTART IDENTITY CASCADE')
+            self.assertEqual(archive_batch(conn, batch, raw), 'INSERT')
+            status, score = score_archived_day(
+                conn, **inputs, reference_csv=reference, evaluated_at=batch.retrieved_at)
+            self.assertEqual(status, 'INSERT')
+            saved_score = conn.execute(queries[0]).fetchall()
+            self.assertEqual(len(saved_score), 1)
+            self.assertEqual(score.periods, 24)
+            # Simulate corruption after scoring without modifying retained fixture bytes.
+            conn.execute('UPDATE fix1_shadow_test.prices SET price=price+1 '
+                         'WHERE delivery_date=%s AND period_start_utc=%s',
+                         (batch.delivery_date, batch.rows[0][0]))
+            damaged_prices = conn.execute(queries[1]).fetchall()
+            self.assertEqual(archive_batch(conn, batch, raw), 'QUARANTINE')
+            self.assertEqual(conn.execute(queries[1]).fetchall(), damaged_prices)
+            self.assertEqual(conn.execute(
+                'SELECT reason FROM fix1_shadow_test.quarantine',
+            ).fetchall(), [('Existing prices differ or day is partial',)])
+            before = [conn.execute(query).fetchall() for query in queries]
+            for forecast_id in (inputs['forecast_id'], inputs['forecast_id'] + ':new'):
+                for supplied_reference in (reference, None):
+                    with self.subTest(forecast_id=forecast_id,
+                                      reference=supplied_reference is not None):
+                        with self.assertRaisesRegex(ValueError, 'Quarantined delivery day'):
+                            score_archived_day(
+                                conn, **{**inputs, 'forecast_id': forecast_id},
+                                reference_csv=supplied_reference,
+                                evaluated_at=batch.retrieved_at + timedelta(seconds=1))
+                        self.assertEqual([conn.execute(query).fetchall() for query in queries], before)
+            self.assertEqual(conn.execute(queries[0]).fetchall(), saved_score)
+            # Re-import cannot clear quarantine or silently repair the damaged stored price.
+            for _ in range(2):
+                self.assertEqual(archive_batch(conn, batch, raw), 'QUARANTINE')
+                self.assertEqual([conn.execute(query).fetchall() for query in queries], before)
+
+
 
 if __name__ == '__main__':
     unittest.main()

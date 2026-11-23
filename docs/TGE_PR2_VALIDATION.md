@@ -3973,3 +3973,35 @@ dd63158 przeszedł pełne CI: 612 testów OK (run 45203006580).
 Brak nowych pobrań live, zapisów SQL, prognoz lub uzupełniania brakujących
 dni. Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2
 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — kwarantanna po scoringu blokuje także REPLAY
+
+Rozszerzono tests/test_tge_november24_scores.py o scenariusz integracyjny
+na rzeczywistym Fix1 24.11 i szóstym PK5 z publikacją/pobraniem przed
+własnym cutoff 23.11 09:50 Europe/Warsaw. Prognoza JWCD/20 pozostaje
+wyłącznie syntetycznym wektorem kontrolnym, nie modelem lub wydaną prognozą.
+
+Test najpierw zapisuje 24 ceny i wynik scoringu w chwili dostępności Fix1.
+Dopiero potem celowo zmienia jedną cenę w izolowanej bazie testowej i przez
+archive_batch wykrywa konflikt, tworząc kwarantannę bez nadpisania cen.
+Cztery próby scoringu (dotychczasowy/nowy forecast_id, oryginalny CSV/brak
+CSV) mają zostać odrzucone jako Quarantined delivery day, także sekundę po
+dostępności Fix1. Istniejący wynik nie może pozwolić ominąć bieżącej kontroli
+przez REPLAY. Test porównuje pełną zawartość scores/prices/batches/quarantine
+przed i po odmowach, łącznie z hashami, payload i czasami zapisów.
+
+Dwa kolejne importy tej samej paczki muszą nadal zwrócić QUARANTINE,
+bez naprawiania celowo uszkodzonej ceny, usuwania kwarantanny lub zmiany
+wcześniejszego wyniku. Stary wynik pozostaje zachowany jako zapis historyczny;
+test sprawdza odmowę API scoringu, nie usuwa i nie przepisuje tabeli scores.
+
+Lokalnie niezależny test czterech metryk na rzeczywistych źródłach przeszedł
+(1 OK); dwie integracje PostgreSQL jawnie pominięto z powodu braku lokalnego
+serwera. Nowy scenariusz wymaga pełnego istniejącego CI z izolowanym
+PostgreSQL 16. Nie zmieniono adapterów scoringu ani archiwizacji.
+Poprzedni etap 30cc046 przeszedł CI: 614 testów OK (run 45215625757).
+
+Brak nowych pobrań live, produkcyjnych połączeń lub wydanych prognoz.
+Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa i pliki źródłowe,
+PR #2 oraz harmonogramy pozostają bez zmian.
