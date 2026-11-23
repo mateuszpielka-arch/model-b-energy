@@ -94,5 +94,77 @@ class TwoDayManifestArchiveTests(unittest.TestCase):
             self.assertEqual([conn.execute(query).fetchall() for query in queries], before)
 
 
+    def test_later_insert_failure_rolls_back_earlier_quarantine_then_preserves_sticky_conflict(self):
+        """Fault injection touches only the explicitly isolated test database."""
+        from psycopg.errors import CheckViolation
+        from shadow_postgres_archive import archive_batch
+        with combined_manifest() as manifest, connect_test_database(DSN) as conn:
+            initialize(conn)
+            conn.execute('TRUNCATE fix1_shadow_test.quarantine, fix1_shadow_test.prices, '
+                         'fix1_shadow_test.batches RESTART IDENTITY CASCADE')
+            files = {path: path.read_bytes() for path in manifest.parent.iterdir()}
+            first, second = load_batches(manifest)
+            batch, raw = first
+            self.assertEqual(archive_batch(conn, batch, raw), 'INSERT')
+            # Corrupt one stored price in the disposable DB to force quarantine.
+            conn.execute('UPDATE fix1_shadow_test.prices SET price=price+1 '
+                         'WHERE delivery_date=%s AND period_start_utc=%s',
+                         (batch.delivery_date, batch.rows[0][0]))
+            queries = [
+                'SELECT * FROM fix1_shadow_test.prices ORDER BY delivery_date,period_start_utc',
+                'SELECT * FROM fix1_shadow_test.batches ORDER BY id',
+                'SELECT * FROM fix1_shadow_test.quarantine ORDER BY batch_id',
+            ]
+            before = [conn.execute(query).fetchall() for query in queries]
+            conn.execute("""ALTER TABLE fix1_shadow_test.prices
+                ADD CONSTRAINT reject_after_real_quarantine CHECK (
+                    delivery_date <> DATE '2026-11-23'
+                    OR period_start_utc <> TIMESTAMPTZ '2026-11-23 22:00:00+00')""")
+            try:
+                with self.assertRaisesRegex(CheckViolation, 'reject_after_real_quarantine'):
+                    ingest_manifest(manifest, conn=conn)
+                # No quarantine or partial second-day archive survives the failed manifest.
+                self.assertEqual([conn.execute(query).fetchall() for query in queries], before)
+            finally:
+                conn.execute('ALTER TABLE fix1_shadow_test.prices '
+                             'DROP CONSTRAINT reject_after_real_quarantine')
+            result = ingest_manifest(manifest, conn=conn)
+            self.assertEqual((result['days_by_status'], result['inserted_periods']),
+                             ({'INSERT': 1, 'QUARANTINE': 1}, 24))
+            conflict, accepted = result['results']
+            self.assertEqual((conflict['day'], conflict['status']), ('2026-11-22', 'QUARANTINE'))
+            self.assertTrue(conflict['scoring_blocked_by_quarantine'])
+            self.assertIsNone(conflict['accepted_capture'])
+            self.assertEqual((accepted['day'], accepted['status']), ('2026-11-23', 'INSERT'))
+            self.assertFalse(accepted['scoring_blocked_by_quarantine'])
+            second_batch, second_raw = second
+            self.assertEqual(accepted['accepted_capture'], dict(
+                raw_sha256=second_batch.raw_sha256,
+                retrieved_at_utc=second_batch.retrieved_at.isoformat()))
+            self.assertEqual(conn.execute(
+                'SELECT * FROM fix1_shadow_test.prices WHERE delivery_date=%s '
+                'ORDER BY period_start_utc', (batch.delivery_date,),
+            ).fetchall(), before[0])
+            self.assertEqual(conn.execute(
+                'SELECT period_start_utc,price FROM fix1_shadow_test.prices '
+                'WHERE delivery_date=%s ORDER BY period_start_utc', (second_batch.delivery_date,),
+            ).fetchall(), list(second_batch.rows))
+            self.assertEqual(conn.execute(
+                'SELECT raw_html FROM fix1_shadow_test.batches ORDER BY delivery_date',
+            ).fetchall(), [(raw,), (second_raw,)])
+            self.assertEqual(conn.execute(
+                'SELECT reason FROM fix1_shadow_test.quarantine',
+            ).fetchall(), [('Existing prices differ or day is partial',)])
+            committed = [conn.execute(query).fetchall() for query in queries]
+            for _ in range(2):
+                replay = ingest_manifest(manifest, conn=conn)
+                self.assertEqual((replay['days_by_status'], replay['inserted_periods']),
+                                 ({'QUARANTINE': 1, 'REPLAY': 1}, 0))
+                self.assertEqual(replay['results'][0], conflict)
+                self.assertEqual(replay['results'][1], {**accepted, 'status': 'REPLAY'})
+                self.assertEqual([conn.execute(query).fetchall() for query in queries], committed)
+            self.assertEqual({path: path.read_bytes() for path in files}, files)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -3878,3 +3878,32 @@ PostgreSQL pozostają do sprawdzenia w istniejącym CI po zapisie commitu.
 Nie zmieniono selekcji danych, definicji D-1 09:50 Europe/Warsaw ani metryk
 i modeli. Brak nowych pobrań live. Produkcja JWCD 90D, FROZEN, Railway,
 istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — atomowy rollback kwarantanny przy imporcie dwóch rzeczywistych dób
+
+Rozszerzono tests/test_real_two_day_manifest_archive.py o integrację paczek
+Fix1 22/23.11 (48 okresów), bez modyfikacji zachowanych źródeł.
+Test w osobnej bazie PostgreSQL wstawia 22.11, celowo zmienia jedną cenę
+wyłącznie w tej bazie, a następnie importuje obie doby. Kwarantanna 22.11
+powstaje przed kontrolowanym błędem CHECK na ostatnim okresie 23.11.
+Po błędzie wszystkie trzy tabele mają być identyczne jak przed importem:
+brak trwałej kwarantanny oraz brak częściowej doby 23.11.
+
+Po usunięciu testowego CHECK cały manifest ma dać QUARANTINE dla 22.11
+i INSERT 24 okresów 23.11. Konfliktowe ceny nie mogą zostać naprawione
+ani nadpisane; raport blokuje ich scoring i nie podaje accepted_capture.
+Zdrowa doba zachowuje dokładne ceny, surowy HTML i czas oryginalnego pobrania.
+Dwa kolejne importy mają dać QUARANTINE + REPLAY, zero wstawionych okresów,
+identyczne tabele (w tym kwarantanna z czasem utworzenia) i niezmienione pliki.
+
+Lokalny dry-run obu rzeczywistych paczek przeszedł: 1 test OK, 2 integracje
+SQL jawnie pominięte przy braku lokalnego PostgreSQL. Nowy scenariusz SQL
+wymaga wykonania w istniejącym CI z izolowanym PostgreSQL 16 po zapisie.
+Nie zmieniono kodu adaptera ani źródeł; to rozszerzenie weryfikacji atomowości
+i idempotencji na zachowanych danych. Poprzedni commit b3518dc przeszedł
+pełne CI: 607 testów OK (run 45182707614).
+
+Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy
+pozostają bez zmian. Nie wykonano pobrań live ani oceny modeli na brakujących
+oknach 30/60/90D.
