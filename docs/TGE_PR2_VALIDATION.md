@@ -3708,3 +3708,31 @@ bez mieszania okresów i zmiany wejścia. Lokalnie 6/6 testów PK5 24.11 przesz�
 Brak jeszcze Fix1 24.11 do sparowania; nie dodano doby treningowej, prognozy,
 score ani rankingu. Nie zastępuje to osobnego raportu 09:50. Produkcja
 JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-23 — szósta rzeczywista obserwacja PK5 przed 09:50
+
+Pobrano z oficjalnego PSE komplet 24 okresów dostawy 24.11, HTTP 200 bez
+zmiany URL. Publikacja wszystkich okresów: 23.11 09:13:42.117 Europe/Warsaw.
+Początek pobrania: 09:19:27.368850, koniec: 09:19:34.382677, przed
+własnym cutoff 09:50. Oryginalny JSON gzip (mtime=0) i capture.json
+zapisano osobno w pse_pk5_delivery_2026-11-24_sixth.
+
+Raw: 18677 bajtów, SHA-256
+1bfff18989de46fe2fb00df77e8dd936551e47d3875db3f90ee996bb103c05c6.
+snapshot_id:
+pk5-capture-sha256:c6fde113a3de2d6714c221404f38890e6ed1c5736cd50ae809a2d669cc5738b4.
+H01 JWCD=8108.00000, H24=11941.00000 MW. Wszystkie 24 wartości zmieniły
+się wobec pobrania o 08:18. Starszych danych i metadata nie nadpisano.
+
+Nowa regresja potwierdza metadata HTTP/24 okresy/rozmiar, hash/ID, publikacje,
+dokładne czasy i chronologię przed cutoff. We wszystkich 720 kolejnościach
+sześciu zapisanych obserwacji selekcja wybiera całe szóste pobranie;
+pięć starszych ma SUPERSEDED_JWCD_PUBLICATIONS. Wszystkie wybrane wartości
+są zgodne z raw; nie miesza się okresów ani nie zmienia wejścia.
+Lokalnie 7/7 testów PK5 24.11 przeszło.
+
+To zapis dowodu przed-cutoff, nie poranna prognoza lub zamiennik raportu 09:50.
+Brak jeszcze Fix1 24.11 do sparowania; nie dodano okien treningu, score ani
+rankingu. Produkcja JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy
+pozostają bez zmian.
