@@ -3857,3 +3857,24 @@ ale niescorowany, zero dni na wspólnej próbce.
 Brak nowych pobrań live lub zapisów PostgreSQL. Produkcja JWCD 90D, FROZEN,
 Railway, istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.
 Nie wydano prognozy ani nie zastąpiono raportu 09:50 lub 18:00.
+
+
+## Checkpoint 2026-11-23 — walidacja granic dat przed odczytem historii
+
+evaluate_csv_rows odrzuca granice inne niż dokładny typ date oraz date.min
+i date.max przed materializacją wejściowych wierszy. None nadal oznacza
+brak ograniczenia, a odwrócony zakres zachowuje dotychczasowy błąd.
+Chroni to obliczenia kalendarza i cutoff przed skrajnymi datami oraz przed
+przypadkowym przekazaniem datetime, tekstu lub bool do API.
+
+Dwa nowe testy regresji obejmują obie granice API z iteratorem, którego
+nie wolno odczytać, oraz CLI z datami 0001-01-01 / 9999-12-31 i nieistniejącym
+CSV. CLI zwraca kod 2 z komunikatem walidacji, pustym stdout, bez traceback
+i bez otwarcia pliku. Lokalnie wszystkie 4/4 testy modułu błędów wejścia CLI
+przeszły, w tym wcześniejsze przypadki uszkodzonych CSV i pełny raport
+diagnostyczny poprawnych, niekompletnych danych. Pełny zestaw i izolowany
+PostgreSQL pozostają do sprawdzenia w istniejącym CI po zapisie commitu.
+
+Nie zmieniono selekcji danych, definicji D-1 09:50 Europe/Warsaw ani metryk
+i modeli. Brak nowych pobrań live. Produkcja JWCD 90D, FROZEN, Railway,
+istniejące archiwa, PR #2 i harmonogramy pozostają bez zmian.

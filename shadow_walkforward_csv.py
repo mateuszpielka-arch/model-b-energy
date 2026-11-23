@@ -23,6 +23,9 @@ def evaluate_csv_rows(rows, *, evaluated_at, target_from=None, target_to=None, f
     The inclusive target range limits evaluation only. Earlier admitted rows
     remain available for the per-target training windows.
     """
+    for bound in (target_from, target_to):
+        if bound is not None and (type(bound) is not date or bound in (date.min, date.max)):
+            raise ValueError("Supported target date bounds required")
     if target_from is not None and target_to is not None and target_from > target_to:
         raise ValueError("Target start must not be after target end")
     rows = list(rows)

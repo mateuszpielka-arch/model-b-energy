@@ -1,5 +1,5 @@
 """Input failures must not expose partial walk-forward reports."""
-from datetime import datetime
+from datetime import date, datetime
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -21,6 +21,32 @@ class WalkforwardCliInputErrorTests(unittest.TestCase):
     def command(self, paths):
         return [sys.executable, str(ROOT / 'shadow_walkforward_csv.py'),
                 '--evaluated-at', STAMP, *map(str, paths)]
+
+
+    def test_unsupported_target_bounds_are_rejected_before_history_iteration(self):
+        class UnreadableRows:
+            def __iter__(self):
+                raise AssertionError('History must not be read for invalid bounds')
+        for field in ('target_from', 'target_to'):
+            for value in (date.min, date.max, datetime(2026, 11, 22), '2026-11-22', False):
+                with self.subTest(field=field, value=value):
+                    with self.assertRaisesRegex(ValueError, 'Supported target date bounds'):
+                        evaluate_csv_rows(UnreadableRows(),
+                                          evaluated_at=datetime.fromisoformat(STAMP),
+                                          **{field: value})
+
+    def test_cli_unsupported_extreme_dates_fail_before_missing_csv_read(self):
+        with TemporaryDirectory() as directory:
+            missing = Path(directory) / 'must-not-be-opened.csv'
+            for bound in ('0001-01-01', '9999-12-31'):
+                command = self.command([missing]) + ['--target-from', bound, '--target-to', bound]
+                completed = subprocess.run(command, capture_output=True, text=True)
+                self.assertEqual(completed.returncode, 2, completed.stderr)
+                self.assertEqual(completed.stdout, '')
+                self.assertIn('Supported target date bounds', completed.stderr)
+                self.assertNotIn('No such file', completed.stderr)
+                self.assertNotIn('Traceback', completed.stderr)
+            self.assertEqual(list(Path(directory).iterdir()), [])
 
     def test_invalid_later_or_first_csv_returns_two_without_report_or_source_changes(self):
         good_hash = sha256(FIXTURE.read_bytes()).hexdigest()
