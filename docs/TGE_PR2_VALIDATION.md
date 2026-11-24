@@ -4811,3 +4811,41 @@ Nadal brak Fix1 26.11 i nowej pary treningowej; okna 30/60/90D niekompletne.
 Poprzedni etap 0ec8855: pełne CI 656 testów OK (run 45435384071).
 Produkcja JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy bez zmian.
 Brak zapisów SQL i wydanej prognozy; ten etap nie zastępuje raportu 18:00.
+
+
+## Checkpoint 2026-11-24 — ponowny rzeczywisty odczyt Fix1 25.11 i replay
+
+Zapisano osobną paczkę tests/fixtures/tge_delivery_2026-11-25_recaptured:
+oryginalny HTML gzip mtime=0, CSV z jawnymi UTC i manifest.
+Sesja 24.11, dostawa 25.11; HTTP 200, 24 ceny Fixing I.
+URL https://tge.pl/energia-elektryczna-rdn?dateShow=24-11-2026.
+Pobranie zakończone 24.11 o 19:15:55.492126 Europe/Warsaw
+(18:15:55.492126 UTC). Nie jest to dowód wcześniejszej publikacji;
+pierwszy odczyt pozostał z 11:15:51.127696 Europe/Warsaw.
+
+Nowy HTML: 426225 bajtów, SHA-256
+c5d92ab18825e6f5afec5fda2b86ac2f544682aa94af4ade1c8a622bfc72434d.
+CSV SHA-256 c955d5c1e260fb7687b62a737d27d48c47ffe56d9736b464f315f14ab653c9ca:
+identyczny z pierwszym odczytem, wszystkie 24 ceny bez zmian.
+Surowe HTML-e różnią się. H01=944.60 PLN/MWh, H24=967.80 PLN/MWh.
+
+Dodano tests/test_tge_november25_recapture.py. Test źródeł potwierdza
+odrębne hashe HTML, późniejszy timestamp, identyczne ceny/CSV/siatkę UTC
+oraz zgodność parsera i niezależnej ekstrakcji XPath z tego samego HTML.
+Sześć plików obu obserwacji zachowuje identyczne bajty po odczytach.
+
+Integracja w istniejącym izolowanym PostgreSQL wstawia pierwszą paczkę,
+następnie importuje ponowną/pierwszą/ponowną jako REPLAY. Ceny i ich
+przyjęty batch/timestamp pozostają identyczne, inserted_periods=0,
+scoring_blocked_by_quarantine=false. Nowy surowy odczyt zostaje
+zachowany jako druga obserwacja batches; powtórzenia nie dodają kolejnych.
+Sprawdzane są pełne raw_html/retrieved_at obu batchy, 24 ceny i brak
+kwarantanny. To nie jest nadpisanie zaakceptowanego archiwum.
+Lokalnie test źródeł OK; integracja pominięta bez lokalnego serwera/DSN,
+do potwierdzenia w pełnym CI z bazą fix1_shadow_test na loopback.
+
+Nie zmieniono pierwszej paczki, starszych checkpointów, implementacji
+archiwizacji, modeli ani scoringu. Brak nowych par treningowych, prognoz,
+zmian produkcji JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2
+lub harmonogramów. Poprzedni etap b5e89c5: CI 657 testów OK
+(run 45446868058). Okna 30/60/90D nadal niekompletne.
