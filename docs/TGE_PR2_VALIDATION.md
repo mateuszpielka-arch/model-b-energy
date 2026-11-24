@@ -4740,3 +4740,40 @@ Nie zmieniono implementacji modeli, eksportera ani wcześniejszych raportów.
 Poprzedni etap 54253fe: pełne CI 652 testy OK (run 45412401987).
 Rzeczywiste okna 30/60/90D nadal niekompletne. Produkcja JWCD 90D, FROZEN,
 Railway, archiwa, PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-24 — pierwszy rzeczywisty PK5 dla dostawy 26.11
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-26: oryginalny JSON
+gzip mtime=0 i capture.json, HTTP 200, URL bez zmiany, 24 okresy.
+Pobranie 24.11 17:16:03.557295–17:16:10.615456 Europe/Warsaw
+(16:16:03.557295–16:16:10.615456 UTC).
+Publikacja wszystkich okresów: 24.11 17:03:47.487 Europe/Warsaw.
+Właściwy cutoff dostawy 26.11 to 25.11 09:50 Europe/Warsaw
+(25.11 08:50 UTC); wszystkie czasy są wcześniejsze. Nie wnioskowano
+porannego odczytu lub przyszłego stanu danych.
+
+Oryginał: 18626 bajtów, SHA-256
+e1478f352a662a5e7c79e54143a0c1b5cc688cbb3d547f900198923aab3b0c9a.
+Snapshot:
+pk5-capture-sha256:5f4e085ac37c4852d6207a8f391bacb3037eb1382ee5cb4e4b46a7aac7dba873.
+H01 JWCD=14927.00000 MW, H24=15041.00000 MW.
+
+Dodano tests/test_pk5_november26_sources.py. Pierwszy test weryfikuje
+raw hash, metadane, komplet etykiet, wszystkie wartości JWCD i jawne UTC
+z niezależnej mapy oryginalnego JSON (koniec okresu minus godzina),
+24 publikacje i oba czasy pobrania. Istniejący adapter oraz audyt wybierają
+ten sam cały snapshot; CLI --require-selection zwraca kod 0 i identyczny
+raport. Bajty źródeł pozostają niezmienne.
+Drugi test zmienia wyłącznie tymczasową kopię metadanych: ukończenie
+dokładnie na cutoff jest dopuszczone, mikrosekunda później jest odrzucona
+przez oba API loadera. CLI z poprawną i spóźnioną kopią zwraca kod 2,
+pusty stdout i brak tracebacku. Oryginał nie jest przepisywany;
+zmienione czasy nie są dowodem faktycznego pobrania.
+Lokalnie 2/2 nowe testy OK.
+
+Nowa obserwacja nie dostarcza Fix1 26.11 ani nowej pary treningowej.
+Dotychczasowych źródeł i checkpointów nie zmieniono.
+Poprzedni etap 2626bd3 przeszedł CI: 654 testy OK (run 45423876341).
+Brak zapisów SQL, prognoz, zmian modeli, produkcji JWCD 90D, FROZEN,
+Railway, archiwów, PR #2 i harmonogramów. Okna 30/60/90D niekompletne.
