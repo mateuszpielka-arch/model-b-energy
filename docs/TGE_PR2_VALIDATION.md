@@ -4674,3 +4674,34 @@ modeli, scoringu ani archiwizacji. Brak pobrań live, zapisów SQL i prognoz.
 Poprzedni etap ffac205: pełne CI 647 testów OK (run 45392145831).
 Produkcja JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy bez zmian.
 Okna 30/60/90D nadal niekompletne.
+
+
+## Checkpoint 2026-11-24 — jawna bramka wspólnej próby w eksporcie historii
+
+Dodano --require-common-sample do shadow_source_collection.py.
+Flaga wymaga --walk-forward-at (które nadal wymaga --format json).
+Po walidacji źródeł i wykonaniu istniejącej ewaluacji brak wspólnych
+ocenionych dób lub okresów daje kod 3. Pełny raport diagnostyczny pozostaje
+dostępny na stdout lub w nowym pliku --output. Bez flagi zachowanie jest
+dotychczasowe; brak próby nadal można odczytać diagnostycznie z kodem 0.
+Kod 0 z flagą wymaga dodatnich common_days i common_periods istniejącego
+walk-forward; nie zmienia kryteriów dopuszczenia, modeli ani rankingu.
+Kod 2 nadal oznacza błąd wejścia/zapisu i ma pierwszeństwo przed kodem 3.
+
+Trzy nowe testy tests/test_source_common_sample_gate.py wykorzystują
+zachowany Fix1 25.11 i ósmy PK5. Cel 25.11 ma niekompletną historię;
+cel 26.11 jest nieobecny w parach. W obu przypadkach JSON z flagą i bez
+niej jest identyczny, common_days=common_periods=0, ranking=[],
+a kod zmienia się z 0 na 3. Zachowane są 24 źródłowe okresy.
+Test --output potwierdza pełny plik diagnostyczny przy kodzie 3,
+pusty stdout oraz odmowę nadpisania przy kolejnym uruchomieniu
+(kod 2, poprzednie bajty bez zmian, brak plików tymczasowych).
+Brak ewaluacji, format CSV i nieistniejące źródło mają kod 2 bez
+częściowego stdout lub pliku. Audyt nie zmienia bajtów pięciu źródeł.
+Lokalnie 3/3 nowe testy OK.
+
+Nie dodano historii, wyników modeli ani prognozy; nie wykonano pobrań live
+lub zapisów SQL. Wcześniejsze checkpointy i źródła pozostają bez zmian.
+Poprzedni etap 6c94a5b przeszedł CI: 649 testów OK (run 45401936866).
+Produkcja JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy bez zmian.
+Okna 30/60/90D nadal niekompletne.

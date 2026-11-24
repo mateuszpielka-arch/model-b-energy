@@ -48,7 +48,12 @@ def main():
                         help='Last delivery date to evaluate; defaults to last source date')
     parser.add_argument('--output', type=Path,
                         help='Publish a new local file atomically; refuses existing paths and suppresses stdout')
+    parser.add_argument('--require-common-sample', action='store_true',
+                        help='Requires --walk-forward-at; exit 3 after the complete diagnostic export '
+                             'when no common scored days or periods exist')
     args = parser.parse_args()
+    if args.require_common_sample and args.walk_forward_at is None:
+        parser.error('--require-common-sample requires --walk-forward-at')
     if (args.target_from is not None or args.target_to is not None) and args.walk_forward_at is None:
         parser.error('Target range requires --walk-forward-at')
     if args.target_from is not None and args.target_to is not None and args.target_from > args.target_to:
@@ -83,6 +88,10 @@ def main():
         parser.error(str(exc))
     if args.output is None:
         sys.stdout.write(result)
+    if args.require_common_sample:
+        comparison = report['evaluation']['walkforward']
+        if not comparison['common_days'] or not comparison['common_periods']:
+            raise SystemExit(3)
 
 
 if __name__ == '__main__':
