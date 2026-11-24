@@ -4884,3 +4884,36 @@ w tym realny recapture/replay 25.11 w izolowanej bazie.
 Nie zmieniono implementacji scoringu/archiwizacji ani źródeł i checkpointów.
 Brak pobrań live, prognoz, zmian produkcji JWCD 90D, FROZEN, Railway,
 archiwów, PR #2 lub harmonogramów. Rzeczywiste okna 30/60/90D niekompletne.
+
+
+## Checkpoint 2026-11-24 — trzeci rzeczywisty PK5 26.11
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-26_third: oryginalny JSON
+gzip mtime=0 i capture.json, HTTP 200, 24 okresy, URL bez zmiany.
+Pobranie 24.11 21:15:51.986013–21:15:58.941358 Europe/Warsaw
+(20:15:51.986013–20:15:58.941358 UTC).
+Publikacja wszystkich okresów: 21:03:37.156 Europe/Warsaw.
+Publikacje oraz początek i koniec pobrania są przed właściwym cutoff
+25.11 09:50 Europe/Warsaw (08:50 UTC) dla dostawy 26.11.
+
+Oryginał: 18616 bajtów, SHA-256
+687565dbbd1838969e9a5a862cdf8e59c80166f90907bb0ca8cb86271bd7c138.
+Snapshot:
+pk5-capture-sha256:1e9e2024cf786c97227e9c4ae81cbb744f8d0c387ca00be30f618f45e24cc3ff.
+JWCD H01=15092.00000 MW, H24=15273.00000 MW.
+Wszystkie 24 wartości różnią się od każdej z dwóch wcześniejszych obserwacji.
+
+Dodano tests/test_pk5_november26_third.py. Test porównuje JWCD i publikację
+każdego okresu z niezależną mapą oryginalnego JSON oraz kontroluje hashe,
+loader, właściwy cutoff i dwie listy zmian. Wszystkie sześć kolejności
+trzech obserwacji daje identyczny raport i cały trzeci profil;
+starsze paczki pozostają jako SUPERSEDED_JWCD_PUBLICATIONS.
+CLI --require-selection w obu kierunkach daje identyczny JSON i kod 0.
+Sześć źródłowych plików pozostaje niezmiennych. Lokalnie 1/1 test OK.
+
+Nie zmieniono starszych paczek lub raportów. Brak Fix1 26.11 i nowej
+pary treningowej; rzeczywiste okna 30/60/90D nadal niekompletne.
+Poprzedni etap 537dfe2: CI 660 testów OK (run 45468495079), w tym scoring
+25.11 zachowujący przyjęty czas dostępności w obu kolejnościach recapture.
+Brak zapisów SQL, wydanej prognozy, zmian produkcji JWCD 90D, FROZEN,
+Railway, istniejących archiwów, PR #2 lub harmonogramów.
