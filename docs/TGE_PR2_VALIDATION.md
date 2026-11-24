@@ -4944,3 +4944,37 @@ Nie pobierano danych live, nie dodano fixture lub prognoz i nie wykonano SQL.
 Poprzedni etap 2910507: CI 661 testów OK (run 45479154421).
 Produkcja JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy bez zmian.
 Rzeczywiste okna 30/60/90D nadal niekompletne.
+
+
+## Checkpoint 2026-11-24 — czwarty PK5 26.11 z publikacjami 10+14
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-26_fourth: oryginalny JSON
+gzip mtime=0 i capture.json. HTTP 200, URL bez zmiany, 24 okresy.
+Pobranie 24.11 23:15:49.712318–23:15:56.748125 Europe/Warsaw
+(22:15:49.712318–22:15:56.748125 UTC).
+Publikacje: 23:04:18.486 dla 10 okresów i 23:13:32.407 dla 14 okresów,
+Europe/Warsaw. Wszystkie publikacje i oba czasy pobrania poprzedzają
+właściwy cutoff dostawy 26.11: 25.11 09:50 Europe/Warsaw (08:50 UTC).
+
+Oryginał: 18615 bajtów, SHA-256
+1aceca37a8417226986eda0a64227ee74901e5c3cc366d287dede1c5ad376670.
+Snapshot:
+pk5-capture-sha256:448d67d63ad28d7bfd0618f7f50dd20b04ad59ab813696d0d5c017dfc1aceff8.
+JWCD H01=15108.00000 MW, H24=15288.00000 MW.
+Wszystkie 24 wartości różnią się od każdej z trzech starszych obserwacji.
+
+Dodano tests/test_pk5_november26_fourth.py. Niezależna mapa oryginalnego
+JSON sprawdza JWCD i publication_ts każdego okresu. Zachowany jest podział
+publikacji 10+14, w tym różne czasy H01 i H24. Loader kontroluje hashe,
+publikacje, oba czasy pobrania i cutoff każdej paczki.
+Wszystkie 24 kolejności czterech obserwacji dają identyczny raport
+i cały czwarty profil; trzy starsze mają SUPERSEDED_JWCD_PUBLICATIONS.
+Trzy listy 24 zmian są zgodne z oryginalnymi wartościami.
+CLI --require-selection w obu kierunkach daje identyczny JSON i kod 0.
+Osiem plików źródeł pozostaje niezmiennych. Lokalnie 1/1 test OK.
+
+Nie zmieniono wcześniejszych źródeł i checkpointów. Brak Fix1 26.11,
+nowej pary treningowej oraz kompletnych okien 30/60/90D.
+Poprzedni etap 32e66fe: CI 664 testy OK (run 45489506646).
+Brak zapisów SQL, wydanej prognozy, zmian modeli, produkcji JWCD 90D,
+FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
