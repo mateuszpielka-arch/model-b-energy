@@ -56,6 +56,9 @@ def main():
         parser.error('--require-common-sample requires --walk-forward-at')
     if (args.target_from is not None or args.target_to is not None) and args.walk_forward_at is None:
         parser.error('Target range requires --walk-forward-at')
+    for bound in (args.target_from, args.target_to):
+        if bound in (date.min, date.max):
+            parser.error('Supported target date bounds required')
     if args.target_from is not None and args.target_to is not None and args.target_from > args.target_to:
         parser.error('--target-from must not be after --target-to')
     if args.walk_forward_at is not None and args.format != 'json':

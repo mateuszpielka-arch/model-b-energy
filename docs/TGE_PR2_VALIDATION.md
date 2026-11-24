@@ -4917,3 +4917,30 @@ Poprzedni etap 537dfe2: CI 660 testów OK (run 45468495079), w tym scoring
 25.11 zachowujący przyjęty czas dostępności w obu kolejnościach recapture.
 Brak zapisów SQL, wydanej prognozy, zmian produkcji JWCD 90D, FROZEN,
 Railway, istniejących archiwów, PR #2 lub harmonogramów.
+
+
+## Checkpoint 2026-11-24 — granice dat celu przed odczytem źródeł
+
+shadow_source_collection.py sprawdza teraz jawne --target-from/--target-to
+pod kątem date.min/date.max przed wywołaniem load_history_collection.
+Obie granice były już nieobsługiwane przez evaluate_csv_rows; wcześniej
+eksporter mógł odczytać i przetworzyć kolekcję przed ich odrzuceniem.
+Teraz zgłasza Supported target date bounds required z kodem 2,
+bez odczytu plików, uruchomienia ewaluacji lub publikacji eksportu.
+Pozostała logika zakresu i wyniki poprawnych wejść pozostają bez zmian.
+
+Dodano tests/test_source_target_bounds.py: trzy testy obejmują oba
+parametry i obie skrajne daty. Wywołanie main potwierdza, że loader,
+ewaluacja i publisher nie zostały wywołane, stdout jest pusty.
+Test subprocess używa nieistniejących źródeł i potwierdza pierwszeństwo
+błędu daty: kod 2, brak tracebacku lub częściowego stdout, brak nowego
+pliku albo identyczne bajty istniejącego pliku i brak plików tymczasowych.
+Daty sąsiadujące 0001-01-02 / 9999-12-30 przechodzą tę kontrolę do
+istniejącego loadera; nie deklaruje to gotowości modelu dla takich dat.
+Lokalnie 3/3 testy OK.
+
+Nie pobierano danych live, nie dodano fixture lub prognoz i nie wykonano SQL.
+Źródła, wcześniejsze checkpointy, scoring i modele pozostają bez zmian.
+Poprzedni etap 2910507: CI 661 testów OK (run 45479154421).
+Produkcja JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy bez zmian.
+Rzeczywiste okna 30/60/90D nadal niekompletne.
