@@ -4705,3 +4705,38 @@ lub zapisów SQL. Wcześniejsze checkpointy i źródła pozostają bez zmian.
 Poprzedni etap 6c94a5b przeszedł CI: 649 testów OK (run 45401936866).
 Produkcja JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy bez zmian.
 Okna 30/60/90D nadal niekompletne.
+
+
+## Checkpoint 2026-11-24 — dodatnia próba ścisłego eksportu i kontrola leakage 23/24/25h
+
+Dodano tests/test_source_common_sample_positive.py: dwa testy używają
+jawnie syntetycznych 90-dniowych historii z istniejącego generatora OLS.
+To kontrola eksportera i silnika modeli, nie nowe rzeczywiste dane TGE/PSE.
+Zastąpiony jest wyłącznie lokalny loader kolekcji: każde wywołanie otrzymuje
+świeżą kopię danych w pamięci. Faktyczny evaluate_csv_rows, przygotowanie
+okien, OLS, dni podobne, mediana oraz scoring działają bez mockowania.
+Test nie sprawdza parsowania/pochodzenia plików; te bramki pozostają
+przedmiotem dotychczasowych testów rzeczywistych źródeł.
+
+Dodatnie przypadki: 29.03.2026 (23h), 25.11.2026 (24h), 25.10.2026 (25h).
+Każdy ma 90 wcześniejszych dób plus cel, 91 dób dopuszczonych przez audyt
+CSV, dokładnie jeden oceniony cel i 23/24/25 wspólnych okresów.
+OLS30/60/90, similar_shape, similar_level i median4 mają identyczne
+liczniki próby. Znana syntetyczna relacja cena=2*JWCD+10 daje MAE OLS
+mniejsze niż 1e-24. JSON z --require-common-sample i bez flagi jest identyczny,
+oba wywołania main zwracają sukces (kod 0).
+
+Drugi test opóźnia wyłącznie actual_available_at poprzedniej doby do
+mikrosekundy po cutoff celu 25.10.2026. Wszystkie 91 dób nadal przechodzi
+audyt istnienia/proweniencji CSV, ale realny walk-forward odrzuca cel
+w ols30 i wskazuje tę dobę w late_training_actual_days.
+Diagnostyka 30/60/90D pokazuje jedną cenę dostępną po cutoff.
+Common_days=common_periods=0, ranking=[]; tryb ścisły zwraca 3,
+domyślny 0 przy identycznym pełnym JSON. Syntetyczne wejścia są zachowane.
+Lokalnie 2/2 nowe testy OK.
+
+Brak nowych pobrań, fixture, zapisów SQL, prognoz i rzeczywistego rankingu.
+Nie zmieniono implementacji modeli, eksportera ani wcześniejszych raportów.
+Poprzedni etap 54253fe: pełne CI 652 testy OK (run 45412401987).
+Rzeczywiste okna 30/60/90D nadal niekompletne. Produkcja JWCD 90D, FROZEN,
+Railway, archiwa, PR #2 i harmonogramy pozostają bez zmian.
