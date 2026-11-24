@@ -4605,3 +4605,39 @@ Poprzedni etap 295581b: pełne CI 643 testy OK (run 45373386373).
 Nie zmieniono implementacji scoringu/archiwizacji, modeli, raportów historii,
 produkcji JWCD 90D, FROZEN, Railway, archiwów i harmonogramów.
 PR #2 pozostaje otwarty; okna 30/60/90D nadal niekompletne.
+
+
+## Checkpoint 2026-11-24 — odtwarzalny audyt pięciu par dób do 25.11
+
+Dodano docs/validation/paired_source_audit_2026-11-25.json z source_commit
+22a9e382b8b0ea6995c68c8ea3eb48bb8d0157d3 i jawnymi ścieżkami źródeł.
+To osobny raport; wcześniejsze checkpointy nie są nadpisywane.
+Kohorta: Fix1 20/21/22/24/25.11 oraz odpowiednio 1/1/4/6/8 obserwacji PK5.
+Łącznie 20 obserwacji PK5, pięć paczek Fix1, 55 plików źródłowych.
+Każda doba zachowuje cały wybrany profil oraz diagnostykę odrzuconych
+publikacji. Audyt ma 120 unikalnych okresów i pięć kompletnych par dób;
+najdłuższy ciąg kompletnych dób nadal wynosi trzy, bo brakuje PK5 23.11.
+
+Ewaluacja: 24.11 11:15:51.127696 Europe/Warsaw, czyli faktyczny odczyt
+Fix1 25.11. Jawny zakres celów 23–25.11: jedna doba nieobecna w parach,
+dwie dopuszczone przez audyt CSV, lecz bez kompletnego treningu.
+Cel 24.11 ma trzy wcześniejsze doby i braki 27/57/87 dla okien 30/60/90D;
+cel 25.11 ma cztery wcześniejsze doby i braki 26/56/86.
+Bieżącej doby 25.11 nie policzono jako jej własnej historii treningowej.
+Brak wcześniejszych cen dostępnych dopiero po cutoff tych celów.
+Common_days=0, common_periods=0, ranking=[].
+
+Dodano tests/test_five_day_source_checkpoint.py: nowa doba na każdej
+z pięciu pozycji przy obu kierunkach wcześniejszych dób daje identyczny
+raport (10 uporządkowań). Testy kontrolują 120 okresów, każdą publikację
+i początek/koniec pobrania względem własnego D-1 09:50 Europe/Warsaw,
+a także rzeczywiste actual_available_at po własnym cutoff.
+CLI w obu kierunkach zachowuje całą wcześniejszą historię mimo zakresu
+celów 23–25.11 i zwraca identyczny JSON. Hashe 55 źródeł i nowego raportu
+pozostają niezmienne. Lokalnie 2/2 nowe testy OK.
+
+Nie pobierano danych live, nie zmieniono źródeł, dotychczasowych raportów,
+logiki modeli lub scoringu. Poprzedni etap 22a9e38 przeszedł pełne CI:
+645 testów OK (run 45382861427), w tym integracja scoringu 25.11 na PostgreSQL.
+Produkcja JWCD 90D, FROZEN, Railway, archiwa i harmonogramy bez zmian.
+PR #2 nadal otwarty. Nie wydano prognozy i nie utworzono rankingu modeli.
