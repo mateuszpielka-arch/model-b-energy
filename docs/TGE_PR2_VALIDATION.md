@@ -4390,3 +4390,40 @@ Nadal brak Fix1 25.11, nowej pary treningowej i kompletnego okna 30/60/90D.
 Poprzedni etap 3cb877c przeszedł CI: 631 testów OK (run 45325401549).
 Kod selekcji, produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa,
 PR #2 i harmonogramy pozostają bez zmian. Nie wydano prognozy.
+
+
+## Checkpoint 2026-11-24 — wspólne pokrycie źródeł PK5 i Fix1
+
+Dodano shadow_source_coverage.py z read-only API audit_source_coverage.
+Łączy pełne raporty istniejących walidatorów PK5 i manifestów Fix1;
+dopiero po walidacji wszystkich podanych źródeł klasyfikuje jawny zakres
+kalendarza na obie strony / tylko wybrany PK5 / tylko Fix1 / brak obu.
+Zachowuje pełną diagnostykę źródeł także spoza zakresu podsumowania,
+osobne liczniki 23/24/25h i flagę konfliktów cen. Obecność obu źródeł
+nie jest deklaracją dopuszczenia modelu: model_readiness_assessed=false.
+Nie wykonuje SQL, sieci, zapisów, prognoz lub wnioskowania timestampów.
+
+Nowy docs/validation/source_coverage_2026-11-25.json ma source_commit
+00055ecee81723c6890fe7fdb0c04a0e9c44c0d1 i jawne ścieżki 21 obserwacji PK5
+oraz siedmiu paczek Fix1 (pięć dób cen, dwa dodatkowe odczyty).
+Zakres 20–25.11 obejmuje 144 okresy kalendarza:
+- obie strony 20/21/22/24.11: 96 okresów;
+- tylko Fix1 23.11: 24 okresy;
+- tylko PK5 25.11: 24 okresy;
+- brak obu: zero dób; konfliktów cen Fix1: zero.
+Nie dopisano PK5 23.11 ani Fix1 25.11 i nie uzupełniono okien treningowych.
+Wszystkie PK5 zachowują kontrolę publikacji i początku/końca pobrania
+względem własnego D-1 09:50 Europe/Warsaw. Dowody Fix1 zawierają odrębne
+czasy faktycznych odczytów; zakres nie jest symulacją ich wcześniejszej
+dostępności. W tym zbiorze nie ma obserwowanych dób 23/25h.
+
+Trzy nowe testy w tests/test_joint_source_coverage.py odtwarzają cały
+checkpoint w obu kierunkach, zachowanie raportów poza węższym zakresem,
+dwie doby bez obu źródeł w rozszerzonym zakresie oraz zgodność istniejących
+CLI z zachowanymi raportami. Kontrolują niezmienność 63 plików źródłowych
+i checkpointu. Lokalnie 3/3 nowe testy OK.
+
+Starszych raportów i źródeł nie zmieniono; brak nowych pobrań live.
+Poprzedni etap 00055ec przeszedł pełne CI: 632 testy OK (run 45332310037).
+Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy
+pozostają bez zmian. Nie wydano prognozy.

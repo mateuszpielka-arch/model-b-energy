@@ -1,0 +1,1796 @@
+{
+  "audit": {
+    "fix1_audit": {
+      "calendar_coverage": {
+        "by_hours": {
+          "23": {
+            "calendar_days": 0,
+            "calendar_periods": 0,
+            "missing_days": 0,
+            "missing_periods": 0,
+            "observed_days": 0
+          },
+          "24": {
+            "calendar_days": 6,
+            "calendar_periods": 144,
+            "missing_days": 1,
+            "missing_periods": 24,
+            "observed_days": 5
+          },
+          "25": {
+            "calendar_days": 0,
+            "calendar_periods": 0,
+            "missing_days": 0,
+            "missing_periods": 0,
+            "observed_days": 0
+          }
+        },
+        "calendar_days": 6,
+        "end_day": "2026-11-25",
+        "missing_days": 1,
+        "missing_ranges": [
+          {
+            "days": 1,
+            "end_day": "2026-11-25",
+            "start_day": "2026-11-25"
+          }
+        ],
+        "observed_days": 5,
+        "scope": "provided_manifests",
+        "start_day": "2026-11-20"
+      },
+      "days": [
+        {
+          "captures": 2,
+          "conflicting_periods_utc": [],
+          "delivery_date": "2026-11-20",
+          "evidence": [
+            {
+              "parser_version": "rdn-layout-shadow-v2",
+              "raw_sha256": "6ab99a8520bc0414f84c6be6f3a6fc71536b28e4640d680a26ddc231b34f3b66",
+              "reference_sha256": "e336b1d4a87d6385d62e97c0e1478fb837a33efbe81e7128753a6008e00ad72e",
+              "retrieved_at_utc": "2026-11-19T10:17:54.057511+00:00",
+              "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=19-11-2026"
+            },
+            {
+              "parser_version": "rdn-layout-shadow-v2",
+              "raw_sha256": "5cc0193cd1969f6bc447a8d6ae3837955f2f761c00ca6f8cca1d740b7c6d04e6",
+              "reference_sha256": "e336b1d4a87d6385d62e97c0e1478fb837a33efbe81e7128753a6008e00ad72e",
+              "retrieved_at_utc": "2026-11-20T03:20:41.999315+00:00",
+              "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=19-11-2026"
+            }
+          ],
+          "first_observed_retrieved_at_utc": "2026-11-19T10:17:54.057511+00:00",
+          "periods": 24,
+          "price_consensus": "CONSISTENT"
+        },
+        {
+          "captures": 1,
+          "conflicting_periods_utc": [],
+          "delivery_date": "2026-11-21",
+          "evidence": [
+            {
+              "parser_version": "rdn-layout-shadow-v2",
+              "raw_sha256": "a2eb6068abbca961fcba56f17a9cca5f183b1d890fd0066aa7831e2109faa9e5",
+              "reference_sha256": "5c19435fcfe1e883b16b860bf2beec71a3a17f06e5cb9833595ade98097fb708",
+              "retrieved_at_utc": "2026-11-20T10:14:16.158611+00:00",
+              "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=20-11-2026"
+            }
+          ],
+          "first_observed_retrieved_at_utc": "2026-11-20T10:14:16.158611+00:00",
+          "periods": 24,
+          "price_consensus": "CONSISTENT"
+        },
+        {
+          "captures": 1,
+          "conflicting_periods_utc": [],
+          "delivery_date": "2026-11-22",
+          "evidence": [
+            {
+              "parser_version": "rdn-layout-shadow-v2",
+              "raw_sha256": "6435b1a6171a4c65bf04a3fa6aaf944e5c492651869d6146c645a2703a63291b",
+              "reference_sha256": "f8fa69544585150148c84cf9114afb16faf5246c6062ac424f91a5ee7c1b8847",
+              "retrieved_at_utc": "2026-11-21T10:19:39.063666+00:00",
+              "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=21-11-2026"
+            }
+          ],
+          "first_observed_retrieved_at_utc": "2026-11-21T10:19:39.063666+00:00",
+          "periods": 24,
+          "price_consensus": "CONSISTENT"
+        },
+        {
+          "captures": 1,
+          "conflicting_periods_utc": [],
+          "delivery_date": "2026-11-23",
+          "evidence": [
+            {
+              "parser_version": "rdn-layout-shadow-v2",
+              "raw_sha256": "ac5c3139d9e00c323f48475d899cda7af87f3c7114773c06da4fa62fdf6ab194",
+              "reference_sha256": "68784f149172d92dcefd115c8ead9f522b9264cb71c7d1031b4fcd2539f0bebe",
+              "retrieved_at_utc": "2026-11-23T05:13:41.794372+00:00",
+              "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=22-11-2026"
+            }
+          ],
+          "first_observed_retrieved_at_utc": "2026-11-23T05:13:41.794372+00:00",
+          "periods": 24,
+          "price_consensus": "CONSISTENT"
+        },
+        {
+          "captures": 2,
+          "conflicting_periods_utc": [],
+          "delivery_date": "2026-11-24",
+          "evidence": [
+            {
+              "parser_version": "rdn-layout-shadow-v2",
+              "raw_sha256": "4c5dfb6aaea7e753dabe720595abd59962b5047334105d6dcb42b8a262ca3279",
+              "reference_sha256": "484d664e1f954e30545cb9c9842a41708cc8a9c723e4bc70ecb59b210c058488",
+              "retrieved_at_utc": "2026-11-23T10:14:34.948376+00:00",
+              "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=23-11-2026"
+            },
+            {
+              "parser_version": "rdn-layout-shadow-v2",
+              "raw_sha256": "f2bcba1575766fd4f7ee1bc0cd70d660b6cdc1510a2f11b6cabd659cb87f0cff",
+              "reference_sha256": "484d664e1f954e30545cb9c9842a41708cc8a9c723e4bc70ecb59b210c058488",
+              "retrieved_at_utc": "2026-11-23T18:17:07.872014+00:00",
+              "source_url": "https://tge.pl/energia-elektryczna-rdn?dateShow=23-11-2026"
+            }
+          ],
+          "first_observed_retrieved_at_utc": "2026-11-23T10:14:34.948376+00:00",
+          "periods": 24,
+          "price_consensus": "CONSISTENT"
+        }
+      ],
+      "days_with_price_conflicts": 0,
+      "delivery_days": 5,
+      "distinct_captures": 7,
+      "duplicate_capture_entries": 0,
+      "read_only": true,
+      "unique_delivery_periods": 120,
+      "validated_capture_entries": 7
+    },
+    "model_readiness_assessed": false,
+    "pk5_audit": {
+      "calendar_coverage_by_hours": {
+        "23": {
+          "absent_days": 0,
+          "calendar_days": 0,
+          "calendar_periods": 0,
+          "observed_unselected_days": 0,
+          "selected_days": 0,
+          "selected_periods": 0,
+          "uncovered_periods": 0
+        },
+        "24": {
+          "absent_days": 1,
+          "calendar_days": 6,
+          "calendar_periods": 144,
+          "observed_unselected_days": 0,
+          "selected_days": 5,
+          "selected_periods": 120,
+          "uncovered_periods": 24
+        },
+        "25": {
+          "absent_days": 0,
+          "calendar_days": 0,
+          "calendar_periods": 0,
+          "observed_unselected_days": 0,
+          "selected_days": 0,
+          "selected_periods": 0,
+          "uncovered_periods": 0
+        }
+      },
+      "days": [
+        {
+          "captures": [
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-19T08:12:42.315000+00:00": 24
+              },
+              "raw_sha256": "dc2a104bc21897d58fff74b60cf7f5e59546b911ec3b75fbacc13762289aab3b",
+              "retrieval_completed_at_utc": "2026-11-19T08:15:43.960574+00:00",
+              "retrieved_at_utc": "2026-11-19T08:15:38.199847+00:00",
+              "snapshot_id": "pk5-capture-sha256:c68cee796a16be93165c5c2f5961cca3184f2099e456c835676de6fe4aa5fe44",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-20%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-19T07:12:42.328000+00:00": 24
+              },
+              "raw_sha256": "492b6aac88c8aafa77c767aecc2ffd4e02c8b97d513ea2a7a6a22f7fef4c3709",
+              "retrieval_completed_at_utc": "2026-11-19T07:16:03.547940+00:00",
+              "retrieved_at_utc": "2026-11-19T07:15:56.761896+00:00",
+              "snapshot_id": "pk5-capture-sha256:deadf59bc92537fd7db8ac636bfb3a99b216f32298e733bd634ecbbc0a318d18",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-20%27"
+            }
+          ],
+          "cutoff_utc": "2026-11-19T08:50:00+00:00",
+          "delivery_date": "2026-11-20",
+          "read_only": true,
+          "rejected_captures": [
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:deadf59bc92537fd7db8ac636bfb3a99b216f32298e733bd634ecbbc0a318d18"
+            }
+          ],
+          "revision_differences_from_selected": [
+            {
+              "changed_periods": 0,
+              "changed_periods_utc": [],
+              "snapshot_id": "pk5-capture-sha256:c68cee796a16be93165c5c2f5961cca3184f2099e456c835676de6fe4aa5fe44"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-19T23:00:00+00:00",
+                "2026-11-20T00:00:00+00:00",
+                "2026-11-20T01:00:00+00:00",
+                "2026-11-20T02:00:00+00:00",
+                "2026-11-20T03:00:00+00:00",
+                "2026-11-20T04:00:00+00:00",
+                "2026-11-20T05:00:00+00:00",
+                "2026-11-20T06:00:00+00:00",
+                "2026-11-20T07:00:00+00:00",
+                "2026-11-20T08:00:00+00:00",
+                "2026-11-20T09:00:00+00:00",
+                "2026-11-20T10:00:00+00:00",
+                "2026-11-20T11:00:00+00:00",
+                "2026-11-20T12:00:00+00:00",
+                "2026-11-20T13:00:00+00:00",
+                "2026-11-20T14:00:00+00:00",
+                "2026-11-20T15:00:00+00:00",
+                "2026-11-20T16:00:00+00:00",
+                "2026-11-20T17:00:00+00:00",
+                "2026-11-20T18:00:00+00:00",
+                "2026-11-20T19:00:00+00:00",
+                "2026-11-20T20:00:00+00:00",
+                "2026-11-20T21:00:00+00:00",
+                "2026-11-20T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:deadf59bc92537fd7db8ac636bfb3a99b216f32298e733bd634ecbbc0a318d18"
+            }
+          ],
+          "selected_rows": [
+            {
+              "jwcd_mw": "9410.00000",
+              "period_start_utc": "2026-11-19T23:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "8573.00000",
+              "period_start_utc": "2026-11-20T00:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "8021.00000",
+              "period_start_utc": "2026-11-20T01:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "7889.00000",
+              "period_start_utc": "2026-11-20T02:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "8303.00000",
+              "period_start_utc": "2026-11-20T03:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "9536.00000",
+              "period_start_utc": "2026-11-20T04:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "11242.00000",
+              "period_start_utc": "2026-11-20T05:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "13172.00000",
+              "period_start_utc": "2026-11-20T06:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "13649.00000",
+              "period_start_utc": "2026-11-20T07:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "13045.00000",
+              "period_start_utc": "2026-11-20T08:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "12150.00000",
+              "period_start_utc": "2026-11-20T09:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "12105.00000",
+              "period_start_utc": "2026-11-20T10:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "12397.00000",
+              "period_start_utc": "2026-11-20T11:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "13169.00000",
+              "period_start_utc": "2026-11-20T12:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "14152.00000",
+              "period_start_utc": "2026-11-20T13:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "15380.00000",
+              "period_start_utc": "2026-11-20T14:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "16091.00000",
+              "period_start_utc": "2026-11-20T15:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "15858.00000",
+              "period_start_utc": "2026-11-20T16:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "15287.00000",
+              "period_start_utc": "2026-11-20T17:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "14985.00000",
+              "period_start_utc": "2026-11-20T18:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "14302.00000",
+              "period_start_utc": "2026-11-20T19:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "12664.00000",
+              "period_start_utc": "2026-11-20T20:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "11338.00000",
+              "period_start_utc": "2026-11-20T21:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            },
+            {
+              "jwcd_mw": "10577.00000",
+              "period_start_utc": "2026-11-20T22:00:00+00:00",
+              "publication_ts_utc": "2026-11-19T08:12:42.315000+00:00"
+            }
+          ],
+          "selected_snapshot_id": "pk5-capture-sha256:c68cee796a16be93165c5c2f5961cca3184f2099e456c835676de6fe4aa5fe44"
+        },
+        {
+          "captures": [
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-20T04:13:06.844000+00:00": 24
+              },
+              "raw_sha256": "58bf3545c5c2aaec8a3c0a9355efa9bec5c36c6e67870f7e975824963b314935",
+              "retrieval_completed_at_utc": "2026-11-20T04:14:59.091799+00:00",
+              "retrieved_at_utc": "2026-11-20T04:14:53.205545+00:00",
+              "snapshot_id": "pk5-capture-sha256:66c2d823329d3570911f495a647fe0d4b2f324027210ff6707e93137ac328d1b",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-21%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-20T08:12:56.224000+00:00": 24
+              },
+              "raw_sha256": "4f0202160c8035e2b7d43095cf807a20bfa357ae8ad4965a466eab607209cb5a",
+              "retrieval_completed_at_utc": "2026-11-20T08:13:47.559972+00:00",
+              "retrieved_at_utc": "2026-11-20T08:13:37.534340+00:00",
+              "snapshot_id": "pk5-capture-sha256:7cf8c8c1ef4c8ba36dd9c010e277a2059d6fff675b9d984f929a7021ae4d8969",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-21%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-20T06:03:47.124000+00:00": 24
+              },
+              "raw_sha256": "c4b87119b2cb2c82d1d3a9cd985d79710c8222c0108e770b4dd083f6902248eb",
+              "retrieval_completed_at_utc": "2026-11-20T06:17:57.987761+00:00",
+              "retrieved_at_utc": "2026-11-20T06:17:50.784033+00:00",
+              "snapshot_id": "pk5-capture-sha256:e5496a8286ca8c3988ccc1596c3a1e75121b0cf7215764e7d0c6ac7eb672d65c",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-21%27"
+            }
+          ],
+          "cutoff_utc": "2026-11-20T08:50:00+00:00",
+          "delivery_date": "2026-11-21",
+          "read_only": true,
+          "rejected_captures": [
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:66c2d823329d3570911f495a647fe0d4b2f324027210ff6707e93137ac328d1b"
+            },
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:e5496a8286ca8c3988ccc1596c3a1e75121b0cf7215764e7d0c6ac7eb672d65c"
+            }
+          ],
+          "revision_differences_from_selected": [
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-20T23:00:00+00:00",
+                "2026-11-21T00:00:00+00:00",
+                "2026-11-21T01:00:00+00:00",
+                "2026-11-21T02:00:00+00:00",
+                "2026-11-21T03:00:00+00:00",
+                "2026-11-21T04:00:00+00:00",
+                "2026-11-21T05:00:00+00:00",
+                "2026-11-21T06:00:00+00:00",
+                "2026-11-21T07:00:00+00:00",
+                "2026-11-21T08:00:00+00:00",
+                "2026-11-21T09:00:00+00:00",
+                "2026-11-21T10:00:00+00:00",
+                "2026-11-21T11:00:00+00:00",
+                "2026-11-21T12:00:00+00:00",
+                "2026-11-21T13:00:00+00:00",
+                "2026-11-21T14:00:00+00:00",
+                "2026-11-21T15:00:00+00:00",
+                "2026-11-21T16:00:00+00:00",
+                "2026-11-21T17:00:00+00:00",
+                "2026-11-21T18:00:00+00:00",
+                "2026-11-21T19:00:00+00:00",
+                "2026-11-21T20:00:00+00:00",
+                "2026-11-21T21:00:00+00:00",
+                "2026-11-21T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:66c2d823329d3570911f495a647fe0d4b2f324027210ff6707e93137ac328d1b"
+            },
+            {
+              "changed_periods": 0,
+              "changed_periods_utc": [],
+              "snapshot_id": "pk5-capture-sha256:7cf8c8c1ef4c8ba36dd9c010e277a2059d6fff675b9d984f929a7021ae4d8969"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-20T23:00:00+00:00",
+                "2026-11-21T00:00:00+00:00",
+                "2026-11-21T01:00:00+00:00",
+                "2026-11-21T02:00:00+00:00",
+                "2026-11-21T03:00:00+00:00",
+                "2026-11-21T04:00:00+00:00",
+                "2026-11-21T05:00:00+00:00",
+                "2026-11-21T06:00:00+00:00",
+                "2026-11-21T07:00:00+00:00",
+                "2026-11-21T08:00:00+00:00",
+                "2026-11-21T09:00:00+00:00",
+                "2026-11-21T10:00:00+00:00",
+                "2026-11-21T11:00:00+00:00",
+                "2026-11-21T12:00:00+00:00",
+                "2026-11-21T13:00:00+00:00",
+                "2026-11-21T14:00:00+00:00",
+                "2026-11-21T15:00:00+00:00",
+                "2026-11-21T16:00:00+00:00",
+                "2026-11-21T17:00:00+00:00",
+                "2026-11-21T18:00:00+00:00",
+                "2026-11-21T19:00:00+00:00",
+                "2026-11-21T20:00:00+00:00",
+                "2026-11-21T21:00:00+00:00",
+                "2026-11-21T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:e5496a8286ca8c3988ccc1596c3a1e75121b0cf7215764e7d0c6ac7eb672d65c"
+            }
+          ],
+          "selected_rows": [
+            {
+              "jwcd_mw": "8571.00000",
+              "period_start_utc": "2026-11-20T23:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "7792.00000",
+              "period_start_utc": "2026-11-21T00:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "7472.00000",
+              "period_start_utc": "2026-11-21T01:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "7472.00000",
+              "period_start_utc": "2026-11-21T02:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "7473.00000",
+              "period_start_utc": "2026-11-21T03:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "7631.00000",
+              "period_start_utc": "2026-11-21T04:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "7653.00000",
+              "period_start_utc": "2026-11-21T05:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "8129.00000",
+              "period_start_utc": "2026-11-21T06:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "7883.00000",
+              "period_start_utc": "2026-11-21T07:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "7062.00000",
+              "period_start_utc": "2026-11-21T08:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "6667.00000",
+              "period_start_utc": "2026-11-21T09:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "6267.00000",
+              "period_start_utc": "2026-11-21T10:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "6263.00000",
+              "period_start_utc": "2026-11-21T11:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "6668.00000",
+              "period_start_utc": "2026-11-21T12:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "6895.00000",
+              "period_start_utc": "2026-11-21T13:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "8364.00000",
+              "period_start_utc": "2026-11-21T14:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "9184.00000",
+              "period_start_utc": "2026-11-21T15:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "9059.00000",
+              "period_start_utc": "2026-11-21T16:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "8809.00000",
+              "period_start_utc": "2026-11-21T17:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "8803.00000",
+              "period_start_utc": "2026-11-21T18:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "8483.00000",
+              "period_start_utc": "2026-11-21T19:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "7713.00000",
+              "period_start_utc": "2026-11-21T20:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "6964.00000",
+              "period_start_utc": "2026-11-21T21:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            },
+            {
+              "jwcd_mw": "6846.00000",
+              "period_start_utc": "2026-11-21T22:00:00+00:00",
+              "publication_ts_utc": "2026-11-20T08:12:56.224000+00:00"
+            }
+          ],
+          "selected_snapshot_id": "pk5-capture-sha256:7cf8c8c1ef4c8ba36dd9c010e277a2059d6fff675b9d984f929a7021ae4d8969"
+        },
+        {
+          "captures": [
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-21T01:03:06.832000+00:00": 10,
+                "2026-11-21T01:12:31.438000+00:00": 14
+              },
+              "raw_sha256": "a73dd820bfd6f81b077c9f344ba16c2a47a13bab66c0f8477131df3dae33898a",
+              "retrieval_completed_at_utc": "2026-11-21T01:14:14.746482+00:00",
+              "retrieved_at_utc": "2026-11-21T01:14:07.280190+00:00",
+              "snapshot_id": "pk5-capture-sha256:54176dabc93d9cb165c8c31d2f767b27c2609faa7f475029e100104e9dac8dc8",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-22%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-20T20:02:37.114000+00:00": 24
+              },
+              "raw_sha256": "ab47fe9dd17f9f13df01963097c616227f305f3578de291f8793722633ac8892",
+              "retrieval_completed_at_utc": "2026-11-20T20:20:40.007491+00:00",
+              "retrieved_at_utc": "2026-11-20T20:20:32.063933+00:00",
+              "snapshot_id": "pk5-capture-sha256:555145722b8862a1c42dcecf387a208c74d8b068950542d9c833a6789000e044",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-22%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-21T07:02:42.387000+00:00": 24
+              },
+              "raw_sha256": "a34eb8ec73462006cc7c43e509de77c685605b3c4ea82307cb06df466ebe398f",
+              "retrieval_completed_at_utc": "2026-11-21T07:14:41.928655+00:00",
+              "retrieved_at_utc": "2026-11-21T07:14:34.192048+00:00",
+              "snapshot_id": "pk5-capture-sha256:87a12da1695f4575dc28a369da9283691a4673fab7a702ac681ac23bf958158d",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-22%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-21T05:13:06.353000+00:00": 24
+              },
+              "raw_sha256": "368fbb5c84305d6b7e4da4739b2b65ee68496658ec84633779bc5a90b8c05bdc",
+              "retrieval_completed_at_utc": "2026-11-21T05:18:32.987931+00:00",
+              "retrieved_at_utc": "2026-11-21T05:18:25.318220+00:00",
+              "snapshot_id": "pk5-capture-sha256:d7294947e12dca830fee4386b9c22033b7f24365bfa60e5cc199c5efcd03c35e",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-22%27"
+            }
+          ],
+          "cutoff_utc": "2026-11-21T08:50:00+00:00",
+          "delivery_date": "2026-11-22",
+          "read_only": true,
+          "rejected_captures": [
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:54176dabc93d9cb165c8c31d2f767b27c2609faa7f475029e100104e9dac8dc8"
+            },
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:555145722b8862a1c42dcecf387a208c74d8b068950542d9c833a6789000e044"
+            },
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:d7294947e12dca830fee4386b9c22033b7f24365bfa60e5cc199c5efcd03c35e"
+            }
+          ],
+          "revision_differences_from_selected": [
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-21T23:00:00+00:00",
+                "2026-11-22T00:00:00+00:00",
+                "2026-11-22T01:00:00+00:00",
+                "2026-11-22T02:00:00+00:00",
+                "2026-11-22T03:00:00+00:00",
+                "2026-11-22T04:00:00+00:00",
+                "2026-11-22T05:00:00+00:00",
+                "2026-11-22T06:00:00+00:00",
+                "2026-11-22T07:00:00+00:00",
+                "2026-11-22T08:00:00+00:00",
+                "2026-11-22T09:00:00+00:00",
+                "2026-11-22T10:00:00+00:00",
+                "2026-11-22T11:00:00+00:00",
+                "2026-11-22T12:00:00+00:00",
+                "2026-11-22T13:00:00+00:00",
+                "2026-11-22T14:00:00+00:00",
+                "2026-11-22T15:00:00+00:00",
+                "2026-11-22T16:00:00+00:00",
+                "2026-11-22T17:00:00+00:00",
+                "2026-11-22T18:00:00+00:00",
+                "2026-11-22T19:00:00+00:00",
+                "2026-11-22T20:00:00+00:00",
+                "2026-11-22T21:00:00+00:00",
+                "2026-11-22T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:54176dabc93d9cb165c8c31d2f767b27c2609faa7f475029e100104e9dac8dc8"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-21T23:00:00+00:00",
+                "2026-11-22T00:00:00+00:00",
+                "2026-11-22T01:00:00+00:00",
+                "2026-11-22T02:00:00+00:00",
+                "2026-11-22T03:00:00+00:00",
+                "2026-11-22T04:00:00+00:00",
+                "2026-11-22T05:00:00+00:00",
+                "2026-11-22T06:00:00+00:00",
+                "2026-11-22T07:00:00+00:00",
+                "2026-11-22T08:00:00+00:00",
+                "2026-11-22T09:00:00+00:00",
+                "2026-11-22T10:00:00+00:00",
+                "2026-11-22T11:00:00+00:00",
+                "2026-11-22T12:00:00+00:00",
+                "2026-11-22T13:00:00+00:00",
+                "2026-11-22T14:00:00+00:00",
+                "2026-11-22T15:00:00+00:00",
+                "2026-11-22T16:00:00+00:00",
+                "2026-11-22T17:00:00+00:00",
+                "2026-11-22T18:00:00+00:00",
+                "2026-11-22T19:00:00+00:00",
+                "2026-11-22T20:00:00+00:00",
+                "2026-11-22T21:00:00+00:00",
+                "2026-11-22T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:555145722b8862a1c42dcecf387a208c74d8b068950542d9c833a6789000e044"
+            },
+            {
+              "changed_periods": 0,
+              "changed_periods_utc": [],
+              "snapshot_id": "pk5-capture-sha256:87a12da1695f4575dc28a369da9283691a4673fab7a702ac681ac23bf958158d"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-21T23:00:00+00:00",
+                "2026-11-22T00:00:00+00:00",
+                "2026-11-22T01:00:00+00:00",
+                "2026-11-22T02:00:00+00:00",
+                "2026-11-22T03:00:00+00:00",
+                "2026-11-22T04:00:00+00:00",
+                "2026-11-22T05:00:00+00:00",
+                "2026-11-22T06:00:00+00:00",
+                "2026-11-22T07:00:00+00:00",
+                "2026-11-22T08:00:00+00:00",
+                "2026-11-22T09:00:00+00:00",
+                "2026-11-22T10:00:00+00:00",
+                "2026-11-22T11:00:00+00:00",
+                "2026-11-22T12:00:00+00:00",
+                "2026-11-22T13:00:00+00:00",
+                "2026-11-22T14:00:00+00:00",
+                "2026-11-22T15:00:00+00:00",
+                "2026-11-22T16:00:00+00:00",
+                "2026-11-22T17:00:00+00:00",
+                "2026-11-22T18:00:00+00:00",
+                "2026-11-22T19:00:00+00:00",
+                "2026-11-22T20:00:00+00:00",
+                "2026-11-22T21:00:00+00:00",
+                "2026-11-22T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:d7294947e12dca830fee4386b9c22033b7f24365bfa60e5cc199c5efcd03c35e"
+            }
+          ],
+          "selected_rows": [
+            {
+              "jwcd_mw": "6326.00000",
+              "period_start_utc": "2026-11-21T23:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "6043.00000",
+              "period_start_utc": "2026-11-22T00:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "5659.00000",
+              "period_start_utc": "2026-11-22T01:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "5633.00000",
+              "period_start_utc": "2026-11-22T02:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "5731.00000",
+              "period_start_utc": "2026-11-22T03:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "6243.00000",
+              "period_start_utc": "2026-11-22T04:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "6398.00000",
+              "period_start_utc": "2026-11-22T05:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "6317.00000",
+              "period_start_utc": "2026-11-22T06:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "6562.00000",
+              "period_start_utc": "2026-11-22T07:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "6488.00000",
+              "period_start_utc": "2026-11-22T08:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "6302.00000",
+              "period_start_utc": "2026-11-22T09:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "6302.00000",
+              "period_start_utc": "2026-11-22T10:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "6311.00000",
+              "period_start_utc": "2026-11-22T11:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "7565.00000",
+              "period_start_utc": "2026-11-22T12:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "9215.00000",
+              "period_start_utc": "2026-11-22T13:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "10748.00000",
+              "period_start_utc": "2026-11-22T14:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "11900.00000",
+              "period_start_utc": "2026-11-22T15:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "12000.00000",
+              "period_start_utc": "2026-11-22T16:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "12126.00000",
+              "period_start_utc": "2026-11-22T17:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "12257.00000",
+              "period_start_utc": "2026-11-22T18:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "12093.00000",
+              "period_start_utc": "2026-11-22T19:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "11352.00000",
+              "period_start_utc": "2026-11-22T20:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "10570.00000",
+              "period_start_utc": "2026-11-22T21:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            },
+            {
+              "jwcd_mw": "9744.00000",
+              "period_start_utc": "2026-11-22T22:00:00+00:00",
+              "publication_ts_utc": "2026-11-21T07:02:42.387000+00:00"
+            }
+          ],
+          "selected_snapshot_id": "pk5-capture-sha256:87a12da1695f4575dc28a369da9283691a4673fab7a702ac681ac23bf958158d"
+        },
+        {
+          "captures": [
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-23T07:13:42.104000+00:00": 24
+              },
+              "raw_sha256": "5bc11ccd1a56b700fbffafb9d208c0b2ca95dc0bc6d47dc880304aa09c1fdc77",
+              "retrieval_completed_at_utc": "2026-11-23T07:18:19.542186+00:00",
+              "retrieved_at_utc": "2026-11-23T07:18:12.912361+00:00",
+              "snapshot_id": "pk5-capture-sha256:5e8bd37d651c7608c20935969b96a3ba5f115a81cecfe209c0536ab252eeb4b6",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-24%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-22T21:05:07.376000+00:00": 24
+              },
+              "raw_sha256": "f3a18364f4a41446dc67b163c3b258c5ce7665dd43ede9f0f705cc7ed88b55c5",
+              "retrieval_completed_at_utc": "2026-11-22T21:12:55.417751+00:00",
+              "retrieved_at_utc": "2026-11-22T21:12:48.103863+00:00",
+              "snapshot_id": "pk5-capture-sha256:7b073cbe000adecf5232208a45d48bc1430e17ca11f7d038e501819967e19e10",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-24%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-23T01:13:27.462000+00:00": 24
+              },
+              "raw_sha256": "8b585dc921d36ff5cf1acda0f3e0163d754161f8fba6248eae2657dbf6c37e7d",
+              "retrieval_completed_at_utc": "2026-11-23T01:19:09.192381+00:00",
+              "retrieved_at_utc": "2026-11-23T01:18:59.865233+00:00",
+              "snapshot_id": "pk5-capture-sha256:82207eb47c997127091073af89607944eb67dfffd8e0f97c914c4d983530374a",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-24%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-23T04:13:37.112000+00:00": 24
+              },
+              "raw_sha256": "b52e3be34a8134c6d138e1678a9a1c8e06b3b1534894fc4b760f7249f93262a7",
+              "retrieval_completed_at_utc": "2026-11-23T04:16:40.125791+00:00",
+              "retrieved_at_utc": "2026-11-23T04:16:33.099925+00:00",
+              "snapshot_id": "pk5-capture-sha256:84fc58e86395342b9d10855b5a36f38616e3ddec5844907048887642056ab498",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-24%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-23T08:13:42.117000+00:00": 24
+              },
+              "raw_sha256": "1bfff18989de46fe2fb00df77e8dd936551e47d3875db3f90ee996bb103c05c6",
+              "retrieval_completed_at_utc": "2026-11-23T08:19:34.382677+00:00",
+              "retrieved_at_utc": "2026-11-23T08:19:27.368850+00:00",
+              "snapshot_id": "pk5-capture-sha256:c6fde113a3de2d6714c221404f38890e6ed1c5736cd50ae809a2d669cc5738b4",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-24%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-22T23:14:20.888000+00:00": 24
+              },
+              "raw_sha256": "ee1a8d8ff8066f343265285f2ba1fdc087a6d04369a020e0284e38dac1b98699",
+              "retrieval_completed_at_utc": "2026-11-22T23:16:38.369227+00:00",
+              "retrieved_at_utc": "2026-11-22T23:16:29.078131+00:00",
+              "snapshot_id": "pk5-capture-sha256:f19185d51f1e25ddfbde34e69fd3edef88cbb1b3db277ddf6654ac41e3863ad1",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-24%27"
+            }
+          ],
+          "cutoff_utc": "2026-11-23T08:50:00+00:00",
+          "delivery_date": "2026-11-24",
+          "read_only": true,
+          "rejected_captures": [
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:5e8bd37d651c7608c20935969b96a3ba5f115a81cecfe209c0536ab252eeb4b6"
+            },
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:7b073cbe000adecf5232208a45d48bc1430e17ca11f7d038e501819967e19e10"
+            },
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:82207eb47c997127091073af89607944eb67dfffd8e0f97c914c4d983530374a"
+            },
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:84fc58e86395342b9d10855b5a36f38616e3ddec5844907048887642056ab498"
+            },
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:f19185d51f1e25ddfbde34e69fd3edef88cbb1b3db277ddf6654ac41e3863ad1"
+            }
+          ],
+          "revision_differences_from_selected": [
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-23T23:00:00+00:00",
+                "2026-11-24T00:00:00+00:00",
+                "2026-11-24T01:00:00+00:00",
+                "2026-11-24T02:00:00+00:00",
+                "2026-11-24T03:00:00+00:00",
+                "2026-11-24T04:00:00+00:00",
+                "2026-11-24T05:00:00+00:00",
+                "2026-11-24T06:00:00+00:00",
+                "2026-11-24T07:00:00+00:00",
+                "2026-11-24T08:00:00+00:00",
+                "2026-11-24T09:00:00+00:00",
+                "2026-11-24T10:00:00+00:00",
+                "2026-11-24T11:00:00+00:00",
+                "2026-11-24T12:00:00+00:00",
+                "2026-11-24T13:00:00+00:00",
+                "2026-11-24T14:00:00+00:00",
+                "2026-11-24T15:00:00+00:00",
+                "2026-11-24T16:00:00+00:00",
+                "2026-11-24T17:00:00+00:00",
+                "2026-11-24T18:00:00+00:00",
+                "2026-11-24T19:00:00+00:00",
+                "2026-11-24T20:00:00+00:00",
+                "2026-11-24T21:00:00+00:00",
+                "2026-11-24T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:5e8bd37d651c7608c20935969b96a3ba5f115a81cecfe209c0536ab252eeb4b6"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-23T23:00:00+00:00",
+                "2026-11-24T00:00:00+00:00",
+                "2026-11-24T01:00:00+00:00",
+                "2026-11-24T02:00:00+00:00",
+                "2026-11-24T03:00:00+00:00",
+                "2026-11-24T04:00:00+00:00",
+                "2026-11-24T05:00:00+00:00",
+                "2026-11-24T06:00:00+00:00",
+                "2026-11-24T07:00:00+00:00",
+                "2026-11-24T08:00:00+00:00",
+                "2026-11-24T09:00:00+00:00",
+                "2026-11-24T10:00:00+00:00",
+                "2026-11-24T11:00:00+00:00",
+                "2026-11-24T12:00:00+00:00",
+                "2026-11-24T13:00:00+00:00",
+                "2026-11-24T14:00:00+00:00",
+                "2026-11-24T15:00:00+00:00",
+                "2026-11-24T16:00:00+00:00",
+                "2026-11-24T17:00:00+00:00",
+                "2026-11-24T18:00:00+00:00",
+                "2026-11-24T19:00:00+00:00",
+                "2026-11-24T20:00:00+00:00",
+                "2026-11-24T21:00:00+00:00",
+                "2026-11-24T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:7b073cbe000adecf5232208a45d48bc1430e17ca11f7d038e501819967e19e10"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-23T23:00:00+00:00",
+                "2026-11-24T00:00:00+00:00",
+                "2026-11-24T01:00:00+00:00",
+                "2026-11-24T02:00:00+00:00",
+                "2026-11-24T03:00:00+00:00",
+                "2026-11-24T04:00:00+00:00",
+                "2026-11-24T05:00:00+00:00",
+                "2026-11-24T06:00:00+00:00",
+                "2026-11-24T07:00:00+00:00",
+                "2026-11-24T08:00:00+00:00",
+                "2026-11-24T09:00:00+00:00",
+                "2026-11-24T10:00:00+00:00",
+                "2026-11-24T11:00:00+00:00",
+                "2026-11-24T12:00:00+00:00",
+                "2026-11-24T13:00:00+00:00",
+                "2026-11-24T14:00:00+00:00",
+                "2026-11-24T15:00:00+00:00",
+                "2026-11-24T16:00:00+00:00",
+                "2026-11-24T17:00:00+00:00",
+                "2026-11-24T18:00:00+00:00",
+                "2026-11-24T19:00:00+00:00",
+                "2026-11-24T20:00:00+00:00",
+                "2026-11-24T21:00:00+00:00",
+                "2026-11-24T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:82207eb47c997127091073af89607944eb67dfffd8e0f97c914c4d983530374a"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-23T23:00:00+00:00",
+                "2026-11-24T00:00:00+00:00",
+                "2026-11-24T01:00:00+00:00",
+                "2026-11-24T02:00:00+00:00",
+                "2026-11-24T03:00:00+00:00",
+                "2026-11-24T04:00:00+00:00",
+                "2026-11-24T05:00:00+00:00",
+                "2026-11-24T06:00:00+00:00",
+                "2026-11-24T07:00:00+00:00",
+                "2026-11-24T08:00:00+00:00",
+                "2026-11-24T09:00:00+00:00",
+                "2026-11-24T10:00:00+00:00",
+                "2026-11-24T11:00:00+00:00",
+                "2026-11-24T12:00:00+00:00",
+                "2026-11-24T13:00:00+00:00",
+                "2026-11-24T14:00:00+00:00",
+                "2026-11-24T15:00:00+00:00",
+                "2026-11-24T16:00:00+00:00",
+                "2026-11-24T17:00:00+00:00",
+                "2026-11-24T18:00:00+00:00",
+                "2026-11-24T19:00:00+00:00",
+                "2026-11-24T20:00:00+00:00",
+                "2026-11-24T21:00:00+00:00",
+                "2026-11-24T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:84fc58e86395342b9d10855b5a36f38616e3ddec5844907048887642056ab498"
+            },
+            {
+              "changed_periods": 0,
+              "changed_periods_utc": [],
+              "snapshot_id": "pk5-capture-sha256:c6fde113a3de2d6714c221404f38890e6ed1c5736cd50ae809a2d669cc5738b4"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-23T23:00:00+00:00",
+                "2026-11-24T00:00:00+00:00",
+                "2026-11-24T01:00:00+00:00",
+                "2026-11-24T02:00:00+00:00",
+                "2026-11-24T03:00:00+00:00",
+                "2026-11-24T04:00:00+00:00",
+                "2026-11-24T05:00:00+00:00",
+                "2026-11-24T06:00:00+00:00",
+                "2026-11-24T07:00:00+00:00",
+                "2026-11-24T08:00:00+00:00",
+                "2026-11-24T09:00:00+00:00",
+                "2026-11-24T10:00:00+00:00",
+                "2026-11-24T11:00:00+00:00",
+                "2026-11-24T12:00:00+00:00",
+                "2026-11-24T13:00:00+00:00",
+                "2026-11-24T14:00:00+00:00",
+                "2026-11-24T15:00:00+00:00",
+                "2026-11-24T16:00:00+00:00",
+                "2026-11-24T17:00:00+00:00",
+                "2026-11-24T18:00:00+00:00",
+                "2026-11-24T19:00:00+00:00",
+                "2026-11-24T20:00:00+00:00",
+                "2026-11-24T21:00:00+00:00",
+                "2026-11-24T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:f19185d51f1e25ddfbde34e69fd3edef88cbb1b3db277ddf6654ac41e3863ad1"
+            }
+          ],
+          "selected_rows": [
+            {
+              "jwcd_mw": "8108.00000",
+              "period_start_utc": "2026-11-23T23:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "7507.00000",
+              "period_start_utc": "2026-11-24T00:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "7360.00000",
+              "period_start_utc": "2026-11-24T01:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "7422.00000",
+              "period_start_utc": "2026-11-24T02:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "7862.00000",
+              "period_start_utc": "2026-11-24T03:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "8725.00000",
+              "period_start_utc": "2026-11-24T04:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "10722.00000",
+              "period_start_utc": "2026-11-24T05:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "12358.00000",
+              "period_start_utc": "2026-11-24T06:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "13262.00000",
+              "period_start_utc": "2026-11-24T07:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "13372.00000",
+              "period_start_utc": "2026-11-24T08:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "12984.00000",
+              "period_start_utc": "2026-11-24T09:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "13323.00000",
+              "period_start_utc": "2026-11-24T10:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "13584.00000",
+              "period_start_utc": "2026-11-24T11:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "14053.00000",
+              "period_start_utc": "2026-11-24T12:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "14410.00000",
+              "period_start_utc": "2026-11-24T13:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "14961.00000",
+              "period_start_utc": "2026-11-24T14:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "15596.00000",
+              "period_start_utc": "2026-11-24T15:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "15815.00000",
+              "period_start_utc": "2026-11-24T16:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "15731.00000",
+              "period_start_utc": "2026-11-24T17:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "15997.00000",
+              "period_start_utc": "2026-11-24T18:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "15628.00000",
+              "period_start_utc": "2026-11-24T19:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "14375.00000",
+              "period_start_utc": "2026-11-24T20:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "12946.00000",
+              "period_start_utc": "2026-11-24T21:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            },
+            {
+              "jwcd_mw": "11941.00000",
+              "period_start_utc": "2026-11-24T22:00:00+00:00",
+              "publication_ts_utc": "2026-11-23T08:13:42.117000+00:00"
+            }
+          ],
+          "selected_snapshot_id": "pk5-capture-sha256:c6fde113a3de2d6714c221404f38890e6ed1c5736cd50ae809a2d669cc5738b4"
+        },
+        {
+          "captures": [
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-23T21:05:12.606000+00:00": 24
+              },
+              "raw_sha256": "d79a3599e74f5802fc5ab3bb1805afa509b01aa4550d11bf93f0bc00b43867f7",
+              "retrieval_completed_at_utc": "2026-11-23T21:18:55.444056+00:00",
+              "retrieved_at_utc": "2026-11-23T21:18:47.522200+00:00",
+              "snapshot_id": "pk5-capture-sha256:0cbbb9cbc0710615ea462198bb1f834023c2b8a0548eec64707260133577ad13",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-25%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-24T03:03:47.646000+00:00": 24
+              },
+              "raw_sha256": "f3a0c170dc8dbd7ac2a2d154097d32c14d77d0e92813a88635e9c8ee5d2226d5",
+              "retrieval_completed_at_utc": "2026-11-24T03:16:20.337291+00:00",
+              "retrieved_at_utc": "2026-11-24T03:16:14.783582+00:00",
+              "snapshot_id": "pk5-capture-sha256:11ef8931e59888236d1b09c8c9d93ef019a66f03c74a5b0dec8ccc3f3e6b6925",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-25%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-24T01:03:42.650000+00:00": 12,
+                "2026-11-24T01:12:57.179000+00:00": 12
+              },
+              "raw_sha256": "9b1347e9eecfcf6cb35d0af391e71771b5620b6741a016537950c049a5aecb82",
+              "retrieval_completed_at_utc": "2026-11-24T01:16:35.247501+00:00",
+              "retrieved_at_utc": "2026-11-24T01:16:30.285815+00:00",
+              "snapshot_id": "pk5-capture-sha256:26a2426a2757adc18edbffdbd5fa07f44a576cf9c45a5de6716f1cc9b0dd726c",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-25%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-23T20:03:47.599000+00:00": 24
+              },
+              "raw_sha256": "3b0386623f9984e6a5be31d538adbd27cf5521c360fd0a135435421cce7c78af",
+              "retrieval_completed_at_utc": "2026-11-23T20:16:22.749083+00:00",
+              "retrieved_at_utc": "2026-11-23T20:16:14.449130+00:00",
+              "snapshot_id": "pk5-capture-sha256:319f72ac7c9d463b433577cd10982f146e72aef85b5896b2af569a0560bb3c4d",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-25%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-23T23:14:26.244000+00:00": 24
+              },
+              "raw_sha256": "bf1d0ce19d44913440e949c374071ac5c5fc1d9fd32f6faf4e31c7cd146884e1",
+              "retrieval_completed_at_utc": "2026-11-23T23:16:28.652854+00:00",
+              "retrieved_at_utc": "2026-11-23T23:16:19.726697+00:00",
+              "snapshot_id": "pk5-capture-sha256:55689b2cccb61e5667821a7a8317aa4eadc5aff88cfa80905d541007b5380e6b",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-25%27"
+            },
+            {
+              "periods": 24,
+              "publication_counts_utc": {
+                "2026-11-24T05:04:07.697000+00:00": 12,
+                "2026-11-24T05:13:17.249000+00:00": 12
+              },
+              "raw_sha256": "95cd2852bd810ed723dcfca17bc57d5125c58a26aca2b90acbed1511ad4398e7",
+              "retrieval_completed_at_utc": "2026-11-24T05:16:17.793439+00:00",
+              "retrieved_at_utc": "2026-11-24T05:16:10.611465+00:00",
+              "snapshot_id": "pk5-capture-sha256:729a97def009adcb5d37fae268857cd97fa35df9b23ce100ba55b32d0066fd5a",
+              "source_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-25%27"
+            }
+          ],
+          "cutoff_utc": "2026-11-24T08:50:00+00:00",
+          "delivery_date": "2026-11-25",
+          "read_only": true,
+          "rejected_captures": [
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:0cbbb9cbc0710615ea462198bb1f834023c2b8a0548eec64707260133577ad13"
+            },
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:11ef8931e59888236d1b09c8c9d93ef019a66f03c74a5b0dec8ccc3f3e6b6925"
+            },
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:26a2426a2757adc18edbffdbd5fa07f44a576cf9c45a5de6716f1cc9b0dd726c"
+            },
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:319f72ac7c9d463b433577cd10982f146e72aef85b5896b2af569a0560bb3c4d"
+            },
+            {
+              "reason": "SUPERSEDED_JWCD_PUBLICATIONS",
+              "snapshot_id": "pk5-capture-sha256:55689b2cccb61e5667821a7a8317aa4eadc5aff88cfa80905d541007b5380e6b"
+            }
+          ],
+          "revision_differences_from_selected": [
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-24T23:00:00+00:00",
+                "2026-11-25T00:00:00+00:00",
+                "2026-11-25T01:00:00+00:00",
+                "2026-11-25T02:00:00+00:00",
+                "2026-11-25T03:00:00+00:00",
+                "2026-11-25T04:00:00+00:00",
+                "2026-11-25T05:00:00+00:00",
+                "2026-11-25T06:00:00+00:00",
+                "2026-11-25T07:00:00+00:00",
+                "2026-11-25T08:00:00+00:00",
+                "2026-11-25T09:00:00+00:00",
+                "2026-11-25T10:00:00+00:00",
+                "2026-11-25T11:00:00+00:00",
+                "2026-11-25T12:00:00+00:00",
+                "2026-11-25T13:00:00+00:00",
+                "2026-11-25T14:00:00+00:00",
+                "2026-11-25T15:00:00+00:00",
+                "2026-11-25T16:00:00+00:00",
+                "2026-11-25T17:00:00+00:00",
+                "2026-11-25T18:00:00+00:00",
+                "2026-11-25T19:00:00+00:00",
+                "2026-11-25T20:00:00+00:00",
+                "2026-11-25T21:00:00+00:00",
+                "2026-11-25T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:0cbbb9cbc0710615ea462198bb1f834023c2b8a0548eec64707260133577ad13"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-24T23:00:00+00:00",
+                "2026-11-25T00:00:00+00:00",
+                "2026-11-25T01:00:00+00:00",
+                "2026-11-25T02:00:00+00:00",
+                "2026-11-25T03:00:00+00:00",
+                "2026-11-25T04:00:00+00:00",
+                "2026-11-25T05:00:00+00:00",
+                "2026-11-25T06:00:00+00:00",
+                "2026-11-25T07:00:00+00:00",
+                "2026-11-25T08:00:00+00:00",
+                "2026-11-25T09:00:00+00:00",
+                "2026-11-25T10:00:00+00:00",
+                "2026-11-25T11:00:00+00:00",
+                "2026-11-25T12:00:00+00:00",
+                "2026-11-25T13:00:00+00:00",
+                "2026-11-25T14:00:00+00:00",
+                "2026-11-25T15:00:00+00:00",
+                "2026-11-25T16:00:00+00:00",
+                "2026-11-25T17:00:00+00:00",
+                "2026-11-25T18:00:00+00:00",
+                "2026-11-25T19:00:00+00:00",
+                "2026-11-25T20:00:00+00:00",
+                "2026-11-25T21:00:00+00:00",
+                "2026-11-25T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:11ef8931e59888236d1b09c8c9d93ef019a66f03c74a5b0dec8ccc3f3e6b6925"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-24T23:00:00+00:00",
+                "2026-11-25T00:00:00+00:00",
+                "2026-11-25T01:00:00+00:00",
+                "2026-11-25T02:00:00+00:00",
+                "2026-11-25T03:00:00+00:00",
+                "2026-11-25T04:00:00+00:00",
+                "2026-11-25T05:00:00+00:00",
+                "2026-11-25T06:00:00+00:00",
+                "2026-11-25T07:00:00+00:00",
+                "2026-11-25T08:00:00+00:00",
+                "2026-11-25T09:00:00+00:00",
+                "2026-11-25T10:00:00+00:00",
+                "2026-11-25T11:00:00+00:00",
+                "2026-11-25T12:00:00+00:00",
+                "2026-11-25T13:00:00+00:00",
+                "2026-11-25T14:00:00+00:00",
+                "2026-11-25T15:00:00+00:00",
+                "2026-11-25T16:00:00+00:00",
+                "2026-11-25T17:00:00+00:00",
+                "2026-11-25T18:00:00+00:00",
+                "2026-11-25T19:00:00+00:00",
+                "2026-11-25T20:00:00+00:00",
+                "2026-11-25T21:00:00+00:00",
+                "2026-11-25T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:26a2426a2757adc18edbffdbd5fa07f44a576cf9c45a5de6716f1cc9b0dd726c"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-24T23:00:00+00:00",
+                "2026-11-25T00:00:00+00:00",
+                "2026-11-25T01:00:00+00:00",
+                "2026-11-25T02:00:00+00:00",
+                "2026-11-25T03:00:00+00:00",
+                "2026-11-25T04:00:00+00:00",
+                "2026-11-25T05:00:00+00:00",
+                "2026-11-25T06:00:00+00:00",
+                "2026-11-25T07:00:00+00:00",
+                "2026-11-25T08:00:00+00:00",
+                "2026-11-25T09:00:00+00:00",
+                "2026-11-25T10:00:00+00:00",
+                "2026-11-25T11:00:00+00:00",
+                "2026-11-25T12:00:00+00:00",
+                "2026-11-25T13:00:00+00:00",
+                "2026-11-25T14:00:00+00:00",
+                "2026-11-25T15:00:00+00:00",
+                "2026-11-25T16:00:00+00:00",
+                "2026-11-25T17:00:00+00:00",
+                "2026-11-25T18:00:00+00:00",
+                "2026-11-25T19:00:00+00:00",
+                "2026-11-25T20:00:00+00:00",
+                "2026-11-25T21:00:00+00:00",
+                "2026-11-25T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:319f72ac7c9d463b433577cd10982f146e72aef85b5896b2af569a0560bb3c4d"
+            },
+            {
+              "changed_periods": 24,
+              "changed_periods_utc": [
+                "2026-11-24T23:00:00+00:00",
+                "2026-11-25T00:00:00+00:00",
+                "2026-11-25T01:00:00+00:00",
+                "2026-11-25T02:00:00+00:00",
+                "2026-11-25T03:00:00+00:00",
+                "2026-11-25T04:00:00+00:00",
+                "2026-11-25T05:00:00+00:00",
+                "2026-11-25T06:00:00+00:00",
+                "2026-11-25T07:00:00+00:00",
+                "2026-11-25T08:00:00+00:00",
+                "2026-11-25T09:00:00+00:00",
+                "2026-11-25T10:00:00+00:00",
+                "2026-11-25T11:00:00+00:00",
+                "2026-11-25T12:00:00+00:00",
+                "2026-11-25T13:00:00+00:00",
+                "2026-11-25T14:00:00+00:00",
+                "2026-11-25T15:00:00+00:00",
+                "2026-11-25T16:00:00+00:00",
+                "2026-11-25T17:00:00+00:00",
+                "2026-11-25T18:00:00+00:00",
+                "2026-11-25T19:00:00+00:00",
+                "2026-11-25T20:00:00+00:00",
+                "2026-11-25T21:00:00+00:00",
+                "2026-11-25T22:00:00+00:00"
+              ],
+              "snapshot_id": "pk5-capture-sha256:55689b2cccb61e5667821a7a8317aa4eadc5aff88cfa80905d541007b5380e6b"
+            },
+            {
+              "changed_periods": 0,
+              "changed_periods_utc": [],
+              "snapshot_id": "pk5-capture-sha256:729a97def009adcb5d37fae268857cd97fa35df9b23ce100ba55b32d0066fd5a"
+            }
+          ],
+          "selected_rows": [
+            {
+              "jwcd_mw": "12796.00000",
+              "period_start_utc": "2026-11-24T23:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            },
+            {
+              "jwcd_mw": "12475.00000",
+              "period_start_utc": "2026-11-25T00:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            },
+            {
+              "jwcd_mw": "12509.00000",
+              "period_start_utc": "2026-11-25T01:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            },
+            {
+              "jwcd_mw": "12721.00000",
+              "period_start_utc": "2026-11-25T02:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            },
+            {
+              "jwcd_mw": "13300.00000",
+              "period_start_utc": "2026-11-25T03:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            },
+            {
+              "jwcd_mw": "14361.00000",
+              "period_start_utc": "2026-11-25T04:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            },
+            {
+              "jwcd_mw": "15893.00000",
+              "period_start_utc": "2026-11-25T05:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            },
+            {
+              "jwcd_mw": "17938.00000",
+              "period_start_utc": "2026-11-25T06:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "18299.00000",
+              "period_start_utc": "2026-11-25T07:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "17464.00000",
+              "period_start_utc": "2026-11-25T08:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "16192.00000",
+              "period_start_utc": "2026-11-25T09:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "16056.00000",
+              "period_start_utc": "2026-11-25T10:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "16404.00000",
+              "period_start_utc": "2026-11-25T11:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "17257.00000",
+              "period_start_utc": "2026-11-25T12:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "18135.00000",
+              "period_start_utc": "2026-11-25T13:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "19403.00000",
+              "period_start_utc": "2026-11-25T14:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "20055.00000",
+              "period_start_utc": "2026-11-25T15:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "19801.00000",
+              "period_start_utc": "2026-11-25T16:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            },
+            {
+              "jwcd_mw": "19274.00000",
+              "period_start_utc": "2026-11-25T17:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "19139.00000",
+              "period_start_utc": "2026-11-25T18:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:13:17.249000+00:00"
+            },
+            {
+              "jwcd_mw": "18445.00000",
+              "period_start_utc": "2026-11-25T19:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            },
+            {
+              "jwcd_mw": "16896.00000",
+              "period_start_utc": "2026-11-25T20:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            },
+            {
+              "jwcd_mw": "15286.00000",
+              "period_start_utc": "2026-11-25T21:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            },
+            {
+              "jwcd_mw": "14418.00000",
+              "period_start_utc": "2026-11-25T22:00:00+00:00",
+              "publication_ts_utc": "2026-11-24T05:04:07.697000+00:00"
+            }
+          ],
+          "selected_snapshot_id": "pk5-capture-sha256:729a97def009adcb5d37fae268857cd97fa35df9b23ce100ba55b32d0066fd5a"
+        }
+      ],
+      "first_delivery_date": "2026-11-20",
+      "last_delivery_date": "2026-11-25",
+      "missing_delivery_ranges": [
+        {
+          "days": 1,
+          "end_day": "2026-11-23",
+          "start_day": "2026-11-23"
+        }
+      ],
+      "model_readiness_assessed": false,
+      "observed_days": 5,
+      "observed_periods": 120,
+      "read_only": true,
+      "selected_days": 5,
+      "selected_periods": 120,
+      "unselected_days": 0
+    },
+    "read_only": true,
+    "scope": {
+      "end_day": "2026-11-25",
+      "sources": "provided_paths",
+      "start_day": "2026-11-20"
+    },
+    "source_coverage": {
+      "both_source_days": [
+        "2026-11-20",
+        "2026-11-21",
+        "2026-11-22",
+        "2026-11-24"
+      ],
+      "by_hours": {
+        "23": {
+          "both_source_days": 0,
+          "both_source_periods": 0,
+          "calendar_days": 0,
+          "calendar_periods": 0,
+          "fix1_only_days": 0,
+          "fix1_only_periods": 0,
+          "neither_source_days": 0,
+          "neither_source_periods": 0,
+          "pk5_only_days": 0,
+          "pk5_only_periods": 0
+        },
+        "24": {
+          "both_source_days": 4,
+          "both_source_periods": 96,
+          "calendar_days": 6,
+          "calendar_periods": 144,
+          "fix1_only_days": 1,
+          "fix1_only_periods": 24,
+          "neither_source_days": 0,
+          "neither_source_periods": 0,
+          "pk5_only_days": 1,
+          "pk5_only_periods": 24
+        },
+        "25": {
+          "both_source_days": 0,
+          "both_source_periods": 0,
+          "calendar_days": 0,
+          "calendar_periods": 0,
+          "fix1_only_days": 0,
+          "fix1_only_periods": 0,
+          "neither_source_days": 0,
+          "neither_source_periods": 0,
+          "pk5_only_days": 0,
+          "pk5_only_periods": 0
+        }
+      },
+      "calendar_days": 6,
+      "fix1_only_days": [
+        "2026-11-23"
+      ],
+      "fix1_price_conflict_days": [],
+      "neither_source_days": [],
+      "pk5_only_days": [
+        "2026-11-25"
+      ]
+    }
+  },
+  "end_day": "2026-11-25",
+  "fix1_manifests": [
+    "tests/fixtures/tge_delivery_2026-11-20/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-20_late/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-21/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-22/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-23/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-24/manifest.json",
+    "tests/fixtures/tge_delivery_2026-11-24_recaptured/manifest.json"
+  ],
+  "source_commit": "00055ecee81723c6890fe7fdb0c04a0e9c44c0d1",
+  "source_groups": [
+    {
+      "captures": [
+        "tests/fixtures/pse_pk5_delivery_2026-11-20/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-20_second/capture.json"
+      ],
+      "day": "2026-11-20"
+    },
+    {
+      "captures": [
+        "tests/fixtures/pse_pk5_delivery_2026-11-21/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-21_second/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-21_third/capture.json"
+      ],
+      "day": "2026-11-21"
+    },
+    {
+      "captures": [
+        "tests/fixtures/pse_pk5_delivery_2026-11-22/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-22_fourth/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-22_second/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-22_third/capture.json"
+      ],
+      "day": "2026-11-22"
+    },
+    {
+      "captures": [
+        "tests/fixtures/pse_pk5_delivery_2026-11-24/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-24_fifth/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-24_fourth/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-24_second/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-24_sixth/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-24_third/capture.json"
+      ],
+      "day": "2026-11-24"
+    },
+    {
+      "captures": [
+        "tests/fixtures/pse_pk5_delivery_2026-11-25/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-25_fifth/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-25_fourth/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-25_second/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-25_sixth/capture.json",
+        "tests/fixtures/pse_pk5_delivery_2026-11-25_third/capture.json"
+      ],
+      "day": "2026-11-25"
+    }
+  ],
+  "start_day": "2026-11-20"
+}
