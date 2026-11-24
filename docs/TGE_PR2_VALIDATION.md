@@ -4358,3 +4358,35 @@ Poprzedni etap d589883 przeszedł pełne CI: 629 testów OK (run 45318523382).
 Nie wykonano pobrań live ani zapisów SQL; nie zmieniono rzeczywistych
 fixture, archiwów lub raportów historycznych, modeli lub scoringu.
 Produkcja JWCD 90D, FROZEN, Railway, PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-24 — szósty rzeczywisty PK5 25.11 z dwiema publikacjami
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-25_sixth: oryginalny JSON
+gzip mtime=0 i capture.json, HTTP 200 / 24 okresy, URL bez zmiany.
+Pobranie 24.11 od 06:16:10.611465 do 06:16:17.793439 Europe/Warsaw.
+Publikacje: 06:04:07.697 i 06:13:17.249 Europe/Warsaw, po 12 okresów każda.
+Publikacje i oba czasy pobrania poprzedzają własny cutoff 24.11 09:50.
+
+Oryginał: 18641 bajtów, SHA-256
+95cd2852bd810ed723dcfca17bc57d5125c58a26aca2b90acbed1511ad4398e7.
+Snapshot:
+pk5-capture-sha256:729a97def009adcb5d37fae268857cd97fa35df9b23ce100ba55b32d0066fd5a.
+H01 JWCD=12796.00000 MW, H24=14418.00000 MW. Wszystkie 24 wartości
+różnią się od każdej z pięciu wcześniejszych obserwacji.
+
+Dodano tests/test_pk5_november25_sixth.py. Test porównuje cały profil
+JWCD i publikację każdego okresu z niezależną mapą surowego JSON,
+kontroluje hashe, loader, pięć list 24 zmian i zastąpienie starszych
+obserwacji. Wszystkie 720 kolejności sześciu paczek dają identyczny raport;
+CLI w obu kierunkach również, z --require-selection i kodem 0.
+Dwa czasy publikacji pozostają przypisane do odpowiednich okresów
+oryginalnego odczytu. Pliki wszystkich paczek pozostają identyczne.
+
+Lokalnie nowy test przeszedł (1/1).
+
+Dotychczasowych obserwacji, testów i raportu audytu pięciu dób nie zmieniono.
+Nadal brak Fix1 25.11, nowej pary treningowej i kompletnego okna 30/60/90D.
+Poprzedni etap 3cb877c przeszedł CI: 631 testów OK (run 45325401549).
+Kod selekcji, produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa,
+PR #2 i harmonogramy pozostają bez zmian. Nie wydano prognozy.
