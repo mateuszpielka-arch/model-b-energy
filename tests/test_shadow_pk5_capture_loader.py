@@ -7,6 +7,9 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+import subprocess
+import sys
+from zlib import error as ZlibError
 from unittest.mock import patch
 
 from shadow_asof import cutoff_for_day, select_snapshot
@@ -19,6 +22,18 @@ FIXTURES = Path(__file__).parent / 'fixtures'
 DAY = date(2026, 11, 22)
 NAMES = ['pse_pk5_delivery_2026-11-22' + suffix
          for suffix in ('', '_second', '_third', '_fourth')]
+
+
+
+def corrupt_gzip_cases(compressed):
+    crc = bytearray(compressed)
+    crc[-8] ^= 1
+    return (
+        ('header', b'not a gzip file', gzip.BadGzipFile),
+        ('truncated', compressed[:-8], EOFError),
+        ('crc', bytes(crc), gzip.BadGzipFile),
+        ('deflate', compressed[:10] + b'\x06' + compressed[-8:], ZlibError),
+    )
 
 
 class PK5CaptureLoaderTests(unittest.TestCase):
@@ -122,6 +137,53 @@ class PK5CaptureLoaderTests(unittest.TestCase):
                             load_pk5_snapshot(path, day=DAY)
                 self.assertEqual(reads, [size + 1])
                 self.assertEqual(raw_path.read_bytes(), compressed)
+
+
+    def test_corrupt_gzip_is_normalized_to_validation_error_for_both_loader_apis(self):
+        root = FIXTURES / NAMES[-1]
+        metadata = json.loads((root / 'capture.json').read_text())
+        compressed = (root / metadata['raw_file']).read_bytes()
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            path = target / 'capture.json'
+            path.write_text(json.dumps(metadata))
+            raw_path = target / metadata['raw_file']
+            for label, corrupt, error_type in corrupt_gzip_cases(compressed):
+                raw_path.write_bytes(corrupt)
+                before = {p: p.read_bytes() for p in target.iterdir()}
+                for loader in (load_pk5_capture, load_pk5_snapshot):
+                    with self.subTest(case=label, loader=loader.__name__):
+                        with self.assertRaisesRegex(ValueError, 'Invalid gzip PK5 evidence') as caught:
+                            loader(path, day=DAY)
+                        self.assertIsInstance(caught.exception.__cause__, error_type)
+                        self.assertEqual({p: p.read_bytes() for p in target.iterdir()}, before)
+        self.assertEqual((root / metadata['raw_file']).read_bytes(), compressed)
+
+    def test_corrupt_gzip_cli_aborts_without_partial_report_in_both_input_orders(self):
+        root = FIXTURES / NAMES[-1]
+        metadata = json.loads((root / 'capture.json').read_text())
+        compressed = (root / metadata['raw_file']).read_bytes()
+        script = Path(__file__).resolve().parents[1] / 'shadow_pk5_audit.py'
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            path = target / 'capture.json'
+            path.write_text(json.dumps(metadata))
+            raw_path = target / metadata['raw_file']
+            for label, corrupt, _ in corrupt_gzip_cases(compressed):
+                raw_path.write_bytes(corrupt)
+                before = {p: p.read_bytes() for p in target.iterdir()}
+                for ordering in ((root / 'capture.json', path), (path, root / 'capture.json')):
+                    with self.subTest(case=label, ordering=ordering):
+                        result = subprocess.run(
+                            [sys.executable, str(script), '--day', DAY.isoformat(),
+                             '--require-selection', *map(str, ordering)],
+                            capture_output=True, text=True)
+                        self.assertEqual(result.returncode, 2)
+                        self.assertEqual(result.stdout, '')
+                        self.assertIn('Invalid gzip PK5 evidence', result.stderr)
+                        self.assertNotIn('Traceback', result.stderr)
+                        self.assertEqual({p: p.read_bytes() for p in target.iterdir()}, before)
+        self.assertEqual((root / metadata['raw_file']).read_bytes(), compressed)
 
     def test_legacy_metadata_still_checks_cutoff_and_original_payload(self):
         root = FIXTURES / NAMES[-1]

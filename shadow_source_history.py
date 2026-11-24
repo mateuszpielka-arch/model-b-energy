@@ -184,6 +184,7 @@ def _load_pk5_evidence(capture_path, *, day):
     import gzip
     import json
     from pathlib import Path
+    from zlib import error as ZlibError
     from shadow_ingest_manifest import MAX_MANIFEST_BYTES, _inside
     from shadow_pk5_snapshot import _unique_object, parse_capture_timestamp
 
@@ -208,8 +209,12 @@ def _load_pk5_evidence(capture_path, *, day):
     size = metadata.get('bytes')
     if type(size) is not int or not 0 < size <= 8 * 1024 * 1024:
         raise ValueError('PK5 capture raw size or SHA-256 mismatch')
-    with gzip.open(_inside(capture_path.parent, filename), 'rb') as stream:
-        pk5_raw = stream.read(size + 1)
+    raw_path = _inside(capture_path.parent, filename)
+    try:
+        with gzip.open(raw_path, 'rb') as stream:
+            pk5_raw = stream.read(size + 1)
+    except (OSError, EOFError, ZlibError) as exc:
+        raise ValueError('Invalid gzip PK5 evidence') from exc
     if (len(pk5_raw) != size
             or metadata.get('raw_sha256') != sha256(pk5_raw).hexdigest()):
         raise ValueError('PK5 capture raw size or SHA-256 mismatch')

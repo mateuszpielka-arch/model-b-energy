@@ -4334,3 +4334,27 @@ Nadal brak Fix1 25.11, nowej pary treningowej i kompletnego okna 30/60/90D.
 Poprzedni etap 65c642e przeszedł pełne CI: 628 testów OK (run 45311356691).
 Kod selekcji, produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa,
 PR #2 i harmonogramy pozostają bez zmian. Nie wydano prognozy.
+
+
+## Checkpoint 2026-11-24 — spójny błąd walidacji uszkodzonego gzip PK5
+
+Wspólny loader PK5 normalizuje błędy gzip/dekompresji do ValueError
+z komunikatem Invalid gzip PK5 evidence, zachowując oryginalny wyjątek
+jako przyczynę. Dotyczy load_pk5_capture i load_pk5_snapshot.
+Sprawdzenie ścieżki pozostaje przed obsługą dekompresji; ograniczenie
+read(bytes + 1), walidacja rozmiaru/hashu i pełne bramki publikacji
+i obu czasów pobrania względem D-1 09:50 Europe/Warsaw pozostają aktywne.
+
+Dwa nowe testy na tymczasowych kopiach rzeczywistej paczki 22.11 obejmują
+uszkodzony nagłówek, ucięty trailer, błędny CRC oraz niepoprawny blok DEFLATE.
+Oba API mają odrzucić wszystkie przypadki z jednoznacznym ValueError,
+z zachowaniem BadGzipFile/EOFError/zlib.error jako przyczyny. CLI z poprawną
+i uszkodzoną paczką w obu kolejnościach ma kod 2, pusty stdout, komunikat
+walidacji i brak tracebacku. Nie zwraca częściowego raportu dla wcześniej
+odczytanego poprawnego źródła. Bajty plików nie są zmieniane.
+Lokalnie pełny moduł loadera: 8/8 testów OK.
+
+Poprzedni etap d589883 przeszedł pełne CI: 629 testów OK (run 45318523382).
+Nie wykonano pobrań live ani zapisów SQL; nie zmieniono rzeczywistych
+fixture, archiwów lub raportów historycznych, modeli lub scoringu.
+Produkcja JWCD 90D, FROZEN, Railway, PR #2 i harmonogramy pozostają bez zmian.
