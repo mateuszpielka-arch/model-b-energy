@@ -187,6 +187,68 @@ class November25PK5SourceTests(unittest.TestCase):
             self.assertEqual(json.loads(result.stdout), report)
         self.assertEqual({p: p.read_bytes() for p in files}, files)
 
+
+    def test_fourth_real_mixed_publication_keeps_each_period_timestamp_in_all_orders(self):
+        paths = [DIRECTORY.parent / ('pse_pk5_delivery_2026-11-25' + suffix) / 'capture.json'
+                 for suffix in ('', '_second', '_third', '_fourth')]
+        files = {p: p.read_bytes() for path in paths for p in path.parent.iterdir() if p.is_file()}
+        metadata = [json.loads(path.read_text()) for path in paths]
+        latest = metadata[-1]
+        self.assertEqual((latest['http_status'], latest['rows'], latest['bytes']), (200, 24, 18643))
+        self.assertEqual(latest['response_url'], latest['url'])
+        self.assertEqual(latest['raw_sha256'],
+                         '9b1347e9eecfcf6cb35d0af391e71771b5620b6741a016537950c049a5aecb82')
+        self.assertEqual(latest['snapshot_id'],
+                         'pk5-capture-sha256:26a2426a2757adc18edbffdbd5fa07f44a576cf9c45a5de6716f1cc9b0dd726c')
+        originals = []
+        for path, entry in zip(paths, metadata, strict=True):
+            raw = gzip.decompress((path.parent / entry['raw_file']).read_bytes())
+            self.assertEqual(sha256(raw).hexdigest(), entry['raw_sha256'])
+            payload = json.loads(raw, parse_float=Decimal)['value']
+            originals.append({
+                datetime.fromisoformat(row['plan_dtime_utc']).replace(tzinfo=timezone.utc)
+                - timedelta(hours=1): (
+                    Decimal(row['fcst_gen_unit_stor_prov']),
+                    datetime.fromisoformat(row['publication_ts_utc']).replace(tzinfo=timezone.utc))
+                for row in payload})
+            load_pk5_capture(path, day=DAY)
+        report = audit_pk5_captures(paths, day=DAY)
+        self.assertEqual(report['selected_snapshot_id'], latest['snapshot_id'])
+        self.assertEqual({
+            datetime.fromisoformat(row['period_start_utc']): (
+                Decimal(row['jwcd_mw']), datetime.fromisoformat(row['publication_ts_utc']))
+            for row in report['selected_rows']
+        }, originals[-1])
+        expected_publications = {'2026-11-24T01:03:42.650000+00:00': 12,
+                                 '2026-11-24T01:12:57.179000+00:00': 12}
+        self.assertEqual(dict(Counter(row['publication_ts_utc'] for row in report['selected_rows'])),
+                         expected_publications)
+        selected_capture, = [item for item in report['captures']
+                             if item['snapshot_id'] == latest['snapshot_id']]
+        self.assertEqual(selected_capture['publication_counts_utc'], expected_publications)
+        self.assertEqual(report['selected_rows'][0]['jwcd_mw'], '12828.00000')
+        self.assertEqual(report['selected_rows'][-1]['jwcd_mw'], '14385.00000')
+        self.assertEqual({item['snapshot_id'] for item in report['rejected_captures']},
+                         {entry['snapshot_id'] for entry in metadata[:-1]})
+        self.assertEqual({item['reason'] for item in report['rejected_captures']},
+                         {'SUPERSEDED_JWCD_PUBLICATIONS'})
+        changes = {item['snapshot_id']: item for item in report['revision_differences_from_selected']}
+        for entry, old in zip(metadata[:-1], originals[:-1], strict=True):
+            changed = sorted(period.isoformat() for period in old
+                             if old[period][0] != originals[-1][period][0])
+            self.assertEqual(len(changed), 24)
+            self.assertEqual(changes[entry['snapshot_id']]['changed_periods_utc'], changed)
+        for ordering in permutations(paths):
+            self.assertEqual(audit_pk5_captures(ordering, day=DAY), report)
+        for ordering in (paths, list(reversed(paths))):
+            result = subprocess.run(
+                [sys.executable, str(ROOT / 'shadow_pk5_audit.py'), '--day', DAY.isoformat(),
+                 '--require-selection', *map(str, ordering)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stderr, '')
+            self.assertEqual(json.loads(result.stdout), report)
+        self.assertEqual({p: p.read_bytes() for p in files}, files)
+
     def test_synthetic_late_completion_or_publication_cannot_admit_real_capture_values(self):
         path = DIRECTORY / 'capture.json'
         before = {p: p.read_bytes() for p in DIRECTORY.iterdir() if p.is_file()}

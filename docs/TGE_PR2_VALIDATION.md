@@ -4245,3 +4245,35 @@ częścią istniejącego CI. Poprzedni etap 47bb20d przeszedł 624 testy OK
 (run 45287575219). Nie zmieniono fixture, archiwów, raportów historycznych,
 modeli ani scoringu; brak pobrań live lub zapisów SQL w tym kroku.
 Produkcja JWCD 90D, FROZEN, Railway, PR #2 i harmonogramy pozostają bez zmian.
+
+
+## Checkpoint 2026-11-24 — czwarty PK5 25.11 z dwoma czasami publikacji
+
+Zapisano osobną paczkę tests/fixtures/pse_pk5_delivery_2026-11-25_fourth.
+HTTP 200, 24 okresy, oryginalny JSON gzip mtime=0 i capture.json.
+Pobranie 24.11 od 02:16:30.285815 do 02:16:35.247501 Europe/Warsaw.
+Oryginał ma dwa czasy publikacji: 02:03:42.650 oraz 02:12:57.179
+Europe/Warsaw, po 12 okresów każdy. Oba czasy publikacji i oba czasy
+pobrania poprzedzają własny cutoff 24.11 09:50 Europe/Warsaw.
+
+Oryginał: 18643 bajty, SHA-256
+9b1347e9eecfcf6cb35d0af391e71771b5620b6741a016537950c049a5aecb82.
+Snapshot:
+pk5-capture-sha256:26a2426a2757adc18edbffdbd5fa07f44a576cf9c45a5de6716f1cc9b0dd726c.
+H01 JWCD=12828.00000 MW, H24=14385.00000 MW. Wszystkie 24 wartości
+różnią się od każdej z trzech wcześniejszych obserwacji.
+
+Nowy test porównuje dla każdego okresu zarówno JWCD, jak i jego własną
+publikację z niezależną mapą oryginalnego JSON (koniec UTC minus godzina).
+Wybierany jest cały czwarty odczyt; jego dwóch publikacji nie zastępuje się
+jednym wspólnym timestampem. Każda starsza obserwacja ma
+SUPERSEDED_JWCD_PUBLICATIONS; listy zmienionych okresów są zgodne.
+Wszystkie 24 kolejności czterech paczek odtwarzają raport, a CLI w obu
+kierunkach daje ten sam JSON i kod 0 z --require-selection.
+Pliki wszystkich obserwacji pozostają identyczne. Lokalnie 5/5 testów OK.
+
+Nie zmieniono kodu selekcji, starszych paczek lub raportu audytu pięciu dób.
+Nadal brak Fix1 25.11, nowej pary treningowej i kompletnych okien 30/60/90D.
+Poprzedni etap 73c4bf3 przeszedł pełne CI: 625 testów OK (run 45296180250).
+Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy
+pozostają bez zmian; nie wydano prognozy.
