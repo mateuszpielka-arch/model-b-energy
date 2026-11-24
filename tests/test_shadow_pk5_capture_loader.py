@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import date, datetime, timedelta
 import gzip
 from hashlib import sha256
@@ -5,10 +6,12 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_pk5_snapshot import prepare_pk5_snapshot
-from shadow_source_history import load_pk5_capture
+from shadow_source_history import load_pk5_capture, load_pk5_snapshot
+from shadow_pk5_audit import audit_pk5_captures
 
 
 FIXTURES = Path(__file__).parent / 'fixtures'
@@ -40,6 +43,30 @@ class PK5CaptureLoaderTests(unittest.TestCase):
             self.assertEqual(selected.snapshot_id, snapshots[-1]['id'])
         self.assertEqual({path: path.read_bytes() for path in before}, before)
 
+
+    def test_snapshot_loader_matches_legacy_api_and_audit_parses_each_raw_payload_once(self):
+        paths = [FIXTURES / name / 'capture.json' for name in NAMES]
+        files = {p: p.read_bytes() for path in paths
+                 for p in path.parent.iterdir() if p.is_file()}
+        originals = []
+        snapshots = []
+        for path in paths:
+            capture = load_pk5_capture(path, day=DAY)
+            expected = prepare_pk5_snapshot(day=DAY.isoformat(), **capture)
+            self.assertEqual(load_pk5_snapshot(path, day=DAY), expected)
+            originals.append(capture['raw'])
+            snapshots.append(expected)
+        with patch('shadow_pk5_snapshot.json.loads', wraps=json.loads) as parsed:
+            report = audit_pk5_captures(paths, day=DAY)
+        payloads = set(originals)
+        reads = Counter(call.args[0] for call in parsed.call_args_list
+                        if call.args and isinstance(call.args[0], bytes)
+                        and call.args[0] in payloads)
+        self.assertEqual(reads, Counter(originals))
+        self.assertEqual(report['selected_snapshot_id'], select_snapshot(DAY, snapshots).snapshot_id)
+        self.assertEqual(len(report['selected_rows']), 24)
+        self.assertEqual({p: p.read_bytes() for p in files}, files)
+
     def test_legacy_metadata_still_checks_cutoff_and_original_payload(self):
         root = FIXTURES / NAMES[-1]
         original = json.loads((root / 'capture.json').read_text())
@@ -51,15 +78,18 @@ class PK5CaptureLoaderTests(unittest.TestCase):
             legacy = {key: value for key, value in original.items() if key != 'snapshot_id'}
             path.write_text(json.dumps(legacy))
             self.assertEqual(load_pk5_capture(path, day=DAY)['raw'], gzip.decompress(raw))
+            self.assertEqual(load_pk5_snapshot(path, day=DAY)['id'], original['snapshot_id'])
             for field in ('retrieved_at_utc', 'retrieval_completed_at_utc'):
                 changed = {**legacy, field: (cutoff_for_day(DAY) +
                                              timedelta(microseconds=1)).isoformat()}
                 path.write_text(json.dumps(changed))
-                with self.subTest(field=field), self.assertRaises(ValueError):
-                    load_pk5_capture(path, day=DAY)
+                for loader in (load_pk5_capture, load_pk5_snapshot):
+                    with self.subTest(field=field, loader=loader.__name__), self.assertRaises(ValueError):
+                        loader(path, day=DAY)
             path.write_text(json.dumps({**legacy, 'raw_sha256': '0' * 64}))
-            with self.assertRaisesRegex(ValueError, 'SHA-256'):
-                load_pk5_capture(path, day=DAY)
+            for loader in (load_pk5_capture, load_pk5_snapshot):
+                with self.assertRaisesRegex(ValueError, 'SHA-256'):
+                    loader(path, day=DAY)
             self.assertEqual((target / original['raw_file']).read_bytes(), raw)
 
     def test_invalid_day_identity_metadata_or_path_never_changes_evidence(self):
@@ -78,13 +108,15 @@ class PK5CaptureLoaderTests(unittest.TestCase):
             ):
                 path.write_text(json.dumps({**original, **updates}))
                 before = {p: p.read_bytes() for p in target.iterdir()}
-                with self.subTest(updates=updates), self.assertRaises(ValueError):
-                    load_pk5_capture(path, day=DAY)
+                for loader in (load_pk5_capture, load_pk5_snapshot):
+                    with self.subTest(updates=updates, loader=loader.__name__), self.assertRaises(ValueError):
+                        loader(path, day=DAY)
                 self.assertEqual({p: p.read_bytes() for p in target.iterdir()}, before)
             for invalid in ('2026-11-22', datetime(2026, 11, 22), date.min, date.max):
-                with self.subTest(day=invalid), self.assertRaisesRegex(
-                        ValueError, 'Supported delivery date'):
-                    load_pk5_capture(target / 'does-not-exist.json', day=invalid)
+                for loader in (load_pk5_capture, load_pk5_snapshot):
+                    with self.subTest(day=invalid, loader=loader.__name__), self.assertRaisesRegex(
+                            ValueError, 'Supported delivery date'):
+                        loader(target / 'does-not-exist.json', day=invalid)
 
 
 if __name__ == '__main__':

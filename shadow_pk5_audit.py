@@ -11,8 +11,7 @@ from pathlib import Path
 from zlib import error as ZlibError
 
 from shadow_asof import select_snapshot
-from shadow_pk5_snapshot import prepare_pk5_snapshot
-from shadow_source_history import load_pk5_capture
+from shadow_source_history import load_pk5_snapshot
 
 
 def audit_pk5_captures(paths, *, day):
@@ -22,8 +21,7 @@ def audit_pk5_captures(paths, *, day):
         raise ValueError('At least one saved PK5 capture required')
     snapshots = []
     for path in paths:
-        capture = load_pk5_capture(path, day=day)
-        snapshots.append(prepare_pk5_snapshot(day=day.isoformat(), **capture))
+        snapshots.append(load_pk5_snapshot(path, day=day))
     selected = select_snapshot(day, snapshots)
     chosen = next((item for item in snapshots if item['id'] == selected.snapshot_id), None)
     differences = None

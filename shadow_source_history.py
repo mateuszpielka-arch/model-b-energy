@@ -161,6 +161,20 @@ def load_history_collection(groups):
 
 
 def load_pk5_capture(capture_path, *, day):
+    """Return original bytes and retrieval evidence after complete validation."""
+    return _load_pk5_evidence(capture_path, day=day)[0]
+
+
+def load_pk5_snapshot(capture_path, *, day):
+    """Return the canonical snapshot produced by that same validated read.
+
+    No second JSON parse or inferred timestamp; source authenticity remains
+    caller-owned as with load_pk5_capture.
+    """
+    return _load_pk5_evidence(capture_path, day=day)[1]
+
+
+def _load_pk5_evidence(capture_path, *, day):
     """Read and validate one saved PK5 capture without requiring Fix1 evidence.
 
     Only explicit local files are read. Capture timestamps remain caller-owned;
@@ -208,7 +222,7 @@ def load_pk5_capture(capture_path, *, day):
     snapshot = prepare_pk5_snapshot(day=day.isoformat(), **capture)
     if 'snapshot_id' in metadata and metadata['snapshot_id'] != snapshot['id']:
         raise ValueError('PK5 capture snapshot_id mismatch')
-    return capture
+    return capture, snapshot
 
 
 def load_history_day(actual_manifest, pk5_capture_paths):

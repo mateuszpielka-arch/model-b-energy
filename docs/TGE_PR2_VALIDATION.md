@@ -4215,3 +4215,33 @@ uzupełnia luki 23.11. Nie wykonano prognozy ani oceny okien 30/60/90D.
 Poprzedni etap 3c6cb16 przeszedł CI: 623 testy OK (run 45278484636).
 Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2
 i harmonogramy pozostają bez zmian; kod selekcji nie został zmieniony.
+
+
+## Checkpoint 2026-11-24 — jedno parsowanie payloadu w audycie PK5
+
+Dodano load_pk5_snapshot w shadow_source_history.py. Wspólny prywatny
+odczyt zwraca oryginalną paczkę i przygotowany snapshot dopiero po pełnym
+sprawdzeniu rozmiarów, gzip, hashy, metadanych HTTP/URL/doby, czasu
+publikacji, obu czasów pobrania i opcjonalnego snapshot_id.
+Dotychczasowe load_pk5_capture zachowuje swoje cztery pola i walidację;
+nie wprowadzono cache między wywołaniami ani wnioskowania timestampów.
+
+shadow_pk5_audit korzysta bezpośrednio ze zwalidowanego snapshotu zamiast
+ponownie parsować oryginalny JSON po load_pk5_capture. Wybór między całymi
+obserwacjami nadal wykonuje istniejący select_snapshot. Nie pominięto żadnej
+kontroli proweniencji lub D-1 09:50 Europe/Warsaw.
+
+Lokalne porównanie na czterech rzeczywistych obserwacjach 22.11:
+starsza sekwencja load_pk5_capture + prepare_pk5_snapshot parsuje payloady
+8 razy, nowa ścieżka 4 razy; pełne raporty są identyczne. To pomiar liczby
+parsowań na tych plikach, nie deklaracja czasu wykonania lub pamięci RSS.
+Nowy test wymaga jednego parsowania każdego oryginalnego payloadu, zgodności
+snapshotów ze starszym API i niezmienności źródeł. Istniejące testy błędów
+sprawdzają teraz oba API, także metadane bez opcjonalnego snapshot_id,
+błędny hash/ID, złe ścieżki i przekroczenia cutoff. Lokalnie 4/4 testy OK.
+
+Pełne odtworzenie wcześniej zapisanych raportów źródłowych pozostaje
+częścią istniejącego CI. Poprzedni etap 47bb20d przeszedł 624 testy OK
+(run 45287575219). Nie zmieniono fixture, archiwów, raportów historycznych,
+modeli ani scoringu; brak pobrań live lub zapisów SQL w tym kroku.
+Produkcja JWCD 90D, FROZEN, Railway, PR #2 i harmonogramy pozostają bez zmian.
