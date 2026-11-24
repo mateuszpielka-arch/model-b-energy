@@ -4570,3 +4570,38 @@ Starszych paczek i raportów nie zmieniono. Poprzedni etap bd7883a:
 pełne CI 640 testów OK (run 45363890309).
 Brak zapisów do SQL, prognoz, zmian modeli, produkcyjnego JWCD 90D,
 FROZEN, Railway, archiwów i harmonogramów. PR #2 pozostaje otwarty.
+
+
+## Checkpoint 2026-11-24 — kontrolny scoring Fix1 25.11 i idempotencja PostgreSQL
+
+Dodano tests/test_tge_november25_scores.py na zachowanej paczce Fix1 25.11
+i ósmym PK5 25.11. Nie pobierano nowych danych i nie zmieniono źródeł.
+Kontrola używa jawnie syntetycznego profilu JWCD/20, status SHADOW,
+osobny forecast_id/model_version. To nie jest wytrenowany model,
+wydana prognoza ani wynik porannej prognozy.
+
+Niezależny oracle Fraction łączy oryginalne etykiety PSE i CSV TGE;
+nie korzysta z implementacji scoringu do ustalenia oczekiwanych wartości:
+MAE=947.633750000000 PLN/MWh, bias=-947.633750000000 PLN/MWh,
+MAPE=46.111672448270%, WAPE=53.170442154796%.
+Wszystkie 24 ceny są niezerowe. Test jednostkowy porównuje cztery metryki
+do 12 miejsc po przecinku z score_day.
+
+Test integracyjny używa wyłącznie istniejącego connect_test_database
+i FIX1_SHADOW_TEST_DSN: baza fix1_shadow_test na loopback, bez sekretów
+lub połączeń produkcji. Po INSERT pełnej paczki dwa archiwalne REPLAY
+mają zachować identyczne rekordy prices/batches/quarantine.
+Scoring mikrosekundę przed batch.retrieved_at jest odrzucony bez wyniku.
+W chwili faktycznej dostępności Fix1 powstaje dokładnie jeden wynik
+z metrykami zgodnymi z oracle; powtórzenie z CSV i bez niego daje REPLAY.
+Po zapisaniu wyniku cofnięta ewaluacja nadal musi być odrzucona, również
+w obu wariantach reference_csv. Rekord wyniku i trzy tabele archiwalne
+pozostają identyczne; ceny są zgodne ze wszystkimi 24 okresami paczki.
+
+Lokalnie test jednostkowy OK; integracja PostgreSQL pominięta z powodu
+braku lokalnego serwera/DSN. Pełna integracja uruchamiana jest w istniejącym
+CI z izolowanym PostgreSQL. Nie deklaruje się lokalnego wykonania SQL.
+Poprzedni etap 295581b: pełne CI 643 testy OK (run 45373386373).
+Nie zmieniono implementacji scoringu/archiwizacji, modeli, raportów historii,
+produkcji JWCD 90D, FROZEN, Railway, archiwów i harmonogramów.
+PR #2 pozostaje otwarty; okna 30/60/90D nadal niekompletne.
