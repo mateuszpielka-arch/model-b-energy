@@ -1,4 +1,5 @@
 from collections import Counter
+from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 import gzip
 from hashlib import sha256
@@ -66,6 +67,61 @@ class PK5CaptureLoaderTests(unittest.TestCase):
         self.assertEqual(report['selected_snapshot_id'], select_snapshot(DAY, snapshots).snapshot_id)
         self.assertEqual(len(report['selected_rows']), 24)
         self.assertEqual({p: p.read_bytes() for p in files}, files)
+
+
+    def test_invalid_declared_sizes_are_rejected_before_opening_compressed_payload(self):
+        root = FIXTURES / NAMES[-1]
+        original = json.loads((root / 'capture.json').read_text())
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            raw_path = target / original['raw_file']
+            compressed = (root / original['raw_file']).read_bytes()
+            raw_path.write_bytes(compressed)
+            path = target / 'capture.json'
+            for size in (None, False, True, 0, -1, 1.5, '18643', 8 * 1024 * 1024 + 1):
+                path.write_text(json.dumps({**original, 'bytes': size}))
+                before = {p: p.read_bytes() for p in target.iterdir()}
+                with patch('gzip.open') as opened:
+                    for loader in (load_pk5_capture, load_pk5_snapshot):
+                        with self.subTest(size=size, loader=loader.__name__):
+                            with self.assertRaisesRegex(ValueError, 'raw size or SHA-256'):
+                                loader(path, day=DAY)
+                    opened.assert_not_called()
+                self.assertEqual({p: p.read_bytes() for p in target.iterdir()}, before)
+
+    def test_gzip_read_is_bounded_by_declared_size_and_rejects_short_or_long_payload(self):
+        root = FIXTURES / NAMES[-1]
+        original = json.loads((root / 'capture.json').read_text())
+        compressed = (root / original['raw_file']).read_bytes()
+        expected = load_pk5_snapshot(root / 'capture.json', day=DAY)
+        open_gzip = gzip.open
+        reads = []
+
+        @contextmanager
+        def observed_open(*args, **kwargs):
+            with open_gzip(*args, **kwargs) as stream:
+                class Reader:
+                    def read(self, size):
+                        reads.append(size)
+                        return stream.read(size)
+                yield Reader()
+
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            raw_path = target / original['raw_file']
+            raw_path.write_bytes(compressed)
+            path = target / 'capture.json'
+            for size in (original['bytes'] - 1, original['bytes'], original['bytes'] + 1):
+                path.write_text(json.dumps({**original, 'bytes': size}))
+                reads.clear()
+                with patch('gzip.open', side_effect=observed_open):
+                    if size == original['bytes']:
+                        self.assertEqual(load_pk5_snapshot(path, day=DAY), expected)
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'raw size or SHA-256'):
+                            load_pk5_snapshot(path, day=DAY)
+                self.assertEqual(reads, [size + 1])
+                self.assertEqual(raw_path.read_bytes(), compressed)
 
     def test_legacy_metadata_still_checks_cutoff_and_original_payload(self):
         root = FIXTURES / NAMES[-1]

@@ -205,10 +205,12 @@ def _load_pk5_evidence(capture_path, *, day):
             or metadata.get('response_url') != metadata.get('url')
             or type(metadata.get('rows')) is not int or metadata['rows'] != 24):
         raise ValueError('PK5 capture HTTP/source/row metadata mismatch')
+    size = metadata.get('bytes')
+    if type(size) is not int or not 0 < size <= 8 * 1024 * 1024:
+        raise ValueError('PK5 capture raw size or SHA-256 mismatch')
     with gzip.open(_inside(capture_path.parent, filename), 'rb') as stream:
-        pk5_raw = stream.read(8 * 1024 * 1024 + 1)
-    if (len(pk5_raw) > 8 * 1024 * 1024 or type(metadata.get('bytes')) is not int
-            or metadata['bytes'] != len(pk5_raw)
+        pk5_raw = stream.read(size + 1)
+    if (len(pk5_raw) != size
             or metadata.get('raw_sha256') != sha256(pk5_raw).hexdigest()):
         raise ValueError('PK5 capture raw size or SHA-256 mismatch')
     if metadata.get('delivery_date') != day.isoformat():

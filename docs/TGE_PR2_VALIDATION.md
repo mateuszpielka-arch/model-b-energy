@@ -4277,3 +4277,31 @@ Nadal brak Fix1 25.11, nowej pary treningowej i kompletnych okien 30/60/90D.
 Poprzedni etap 73c4bf3 przeszedł pełne CI: 625 testów OK (run 45296180250).
 Produkcja JWCD 90D, FROZEN, Railway, istniejące archiwa, PR #2 i harmonogramy
 pozostają bez zmian; nie wydano prognozy.
+
+
+## Checkpoint 2026-11-24 — odczyt gzip PK5 według deklarowanego rozmiaru
+
+Wspólny loader PK5 sprawdza teraz pole bytes przed otwarciem gzip:
+wymagana jest dodatnia liczba całkowita nie większa niż 8 MiB.
+Dla poprawnej deklaracji wywołuje read(bytes + 1), po czym nadal wymaga
+dokładnej długości i SHA-256. Dodatkowy bajt wykrywa nadmiarową zawartość;
+krótsza odpowiedź również jest odrzucana. Poprzednio read() zawsze otrzymywało
+limit 8 MiB + 1, nawet przy deklaracji kilkunastu KiB.
+
+Zmiana jest wspólna dla load_pk5_capture i load_pk5_snapshot; pełna kontrola
+JSON, identyfikatora, publikacji i obu czasów pobrania względem własnego
+D-1 09:50 Europe/Warsaw pozostaje aktywna. Nie zmieniono formatu metadanych
+ani wyniku poprawnych obserwacji.
+
+Dwa nowe testy sprawdzają odrzucenie brakującej, błędnie typowanej,
+niedodatniej i nadmiernej długości przed wywołaniem gzip.open dla obu API.
+Na rzeczywistej paczce 22.11 rejestrują żądany limit odczytu dla deklaracji
+o bajt za małej, poprawnej i o bajt za dużej; akceptowana jest wyłącznie
+poprawna deklaracja z identycznym snapshotem. Oryginalny gzip pozostaje
+niezmieniony. Jest to kontrola limitu żądania read(), nie pomiar całkowitej
+pamięci dekompresora. Lokalnie wszystkie 6/6 testów loadera przeszły.
+
+Poprzedni etap 9d95de5 przeszedł pełne CI: 626 testów OK (run 45304037500).
+Brak nowych pobrań live, zmian fixture, archiwów, raportów historycznych,
+modeli lub scoringu. Produkcja JWCD 90D, FROZEN, Railway, PR #2
+i harmonogramy pozostają bez zmian.
