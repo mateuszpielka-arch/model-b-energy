@@ -4491,3 +4491,41 @@ Nie zmieniono wcześniejszych paczek i checkpointów. Ten etap nie dostarcza
 Fix1 25.11 ani nowej pary treningowej; okna 30/60/90D pozostają niekompletne.
 Produkcja JWCD 90D, FROZEN, Railway, archiwa i harmonogramy bez zmian.
 PR #2 nadal otwarty na swojej dotychczasowej gałęzi. Nie wydano prognozy.
+
+
+## Checkpoint 2026-11-24 — CLI wspólnego audytu pokrycia PK5/Fix1
+
+Dodano do shadow_source_coverage.py jawną ścieżkę CLI:
+python shadow_source_coverage.py --start-day 2026-11-24 --end-day 2026-11-25
+--source-day 2026-11-25
+tests/fixtures/pse_pk5_delivery_2026-11-25_seventh/capture.json
+tests/fixtures/pse_pk5_delivery_2026-11-25_eighth/capture.json
+--fix1-manifest tests/fixtures/tge_delivery_2026-11-24/manifest.json
+--require-selection
+(powyższe argumenty jako jedno polecenie).
+
+Wynik jest pełnym JSON istniejącego API audit_source_coverage, bez zmiany
+jego formatu lub logiki. Zakres kalendarza jest obowiązkowy i jawny;
+--source-day oraz --fix1-manifest można powtarzać. Wszystkie źródła przechodzą
+dotychczasową walidację przed wypisaniem raportu. Niepoprawne źródła,
+daty, grupy lub zakres kończą się kodem 2 i pustym stdout, bez częściowego JSON.
+Domyślnie poprawne, lecz nierozstrzygnięte obserwacje PK5 pozostają diagnostyką
+(kod 0); --require-selection zwraca kod 3 po pełnym raporcie, jeżeli dowolna
+podana doba PK5 nie ma wyboru, również poza zakresem podsumowania.
+Nie wymaga par PK5/Fix1 na każdą dobę i nie deklaruje gotowości modelu.
+Konflikty Fix1 pozostają jawną diagnostyką w raporcie.
+
+Trzy nowe testy tests/test_joint_coverage_cli.py sprawdzają rzeczywiste
+dwie obserwacje PK5 25.11 i Fix1 24.11: zgodność API/CLI przy obu kolejnościach,
+wybór ósmej obserwacji z cutoff 24.11 08:50 UTC oraz odrębne doby tylko PK5
+i tylko Fix1. Rzeczywisty duplikat identyfikatora pozostaje bez wyboru;
+oba tryby zwracają identyczny JSON z różnymi kodami 0/3. Dziewięć przypadków
+błędnych źródeł/dat/grup sprawdza kod 2, pusty stdout i brak tracebacku.
+Bajty siedmiu plików źródłowych nie zmieniają się. Lokalnie 3/3 testy OK.
+
+Nie wykonano nowych pobrań, zapisów SQL ani zmian wcześniejszych fixture
+i raportów. Kontrola publication_ts i początku/końca retrieved_at względem
+D-1 09:50 Europe/Warsaw nadal pochodzi z istniejących walidatorów.
+Poprzedni etap 1d868a4: pełne CI 637 testów OK (run 45355129074).
+Okna 30/60/90D nadal niekompletne. Produkcja JWCD 90D, FROZEN, Railway,
+archiwa i harmonogramy bez zmian; PR #2 pozostaje otwarty. Nie wydano prognozy.
