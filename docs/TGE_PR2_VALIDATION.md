@@ -4641,3 +4641,36 @@ logiki modeli lub scoringu. Poprzedni etap 22a9e38 przeszedł pełne CI:
 645 testów OK (run 45382861427), w tym integracja scoringu 25.11 na PostgreSQL.
 Produkcja JWCD 90D, FROZEN, Railway, archiwa i harmonogramy bez zmian.
 PR #2 nadal otwarty. Nie wydano prognozy i nie utworzono rankingu modeli.
+
+
+## Checkpoint 2026-11-24 — bramka konfliktów Fix1 we wspólnym CLI audytu
+
+Dodano opcję --fail-on-conflict do shadow_source_coverage.py.
+Domyślny raport i kod 0 dla poprawnych źródeł pozostają bez zmian.
+Po pełnej walidacji wszystkich źródeł opcja daje kod 3, jeżeli którykolwiek
+podany manifest zawiera konflikt cen Fix1. Dotyczy także dób poza jawnym
+zakresem kalendarza podsumowania: ich dowody pozostają w fix1_audit.
+To zachowanie jest analogiczne do --require-selection dla podanych PK5.
+Obie flagi można łączyć. Błędne źródło nadal daje kod 2 i pusty stdout,
+zanim zostanie wypisany jakikolwiek raport konfliktu.
+
+Dodano tests/test_joint_coverage_conflict_cli.py. Poprawny zachowany Fix1
+25.11 z ósmym PK5 zachowuje kod 0 i identyczny JSON przy obu flagach.
+Drugi test tworzy wyłącznie tymczasową, jawnie syntetyczną kopię HTML/CSV
+Fix1 25.11 z H01 zmienionym z 944.60 na 945.60 i spójnymi hashami.
+Audyt wykrywa dokładnie konflikt 24.11 23:00 UTC, zachowując oba dowody.
+W obu kolejnościach manifestów, z zakresem 25.11 oraz zakresem 26.11,
+domyślny JSON pozostaje kompletny; --fail-on-conflict z --require-selection
+i bez tej drugiej flagi zwraca ten sam JSON i kod 3.
+Konflikt spoza zakresu nie trafia do listy konfliktów podsumowania,
+ale nadal zatrzymuje tryb ścisły dzięki pełnemu fix1_audit.
+Dodanie nieistniejącego manifestu na początku lub końcu wejścia daje kod 2,
+pusty stdout i brak tracebacku, nawet po wcześniejszym wykryciu konfliktu.
+Bajty źródeł i tymczasowej kopii nie są zmieniane przez audyt.
+Lokalnie 2/2 nowe testy OK.
+
+Nie zmieniono źródeł, wcześniejszych raportów, logiki wyboru PK5,
+modeli, scoringu ani archiwizacji. Brak pobrań live, zapisów SQL i prognoz.
+Poprzedni etap ffac205: pełne CI 647 testów OK (run 45392145831).
+Produkcja JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy bez zmian.
+Okna 30/60/90D nadal niekompletne.

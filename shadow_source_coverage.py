@@ -78,6 +78,9 @@ def main():
                         help='Inclusive calendar scope end')
     parser.add_argument('--require-selection', action='store_true',
                         help='Exit 3 after complete JSON if any supplied PK5 day has no selection')
+    parser.add_argument('--fail-on-conflict', action='store_true',
+                        help='Exit 3 after complete JSON if any supplied Fix1 day has price conflicts, '
+                             'including outside the calendar scope')
     args = parser.parse_args()
     try:
         groups = []
@@ -95,7 +98,8 @@ def main():
     except (OSError, EOFError, ZlibError, ValueError, TypeError, KeyError) as exc:
         parser.error(str(exc))
     print(output, end='')
-    if args.require_selection and report['pk5_audit']['unselected_days']:
+    if ((args.require_selection and report['pk5_audit']['unselected_days'])
+            or (args.fail_on_conflict and report['fix1_audit']['days_with_price_conflicts'])):
         raise SystemExit(3)
 
 
