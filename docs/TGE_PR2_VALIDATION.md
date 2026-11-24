@@ -4529,3 +4529,44 @@ D-1 09:50 Europe/Warsaw nadal pochodzi z istniejących walidatorów.
 Poprzedni etap 1d868a4: pełne CI 637 testów OK (run 45355129074).
 Okna 30/60/90D nadal niekompletne. Produkcja JWCD 90D, FROZEN, Railway,
 archiwa i harmonogramy bez zmian; PR #2 pozostaje otwarty. Nie wydano prognozy.
+
+
+## Checkpoint 2026-11-24 — rzeczywisty Fix1 25.11 i połączenie z PK5
+
+Zapisano osobną paczkę tests/fixtures/tge_delivery_2026-11-25:
+oryginalny HTML gzip mtime=0, referencyjny CSV z jawnymi początkami UTC
+i manifest. Oficjalna sesja 24.11, dostawa 25.11, HTTP 200, 24 ceny Fixing I.
+URL: https://tge.pl/energia-elektryczna-rdn?dateShow=24-11-2026.
+Pobranie zakończone 24.11 o 11:15:51.127696 Europe/Warsaw
+(10:15:51.127696 UTC). To czas zaobserwowanej dostępności, nie ustalony
+czas publikacji TGE; nie cofano go do porannego cutoff.
+
+HTML: 281984 bajty; SHA-256
+54aa29b1c7fc331fa90fad975faacc4f9f08864705e621be61adcd821c527e11.
+CSV SHA-256:
+c955d5c1e260fb7687b62a737d27d48c47ffe56d9736b464f315f14ab653c9ca.
+H01=944.60 PLN/MWh, H24=967.80 PLN/MWh.
+Parser produkcyjnie niezmieniony: tge_parser_safe i niezależna ekstrakcja
+XPath z tego samego HTML zgadzają się ze wszystkimi 24 cenami CSV.
+Nie jest to niezależny oficjalny eksport.
+
+Trzy nowe testy tests/test_tge_november25_sources.py potwierdzają hashe,
+wszystkie ceny, jawną siatkę UTC oraz połączenie z ośmioma zapisanymi
+obserwacjami PK5 25.11. W obu kolejnościach wybierany jest cały ósmy profil:
+pk5-capture-sha256:5a6a8f9d84c3f487924a0a2061e7ab28f92f047e2cb23148e9675fa958591e38.
+Siedem wcześniejszych obserwacji ma SUPERSEDED_JWCD_PUBLICATIONS.
+JWCD H01=12927.00000 MW, H24=15327.00000 MW. Każdy okres zachowuje
+publication_ts, start i koniec pobrania przed własnym D-1 09:50 Europe/Warsaw.
+Actual_available_at pozostaje faktycznym odczytem TGE.
+
+Nowa para dodaje 24 weryfikowalne okresy do dotychczasowych par 20/21/22/24.11
+(łącznie pięć dób / 120 okresów w zachowanych źródłach).
+Nie uzupełnia brakującego przed-cutoff PK5 23.11 ani okien 30/60/90D.
+Test ewaluacji w chwili odczytu Fix1 i mikrosekundę wcześniej nadal daje
+common_days=0, common_periods=0 i pusty ranking; para nie tworzy historii.
+Lokalnie 3/3 nowe testy OK.
+
+Starszych paczek i raportów nie zmieniono. Poprzedni etap bd7883a:
+pełne CI 640 testów OK (run 45363890309).
+Brak zapisów do SQL, prognoz, zmian modeli, produkcyjnego JWCD 90D,
+FROZEN, Railway, archiwów i harmonogramów. PR #2 pozostaje otwarty.
