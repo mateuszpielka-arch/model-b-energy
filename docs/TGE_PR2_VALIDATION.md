@@ -4849,3 +4849,38 @@ archiwizacji, modeli ani scoringu. Brak nowych par treningowych, prognoz,
 zmian produkcji JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2
 lub harmonogramów. Poprzedni etap b5e89c5: CI 657 testów OK
 (run 45446868058). Okna 30/60/90D nadal niekompletne.
+
+
+## Checkpoint 2026-11-24 — scoring 25.11 zachowuje przyjętą dostępność po recapture
+
+Rozszerzono tests/test_tge_november25_recapture.py o test integracyjny
+test_scoring_keeps_first_accepted_availability_in_both_capture_orders.
+Używa dwóch rzeczywistych odczytów Fix1 25.11, identycznego CSV oraz
+dotychczasowej syntetycznej kontroli JWCD/20 z ósmego PK5.
+Nie jest to nowa prognoza ani ocena modelu produkcyjnego.
+
+Dla obu kolejności zaakceptowania paczek (pierwszy→późniejszy oraz
+późniejszy→pierwszy) test zapisuje jeden kontrolny wynik. MAE/MAPE/WAPE/bias
+muszą odpowiadać istniejącemu niezależnemu oracle Fraction dla 25.11.
+Wersja actual i zapisany actual_captured_at_utc pozostają związane
+z paczką przyjętą jako pierwsza do izolowanej bazy, także gdy po niej
+zaimportowano obserwację historycznie wcześniejszą.
+
+Po imporcie drugiej paczki jako REPLAY pozostają dwa dowody raw i 24 ceny,
+zero kwarantanny i jeden niezmieniony wynik scoringu. accepted_capture
+w diagnostyce importu nadal wskazuje przyjęty hash/timestamp.
+Scoring z CSV i bez CSV musi zwrócić REPLAY z identycznym wynikiem.
+Ewaluacja mikrosekundę przed przyjętą dostępnością jest odrzucona zarówno
+przed pierwszym scoringiem, jak i po recapture oraz zapisaniu wyniku.
+Wszystkie cztery tabele pozostają niezmienne po odrzuconych żądaniach/replay.
+Sześć źródłowych plików obu odczytów Fix1 pozostaje bez zmian.
+
+Lokalnie test źródeł OK; dwa testy integracyjne modułu pominięto
+z powodu braku lokalnego PostgreSQL/DSN. Nowy test wymaga potwierdzenia
+w istniejącym CI z fix1_shadow_test na loopback; bez sekretów produkcji.
+Poprzedni etap feff538 przeszedł CI: 659 testów OK (run 45457859803),
+w tym realny recapture/replay 25.11 w izolowanej bazie.
+
+Nie zmieniono implementacji scoringu/archiwizacji ani źródeł i checkpointów.
+Brak pobrań live, prognoz, zmian produkcji JWCD 90D, FROZEN, Railway,
+archiwów, PR #2 lub harmonogramów. Rzeczywiste okna 30/60/90D niekompletne.

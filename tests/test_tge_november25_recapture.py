@@ -102,6 +102,78 @@ class November25RecaptureArchiveTests(unittest.TestCase):
             self.assertEqual(conn.execute('SELECT count(*) FROM fix1_shadow_test.quarantine').fetchone(), (0,))
         self.assertEqual(evidence_bytes(), files)
 
+    def test_scoring_keeps_first_accepted_availability_in_both_capture_orders(self):
+        """Real recaptures must neither advance nor backdate accepted score evidence."""
+        from datetime import timedelta
+        from decimal import Decimal
+        from test_tge_november25_scores import scoring_case
+        from shadow_postgres_scores import initialize_scores, score_archived_day
+
+        files = evidence_bytes()
+        first, later = sources()
+        _, _, reference, inputs, expected = scoring_case()
+        for accepted, other, replay_directory in (
+            (first, later, RECAPTURE), (later, first, ORIGINAL),
+        ):
+            batch, raw = accepted
+            other_batch, _ = other
+            with self.subTest(accepted_at=batch.retrieved_at), connect_test_database(DSN) as conn:
+                initialize(conn)
+                initialize_scores(conn)
+                conn.execute('TRUNCATE fix1_shadow_test.quarantine, fix1_shadow_test.prices, '
+                             'fix1_shadow_test.batches RESTART IDENTITY CASCADE')
+                self.assertEqual(archive_batch(conn, batch, raw), 'INSERT')
+                with self.assertRaisesRegex(ValueError, 'not yet available'):
+                    score_archived_day(
+                        conn, **inputs, reference_csv=reference,
+                        evaluated_at=batch.retrieved_at - timedelta(microseconds=1))
+                status, score = score_archived_day(
+                    conn, **inputs, reference_csv=reference, evaluated_at=batch.retrieved_at)
+                self.assertEqual(status, 'INSERT')
+                self.assertEqual(score.actual_version, ':'.join((
+                    batch.delivery_date.isoformat(), batch.raw_sha256,
+                    batch.reference_sha256, batch.parser_version)))
+                for metric, value in expected.items():
+                    self.assertEqual(getattr(score, metric).quantize(Decimal('1e-12')), value)
+                score_query = 'SELECT * FROM fix1_shadow_test.scores ORDER BY forecast_id'
+                saved_score = conn.execute(score_query).fetchall()
+                self.assertEqual(len(saved_score), 1)
+                report = ingest_manifest(replay_directory / 'manifest.json', conn=conn)
+                self.assertEqual((report['days_by_status'], report['inserted_periods']),
+                                 ({'REPLAY': 1}, 0))
+                result, = report['results']
+                self.assertEqual(result['accepted_capture'], dict(
+                    raw_sha256=batch.raw_sha256, retrieved_at_utc=batch.retrieved_at.isoformat()))
+                self.assertFalse(result['scoring_blocked_by_quarantine'])
+                queries = [
+                    score_query,
+                    'SELECT * FROM fix1_shadow_test.prices ORDER BY period_start_utc',
+                    'SELECT * FROM fix1_shadow_test.batches ORDER BY id',
+                    'SELECT * FROM fix1_shadow_test.quarantine ORDER BY batch_id',
+                ]
+                after_import = [conn.execute(query).fetchall() for query in queries]
+                self.assertEqual(after_import[0], saved_score)
+                self.assertEqual((len(after_import[1]), len(after_import[2]), len(after_import[3])),
+                                 (24, 2, 0))
+                for supplied_reference in (reference, None):
+                    with self.assertRaisesRegex(ValueError, 'not yet available'):
+                        score_archived_day(
+                            conn, **inputs, reference_csv=supplied_reference,
+                            evaluated_at=batch.retrieved_at - timedelta(microseconds=1))
+                    self.assertEqual(score_archived_day(
+                        conn, **inputs, reference_csv=supplied_reference,
+                        evaluated_at=batch.retrieved_at), ('REPLAY', score))
+                    self.assertEqual([conn.execute(query).fetchall() for query in queries],
+                                     after_import)
+                self.assertEqual(conn.execute(
+                    "SELECT payload->>'actual_captured_at_utc' FROM fix1_shadow_test.scores",
+                ).fetchall(), [(batch.retrieved_at.isoformat(),)])
+                # Both observations are retained, but scores remain tied to the first accepted one.
+                self.assertEqual(conn.execute(
+                    'SELECT raw_sha256 FROM fix1_shadow_test.batches ORDER BY id',
+                ).fetchall(), [(batch.raw_sha256,), (other_batch.raw_sha256,)])
+        self.assertEqual(evidence_bytes(), files)
+
 
 if __name__ == '__main__':
     unittest.main()
