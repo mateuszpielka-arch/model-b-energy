@@ -4777,3 +4777,37 @@ Dotychczasowych źródeł i checkpointów nie zmieniono.
 Poprzedni etap 2626bd3 przeszedł CI: 654 testy OK (run 45423876341).
 Brak zapisów SQL, prognoz, zmian modeli, produkcji JWCD 90D, FROZEN,
 Railway, archiwów, PR #2 i harmonogramów. Okna 30/60/90D niekompletne.
+
+
+## Checkpoint 2026-11-24 — drugi PK5 26.11 z publikacjami 11+13
+
+Zapisano osobną paczkę tests/fixtures/pse_pk5_delivery_2026-11-26_second:
+oryginalny JSON gzip mtime=0 i capture.json, HTTP 200, 24 okresy,
+URL bez zmiany. Pobranie 24.11 18:15:53.543207–18:16:01.875893
+Europe/Warsaw (17:15:53.543207–17:16:01.875893 UTC).
+Publikacje 18:03:32.118 (11 okresów) i 18:13:27.320 (13 okresów)
+Europe/Warsaw. Obie publikacje i oba czasy pobrania są przed właściwym
+cutoff dostawy: 25.11 09:50 Europe/Warsaw (08:50 UTC).
+
+Oryginał: 18626 bajtów, SHA-256
+2b2dd523d43a7b3f48e689c9b1f2bf714147397b1f387607d5b2b38ece83c8a3.
+Snapshot:
+pk5-capture-sha256:8934706605a66edc27caf6bd4a9e57628433d21313cd106802c1865c2be778e8.
+JWCD H01=14931.00000 MW, H24=15038.00000 MW.
+Względem pierwszej obserwacji zmieniają się 23 wartości.
+
+Dodano tests/test_pk5_november26_second.py. Niezależna mapa oryginalnego
+JSON potwierdza JWCD i publication_ts każdego wybranego okresu.
+Loader weryfikuje obie paczki; publikacje i początek/koniec pobrania są
+sprawdzane względem właściwego cutoff. Audyt w obu kolejnościach wybiera
+cały drugi profil, z zachowaniem podziału publikacji 11+13.
+Starsza paczka pozostaje w diagnostyce jako SUPERSEDED_JWCD_PUBLICATIONS.
+Lista 23 zmienionych okresów zgadza się z oryginalnymi wartościami.
+CLI --require-selection w obu kierunkach daje identyczny JSON i kod 0.
+Cztery źródłowe pliki zachowują identyczne bajty. Lokalnie 1/1 test OK.
+
+Nie zmieniono pierwszej paczki ani wcześniejszych raportów.
+Nadal brak Fix1 26.11 i nowej pary treningowej; okna 30/60/90D niekompletne.
+Poprzedni etap 0ec8855: pełne CI 656 testów OK (run 45435384071).
+Produkcja JWCD 90D, FROZEN, Railway, archiwa, PR #2 i harmonogramy bez zmian.
+Brak zapisów SQL i wydanej prognozy; ten etap nie zastępuje raportu 18:00.
