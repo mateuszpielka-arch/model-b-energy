@@ -4978,3 +4978,41 @@ nowej pary treningowej oraz kompletnych okien 30/60/90D.
 Poprzedni etap 32e66fe: CI 664 testy OK (run 45489506646).
 Brak zapisów SQL, wydanej prognozy, zmian modeli, produkcji JWCD 90D,
 FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — wspólne pokrycie źródeł do dostawy 26.11
+
+Dodano osobny docs/validation/source_coverage_2026-11-26.json,
+source_commit 9bb4eb6941ce72363130c79c1055c45b1d1991a1.
+Jawna kohorta obejmuje 27 obserwacji PK5 dla sześciu dób (20/21/22/24/25/26.11)
+oraz dziewięć odczytów Fix1 dla sześciu dób (20–25.11).
+To 81 zachowanych plików źródłowych; wcześniejszy raport pokrycia nie jest
+nadpisywany. Nie wykonano nowych pobrań live.
+
+Zakres 20–26.11 ma 168 okresów:
+- obie strony 20/21/22/24/25.11: 120 okresów;
+- tylko PK5 26.11: 24 okresy;
+- tylko Fix1 23.11: 24 okresy;
+- brak obu: zero dób; konfliktów cen Fix1: zero.
+PK5 wybiera sześć pełnych profili / 144 okresy. Dla 26.11 wybrana jest
+czwarta obserwacja z cutoff 25.11 08:50 UTC (09:50 Europe/Warsaw).
+Każda obserwacja przechodzi istniejące bramki publication_ts i początku/
+końca pobrania względem własnego cutoff. Dziewięć odczytów Fix1 zachowuje
+odrębne hashe i faktyczne czasy dostępności; recapture nie tworzy nowej doby.
+Wszystkie obserwowane doby są 24h; kubełki 23/25h mają zera, bez deklaracji
+rzeczywistego pokrycia DST. model_readiness_assessed=false.
+
+Dodano tests/test_source_coverage_november26.py: dwa testy odtwarzają
+cały checkpoint przez API przy obu kierunkach dób, obserwacji i manifestów,
+oraz przez CLI z --require-selection i --fail-on-conflict. Oba kierunki CLI
+dają kod 0, pusty stderr i identyczny pełny JSON. Testy kontrolują
+klasyfikację luk, liczniki obserwacji/okresów i wybrany snapshot 26.11.
+Hashe wszystkich 81 źródeł i nowego checkpointu są identyczne po audycie.
+Lokalnie 2/2 nowe testy OK.
+
+Nowy raport nie uzupełnia PK5 23.11 lub Fix1 26.11 i nie tworzy rankingu.
+Rzeczywiste okna 30/60/90D nadal niekompletne. Nie zmieniono implementacji
+audytów, modeli, scoringu, archiwizacji, wcześniejszych raportów lub źródeł.
+Poprzedni etap 9bb4eb6: CI 665 testów OK (run 45499432661).
+Brak SQL, prognoz, zmian produkcji JWCD 90D, FROZEN, Railway, archiwów,
+PR #2 lub harmonogramów.
