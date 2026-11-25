@@ -9,7 +9,7 @@ from hashlib import sha256
 
 from shadow_archive_batch import prepare_batch, read_reference_csv, revalidate_batch
 from shadow_pk5_snapshot import prepare_pk5_snapshot
-from shadow_asof import select_snapshot
+from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_history_audit import audit_rows
 
 
@@ -213,6 +213,13 @@ def _load_pk5_evidence(capture_path, *, day):
         raise ValueError('PK5 capture delivery differs from Fixing I')
     started = parse_capture_timestamp(metadata.get('retrieved_at_utc'))
     completed = parse_capture_timestamp(metadata.get('retrieval_completed_at_utc'))
+    if started > completed:
+        raise ValueError('PK5 snapshot rejected: INVALID_RETRIEVAL_ORDER')
+    cutoff = cutoff_for_day(day)
+    if started > cutoff:
+        raise ValueError('PK5 snapshot rejected: RETRIEVAL_STARTED_AFTER_CUTOFF')
+    if completed > cutoff:
+        raise ValueError('PK5 snapshot rejected: RETRIEVAL_COMPLETED_AFTER_CUTOFF')
     raw_path = _inside(capture_path.parent, filename)
     try:
         with gzip.open(raw_path, 'rb') as stream:

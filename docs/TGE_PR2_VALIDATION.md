@@ -5320,3 +5320,33 @@ Fix1 26.11, nowej pary treningowej i kompletnych rzeczywistych okien
 30/60/90D. Poprzedni etap 204a679: CI 677 testów OK (run 45566516199).
 Brak SQL, wydanej prognozy, zmian modeli, produkcji JWCD 90D, FROZEN,
 Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — bramka czasów pobrania przed odczytem PK5
+
+Zweryfikowano head 79a275c i CI 45575696503: 678 testów OK.
+PR #2 pozostaje otwarty, z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+W shadow_source_history._load_pk5_evidence dodano przed odczytem gzip
+sprawdzenie kolejności retrieval start/end oraz obu czasów względem
+D-1 09:50 Europe/Warsaw. Dotyczy obu loaderów load_pk5_capture
+i load_pk5_snapshot. Powody odrzucenia pozostają takie jak w adapterze:
+INVALID_RETRIEVAL_ORDER, RETRIEVAL_STARTED_AFTER_CUTOFF,
+RETRIEVAL_COMPLETED_AFTER_CUTOFF. Niepoprawne czasy nie otwierają payloadu,
+nawet gdy wskazany plik nie istnieje. Dopuszczone metadane nadal przechodzą
+pełną walidację gzip, rozmiaru, SHA-256, publikacji i kompletności okresów
+w prepare_pk5_snapshot. Równość cutoff jest nadal dopuszczona.
+
+Dodano tests/test_pk5_retrieval_metadata_gate.py: lokalnie 3/3 testy OK.
+Na tymczasowych, wyraźnie syntetycznych kopiach metadanych dwunastej
+rzeczywistej paczki 26.11 sprawdzono start i koniec o 1 mikrosekundę
+po cutoff, odwróconą kolejność, brak otwarcia gzip przez oba loadery,
+kod CLI 2 i pusty stdout dla obu kolejności poprawnej/błędnej paczki.
+Dokładny cutoff zapisany jako 08:50 UTC i 09:50 +01:00 daje ten sam
+snapshot i rzeczywiste 24 wiersze. Uszkodzony gzip nadal jest odrzucany.
+Syntetycznych timestampów nie zapisano jako rzeczywistych obserwacji;
+oryginalne pliki pozostają identyczne.
+
+Brak nowych pobrań live, nowych par treningowych i kompletnych rzeczywistych
+okien 30/60/90D. Brak zmian produkcji JWCD 90D, FROZEN, Railway, istniejących
+archiwów, modeli, PR #2 i harmonogramów.
