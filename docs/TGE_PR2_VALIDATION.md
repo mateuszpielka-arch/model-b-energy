@@ -5505,3 +5505,45 @@ Syntetyczne czasy testowe nie zostały zapisane jako rzeczywiste obserwacje.
 Brak nowych pobrań live, prognoz, modeli i zmian produkcji JWCD 90D,
 FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
 Rzeczywiste okna 30/60/90D pozostają niekompletne.
+
+
+## Checkpoint 2026-11-25 — ponowny rzeczywisty Fix1 26.11 z przedziałem pobrania
+
+Zweryfikowano head 65ec4ec i CI 45621453552: 692 testy OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/tge_delivery_2026-11-26_recaptured: oryginalny HTML
+gzip mtime=0, CSV i manifest. Oficjalna sesja:
+https://tge.pl/energia-elektryczna-rdn?dateShow=25-11-2026
+HTTP 200, 24 ceny, 427203 bajty HTML. Faktyczny przedział pobrania:
+25.11 15:16:13.417100–15:16:25.081374 Europe/Warsaw
+(14:16:13.417100–14:16:25.081374 UTC).
+To czasy pobrania, nie ustalony czas publikacji TGE.
+
+SHA-256 HTML:
+a629bcb09b4474501fdd41194fb66d5d118fdf0abb63d51b20889a2a9ebbc318.
+SHA-256 CSV pozostaje
+b9cde57d7bc107edcfcd010e0f4aff06456001740f94b7a1139bf4e25ee373e0.
+Oryginalny HTML różni się od porannego (282975 bajtów), lecz wszystkie
+24 ceny i jawne okresy UTC są takie same: H01=960.00, H24=930.00 PLN/MWh.
+Starszy manifest nie otrzymał dopisanego początku pobrania.
+
+Dodano tests/test_tge_november26_recapture.py: lokalny test parsera,
+niezależnego XPath, hashy, równości CSV i walidacji nowego przedziału OK;
+2 testy PostgreSQL pominięte lokalnie z powodu braku testowego DSN.
+Istniejące CI wykonuje je na izolowanym PostgreSQL 16, bez sekretów produkcji.
+
+Pierwszy test SQL wymaga INSERT oryginału i REPLAY ponownego pobrania,
+zachowania 24 cen i pierwotnego accepted_capture, dwóch różnych surowych
+HTML oraz braku kwarantanny. Powtarzane importy nie mogą zmieniać tabel.
+Drugi test sprawdza obie kolejności przyjęcia dowodów i syntetyczny scoring
+kontrolny z test_tge_november26_scores: dostępność wyniku pozostaje czasem
+pierwszego zaakceptowanego dowodu, bez przesuwania jej przez REPLAY.
+Ocena 1 mikrosekundę wcześniej jest blokowana, z referencją lub bez.
+Zachowuje się jeden wynik, 24 ceny, dwa dowody i zero kwarantann;
+wszystkie sześć plików obu paczek pozostaje niezmiennych.
+
+Ponowne pobranie nie jest nowym dniem treningowym. Wcześniejsze kohorty,
+checkpointy i źródła pozostają bez zmian. Brak prognoz, zmian modeli,
+produkcji JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2
+i harmonogramów. Rzeczywiste okna 30/60/90D pozostają niekompletne.
