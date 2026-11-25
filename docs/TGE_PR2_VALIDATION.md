@@ -5622,3 +5622,34 @@ Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
 rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
 pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
 JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — atomowa publikacja nowych plików dowodowych
+
+Zweryfikowano head d0e0977 i CI 45652025190: 698 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zmieniono tools/capture_tge_validation._write_new_evidence, używane także
+przez tools.capture_pk5_validation. Zamiast pisać bezpośrednio do nazwy
+docelowej, helper zapisuje plik tymczasowy w tym samym katalogu, wykonuje
+flush i fsync, zamyka plik, a następnie publikuje go przez wyłączny hard link.
+Docelowa nazwa staje się widoczna dopiero dla kompletnego pliku. Kolizja
+istniejącej nazwy nadal daje FileExistsError bez nadpisania danych.
+Blok finally usuwa plik tymczasowy również po błędzie zapisu/synchronizacji/
+publikacji. Nie zmieniono formatu bajtów, timestampów, hashy ani reguł cutoff.
+To atomowość pojedynczego nowego pliku, nie nowy mechanizm transakcji wielu
+plików ani zmiana PostgreSQL. Nie zadeklarowano synchronizacji katalogu
+lub pełnej odporności całej paczki na awarię systemu.
+
+Dodano tests/test_atomic_capture_evidence.py: lokalnie 3/3 testy OK.
+Sprawdzono fsync przed publikacją i kompletność 1 MiB payloadu, nieobecność
+nazwy docelowej przed linkiem oraz odrzucenie powtórnego zapisu identycznych
+i innych bajtów bez nadpisania. Wstrzyknięte błędy fsync/link nie pozostawiają
+docelowego ani tymczasowego pliku, a ponowienie działa. Ośmiu testowych
+konkurujących zapisujących w izolowanym katalogu daje dokładnie jednego
+zwycięzcę i siedem FileExistsError; zachowana jest cała zawartość zwycięzcy
+i brak plików staging. Testy nie korzystają z sieci, bazy ani sekretów.
+
+Brak nowych pobrań i zmian zachowanych źródeł, prognoz, modeli,
+produkcji JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2
+i harmonogramów. Rzeczywiste okna 30/60/90D pozostają niekompletne.

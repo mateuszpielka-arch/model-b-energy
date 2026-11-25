@@ -13,7 +13,7 @@ from hashlib import sha256
 from http.client import IncompleteRead
 import io
 import json
-from os import link
+from os import fsync, link
 from pathlib import Path
 import re
 from tempfile import NamedTemporaryFile
@@ -93,14 +93,22 @@ def extract_reference(raw, day, *, autumn_25h=False):
 
 
 def _write_new_evidence(path, payload):
-    # Exclusive creation leaves an existing path untouched, including on retry.
-    stream = path.open('xb')
+    """Publish complete evidence atomically, without replacing any existing path."""
+    path = Path(path)
+    staging_path = None
     try:
-        with stream:
+        with NamedTemporaryFile(mode='wb', dir=path.parent,
+                                prefix='.fix1-evidence-', delete=False) as stream:
+            staging_path = Path(stream.name)
             stream.write(payload)
-    except OSError:
-        path.unlink(missing_ok=True)
-        raise
+            stream.flush()
+            fsync(stream.fileno())
+        # A same-directory hard link publishes only the complete, closed file.
+        # It fails exclusively if a concurrent writer already owns the target.
+        link(staging_path, path)
+    finally:
+        if staging_path is not None:
+            staging_path.unlink(missing_ok=True)
 
 
 def _fetch_session(url, day):
