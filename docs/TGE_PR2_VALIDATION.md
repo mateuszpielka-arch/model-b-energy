@@ -5586,3 +5586,39 @@ Wcześniejsze kohorty i checkpointy pozostają bez zmian, rzeczywiste
 okna 30/60/90D niekompletne. Brak wydanej prognozy, zmian modeli,
 produkcji JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2
 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — drugi rzeczywisty PK5 dla dostawy 27.11
+
+Zweryfikowano head d0c9c02 i CI 45643285704: 697 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-27_second: oryginalny
+JSON gzip mtime=0 i capture.json, HTTP 200, URL zgodny, 24 okresy,
+18629 bajtów JSON. Faktyczny przedział pobrania:
+25.11 17:13:15.988805–17:13:23.223141 Europe/Warsaw
+(16:13:15.988805–16:13:23.223141 UTC).
+Publikacje wszystkich 24 okresów: 25.11 17:03:52.439 Europe/Warsaw.
+Publikacje i oba czasy pobrania są przed własnym cutoff dostawy 27.11:
+26.11 09:50 Europe/Warsaw (08:50 UTC).
+
+SHA-256 oryginału:
+563c6f7e879b5ed0bc30124b8163fc781cc156cc1d2826420454573b763df79e.
+Snapshot:
+pk5-capture-sha256:68d33e010d8307bab7a31d4ab22446288b998fee87830e7f6f6b9cdefc580e08.
+JWCD H01=14182.00000 MW, H24=14202.00000 MW.
+Względem pierwszej obserwacji zmieniły się 23 wartości; wszystkie
+24 publikacje są nowsze, także dla okresu o tej samej wartości.
+
+Dodano tests/test_pk5_november27_second.py: lokalnie 1/1 test OK.
+Niezależna mapa surowego JSON potwierdza JWCD i publication_ts każdego
+okresu obu obserwacji, hashe, loader i cutoff. Audyt wybiera cały drugi
+profil i odrzuca pierwszy jako SUPERSEDED_JWCD_PUBLICATIONS.
+Dokładna lista 23 zmienionych okresów zgadza się z oryginalnymi danymi.
+API i CLI --require-selection w obu kolejnościach dają identyczny pełny
+JSON i kod 0. Cztery pliki źródłowe pozostają niezmienne.
+
+Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
+rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
+pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
+JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
