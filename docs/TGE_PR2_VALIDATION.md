@@ -5689,3 +5689,34 @@ Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
 rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
 pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
 JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — synchronizowana publikacja manifestu TGE
+
+Zweryfikowano head 56473e4 i CI 45672952837: 702 testy OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+tools/capture_tge_validation.write_manifest korzysta teraz z tego samego
+_write_new_evidence co pliki dowodów. Najpierw serializuje cały manifest
+do UTF-8, potem zapisuje plik tymczasowy, flush/fsync, zamyka i publikuje
+wyłącznym hard linkiem. Wcześniejszy zapis manifestu miał atomowy link,
+ale bez fsync. Błąd serializacji występuje teraz przed tworzeniem pliku
+tymczasowego. Istniejący manifest nadal nie może być nadpisany.
+Format indent=2, domyślne escapowanie JSON i brak końcowego newline
+pozostają zgodne z wcześniejszym write_manifest.
+
+Dodano tests/test_atomic_capture_manifest.py: lokalnie 2/2 testy OK.
+Na zachowanym rzeczywistym manifeście ponownego Fix1 26.11 sprawdzono
+kompletne, zgodne bajty i fsync przed publikacją. Próba zastąpienia
+istniejącego manifestu pozostawia oryginał. Wstrzyknięte błędy fsync/link
+oraz nieserializowalny obiekt nie pozostawiają manifestu ani stagingu;
+tymczasowe pliki kontrolne HTML/CSV pozostają identyczne. Po błędzie
+poprawne ponowienie publikuje pełny manifest. Oryginalny manifest fixture
+pozostaje bez zmian. Dotychczasowe testy współbieżnych publikacji
+i błędów serializacji są nadal w pełnym CI.
+
+Zakres to atomowość i synchronizacja zawartości pojedynczego manifestu.
+Nie deklarujemy transakcji wielu plików, synchronizacji katalogu ani
+pełnej odporności paczki na utratę zasilania. Brak nowych pobrań, zmian
+danych, prognoz, modeli, produkcji JWCD 90D, FROZEN, Railway, istniejących
+archiwów, PR #2 i harmonogramów. Okna 30/60/90D nadal niekompletne.

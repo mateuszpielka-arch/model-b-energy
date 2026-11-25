@@ -202,17 +202,9 @@ def capture(day, directory, *, autumn_25h=False):
 
 
 def write_manifest(directory, manifest):
-    # Link the complete JSON into place atomically, refusing an existing manifest.
-    temporary = NamedTemporaryFile(
-        mode="w", encoding="utf-8", dir=directory, delete=False
-    )
-    staging_path = Path(temporary.name)
-    try:
-        with temporary:
-            json.dump(manifest, temporary, indent=2)
-        link(staging_path, directory / "manifest.json")
-    finally:
-        staging_path.unlink(missing_ok=True)
+    """Serialize first, then sync and publish a new complete manifest exclusively."""
+    payload = json.dumps(manifest, indent=2).encode('utf-8')
+    _write_new_evidence(Path(directory) / 'manifest.json', payload)
 
 
 if __name__=='__main__':
