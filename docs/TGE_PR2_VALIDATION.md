@@ -5350,3 +5350,42 @@ oryginalne pliki pozostają identyczne.
 Brak nowych pobrań live, nowych par treningowych i kompletnych rzeczywistych
 okien 30/60/90D. Brak zmian produkcji JWCD 90D, FROZEN, Railway, istniejących
 archiwów, modeli, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — rzeczywisty Fix1 dla dostawy 26.11
+
+Zweryfikowano head 31f3719 i CI 45583220217: 681 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/tge_delivery_2026-11-26: oryginalny HTML gzip
+mtime=0, referencję CSV z jawnymi UTC i manifest. Źródło:
+https://tge.pl/energia-elektryczna-rdn?dateShow=25-11-2026
+HTTP 200, 24 ceny, 282975 bajtów HTML. Faktyczny koniec pobrania:
+25.11.2026 11:15:02.707749 Europe/Warsaw (10:15:02.707749 UTC).
+To czas dostępności zachowanego dowodu, nie ustalony czas publikacji TGE.
+
+SHA-256 HTML:
+bcde630ab8ac4175e7cae26d44fee3eda443ef4dadaee6e2e8a08f278d78d9b9.
+SHA-256 CSV:
+b9cde57d7bc107edcfcd010e0f4aff06456001740f94b7a1139bf4e25ee373e0.
+Fix1 H01=960.00 PLN/MWh, H24=930.00 PLN/MWh.
+Referencja pochodzi z niezależnego od parsera odczytu lxml tej samej
+oficjalnej tabeli; nie jest drugim niezależnym eksportem urzędowym.
+
+Dodano tests/test_tge_november26_sources.py: lokalnie 3/3 testy OK.
+Parser, XPath, CSV i manifest zgadzają się dla każdego z 24 okresów UTC.
+Połączenie z dwunastoma zachowanymi obserwacjami PK5 wybiera w całości
+dwunastą, z JWCD H01=15311.00000 i H24=15356.00000 MW.
+Jedenaście starszych ma SUPERSEDED_JWCD_PUBLICATIONS. Na każdej z 12
+pozycji najnowszej paczki przy obu kierunkach starszych danych wynik
+jest identyczny (24 uporządkowania). Publikacja i oba czasy pobrania
+PK5 są przed własnym cutoff 25.11 09:50 Europe/Warsaw.
+actual_available_at pozostaje rzeczywistym końcem pobrania Fix1.
+
+Powstała nowa kompletna para źródłowa dla 26.11, ale nie kompletny
+zbiór treningowy 30/60/90D. Test pojedynczej pary przed dostępnością
+Fix1 i dokładnie przy niej potwierdza brak wspólnego rankingu i zero
+wspólnych okresów. Nie wydano prognozy ani wyników skuteczności modelu.
+Wcześniejsze paczki i checkpointy pozostają bez zmian. Nowa paczka jest
+materiałem testowym, nie zapisem do istniejących archiwów produkcji.
+Brak zmian produkcji JWCD 90D, FROZEN, Railway, modeli, PR #2 i harmonogramów.

@@ -1,0 +1,21 @@
+{
+  "entries": [
+    {
+      "delivery_date": "2026-11-26",
+      "session_date": "2026-11-25",
+      "url": "https://tge.pl/energia-elektryczna-rdn?dateShow=25-11-2026",
+      "retrieved_at_utc": "2026-11-25T10:15:02.707749+00:00",
+      "http_status": 200,
+      "raw_file": "tge_delivery_2026-11-26.html.gz",
+      "reference_file": "tge_delivery_2026-11-26.csv",
+      "raw_sha256": "bcde630ab8ac4175e7cae26d44fee3eda443ef4dadaee6e2e8a08f278d78d9b9",
+      "reference_sha256": "b9cde57d7bc107edcfcd010e0f4aff06456001740f94b7a1139bf4e25ee373e0",
+      "reference_method": "independent lxml XPath extraction from SAME official HTML, not independent official export",
+      "hours": 24,
+      "bytes": 282975,
+      "period_basis": "EXPLICIT_UTC"
+    }
+  ],
+  "errors": [],
+  "note": "Historical captures obtained in one run; NOT seven days of operational SHADOW observation."
+}
