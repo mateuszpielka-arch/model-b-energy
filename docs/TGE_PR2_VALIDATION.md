@@ -5117,3 +5117,37 @@ nowej pary treningowej i kompletnych rzeczywistych okien 30/60/90D.
 Poprzedni etap 3ffbb41: CI 669 testów OK (run 45524617846).
 Brak SQL, wydanej prognozy, zmian modeli, produkcji JWCD 90D, FROZEN,
 Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — ósmy rzeczywisty PK5 26.11
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-26_eighth: oryginalny JSON
+gzip mtime=0 i capture.json, HTTP 200, URL bez zmiany, 24 okresy.
+Pobranie 25.11 04:15:56.052018–04:16:03.531061 Europe/Warsaw
+(03:15:56.052018–03:16:03.531061 UTC).
+Publikacja wszystkich okresów: 04:04:23.552 Europe/Warsaw.
+Publikacje i oba czasy pobrania poprzedzają cutoff dostawy 26.11:
+25.11 09:50 Europe/Warsaw (08:50 UTC).
+
+Oryginał: 18612 bajtów, SHA-256
+1043f7c480486a51a770f152334f1125dd51e63f08992471ae9b903176c9019f.
+Snapshot:
+pk5-capture-sha256:8cf52b0377b429b43def553f884b517b631d89172b49b661d951a819a78f3a3d.
+JWCD H01=15168.00000 MW, H24=15311.00000 MW.
+Zmiany względem obserwacji 1–7: 24, 24, 24, 24, 24, 17, 6 wartości.
+Niezmienione H01/H24 nadal mają nową publikację z ósmego odczytu.
+
+Dodano tests/test_pk5_november26_eighth.py. Niezależna mapa oryginalnego
+JSON potwierdza JWCD i publication_ts każdego wybranego okresu, hashe,
+loader, właściwy cutoff i siedem list zmian. Ósma paczka na każdej
+z ośmiu pozycji przy obu kierunkach starszych obserwacji daje ten sam
+raport (16 uporządkowań); wybierany jest cały ósmy profil. Starsze paczki
+pozostają jako SUPERSEDED_JWCD_PUBLICATIONS. CLI --require-selection
+w obu kierunkach daje identyczny JSON i kod 0. Szesnaście plików źródeł
+pozostaje niezmiennych. Lokalnie 1/1 test OK.
+
+Nie zmieniono wcześniejszych paczek i checkpointów. Nadal brak Fix1 26.11,
+nowej pary treningowej i kompletnych rzeczywistych okien 30/60/90D.
+Poprzedni etap bcd111b: CI 670 testów OK (run 45531849285).
+Brak SQL, wydanej prognozy, zmian modeli, produkcji JWCD 90D, FROZEN,
+Railway, istniejących archiwów, PR #2 i harmonogramów.
