@@ -155,8 +155,12 @@ def capture(day, directory, *, autumn_25h=False):
         raise ValueError('Standard reference requires a 24-hour Warsaw day')
     session=day-timedelta(days=1)
     url='https://tge.pl/energia-elektryczna-rdn?dateShow='+session.strftime('%d-%m-%Y')
+    retrieval_started = datetime.now(timezone.utc)
     status, raw = _fetch_session(url, day)
-    completed=datetime.now(timezone.utc).isoformat()
+    retrieval_completed = datetime.now(timezone.utc)
+    if retrieval_started > retrieval_completed:
+        raise ValueError('TGE retrieval started after completion')
+    completed = retrieval_completed.isoformat()
     if len(raw) > MAX_HTML_BYTES:
         raise ValueError(f'TGE response exceeds 8 MiB for {day}')
     rows=extract_reference(raw,day.isoformat(),autumn_25h=autumn_25h)
@@ -181,6 +185,7 @@ def capture(day, directory, *, autumn_25h=False):
         raw_path.unlink(missing_ok=True)
         raise
     return dict(delivery_date=day.isoformat(),session_date=session.isoformat(),url=url,
+        retrieval_started_at_utc=retrieval_started.isoformat(),
         retrieved_at_utc=completed,http_status=status,raw_file=raw_path.name,reference_file=ref_path.name,
         raw_sha256=sha256(raw).hexdigest(),reference_sha256=sha256(reference).hexdigest(),
         reference_method='independent lxml XPath extraction from SAME official HTML, not independent official export',

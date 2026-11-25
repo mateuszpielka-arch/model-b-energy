@@ -5467,3 +5467,41 @@ celów; test sprawdza pokrycie każdego okna, nie tylko łączną liczbę dni.
 Brak nowych pobrań, modeli, prognoz, zmian produkcji JWCD 90D, FROZEN,
 Railway, istniejących archiwów, PR #2 i harmonogramów. Rzeczywiste dane
 DST 23/25h nie zostały dopuszczone przez standardowy adapter 24h.
+
+
+## Checkpoint 2026-11-25 — jawny przedział pobrania TGE
+
+Zweryfikowano head e150aa6 i CI 45614665871: 689 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+tools/capture_tge_validation.capture zapisuje teraz
+retrieval_started_at_utc bezpośrednio przed rozpoczęciem pobrania.
+Dotychczasowe retrieved_at_utc nadal oznacza zakończenie pobrania
+i pozostaje czasem actual_available_at. Przedział obejmuje również
+ewentualne retry. Cofnięcie zegara między startem a końcem jest odrzucane
+przed ekstrakcją tabeli i zapisem HTML/CSV.
+
+shadow_ingest_manifest.load_batches sprawdza opcjonalny start: pełny
+timestamp ze strefą i najwyżej sześcioma cyframi ułamka, start nie później
+niż koniec. Walidacja jest przed rozwiązywaniem ścieżek i odczytem payloadu.
+Starsze manifesty bez pola pozostają poprawne; nie zgadujemy ani nie
+dopisujemy ich brakującego startu. Start może być przed cutoff, jeżeli
+koniec jest po nim — nie wolno użyć początku żądania jako dostępności
+wyniku. Reguła Fix1 completion > D-1 09:50 pozostaje bez zmian.
+To dodatkowy dowód w manifestach, bez zmiany tożsamości batcha,
+schematu bazy, cen, wyników scoringu lub wcześniejszych checkpointów.
+
+Dodano tests/test_tge_retrieval_interval.py: lokalnie 3/3 testy OK.
+Mock pobrania używa zachowanego rzeczywistego HTML 26.11; potwierdzono,
+że start odczytano przed fetch, koniec po fetch, a oryginalne hashe
+HTML/CSV oraz availability w batchu są zachowane. Cofnięcie o 1 mikrosekundę
+daje błąd bez ekstrakcji i bez plików. Tymczasowe kopie manifestu sprawdzają
+równoważne strefy UTC/+01:00, równość start=koniec i start przed cutoff,
+oraz odrzucenie null/bool/liczby/listy/niepełnej daty/braku strefy/
+nadmiarowej precyzji/startu o 1 mikrosekundę po końcu przed dostępem do
+payloadu. Stary manifest daje identyczny batch, oryginalne pliki są niezmienne.
+Syntetyczne czasy testowe nie zostały zapisane jako rzeczywiste obserwacje.
+
+Brak nowych pobrań live, prognoz, modeli i zmian produkcji JWCD 90D,
+FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+Rzeczywiste okna 30/60/90D pozostają niekompletne.

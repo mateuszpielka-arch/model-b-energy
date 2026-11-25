@@ -110,6 +110,18 @@ def load_batches(manifest_path):
             retrieved_at = _utc(datetime.fromisoformat(stamp))
         except (TypeError, ValueError) as exc:
             raise ValueError(f'Manifest requires an aware Fix1 retrieval timestamp for {day}') from exc
+        if 'retrieval_started_at_utc' in e:
+            stamp = e['retrieval_started_at_utc']
+            try:
+                if (not isinstance(stamp, str) or not re.fullmatch(
+                        r'\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}'
+                        r'(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})', stamp)):
+                    raise ValueError('Full aware timestamp with at most six fractional digits required')
+                retrieval_started = _utc(datetime.fromisoformat(stamp))
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f'Manifest requires an aware Fix1 retrieval start timestamp for {day}') from exc
+            if retrieval_started > retrieved_at:
+                raise ValueError(f'Fix1 retrieval started after completion for {day}')
         if retrieved_at <= cutoff_for_day(delivery):
             raise ValueError(f'Fix1 retrieval must be after D-1 09:50 Europe/Warsaw for {day}')
         period_count = len(expected_periods(delivery))
