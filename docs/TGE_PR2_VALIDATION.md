@@ -5756,3 +5756,40 @@ Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
 rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
 pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
 JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — pokrycie źródeł 20–27.11
+
+Zweryfikowano head 9212c18 i CI 45692958178: 705 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Dodano nowy docs/validation/source_coverage_2026-11-27.json, bez zmiany
+wcześniejszych checkpointów. Jawna kohorta: 39 obserwacji PK5 w 7 dniach
+(2/3/4/6/8/12/4 dla 20/21/22/24/25/26/27.11), 11 pobrań Fix1
+w 7 dniach 20–26.11, razem 111 plików źródłowych. Obejmuje oba rzeczywiste
+pobrania Fix1 26.11; identyczne ceny nie zwiększają liczby dni.
+
+Zakres kalendarza 20–27.11 obejmuje 8 dni i 192 okresy:
+- oba źródła: 20, 21, 22, 24, 25, 26.11 — 6 dni / 144 okresy;
+- tylko PK5: 27.11 — 1 dzień / 24 okresy;
+- tylko Fix1: 23.11 — 1 dzień / 24 okresy;
+- bez obu źródeł: 0 dni; konfliktów cen Fix1: 0.
+
+Audyt wybiera 7 całych profili PK5 (168 okresów), dla 26.11 dwunasty,
+dla 27.11 czwarty. Wszystkie źródła są walidowane po publikacjach,
+retrieved_at i zakończeniu pobrania względem ich własnego D-1 09:50.
+Zakres zawiera wyłącznie dni 24h; liczniki rzeczywistych 23/25h są zerowe.
+Raport jawnie ma model_readiness_assessed=false: obecność obu źródeł
+nie jest gotowym oknem treningowym ani wynikiem rankingu.
+
+Dodano tests/test_source_coverage_november27.py: lokalnie 2/2 testy OK.
+API odtwarza cały zapisany raport przy obu kierunkach grup, paczek i
+manifestów. CLI --require-selection --fail-on-conflict w obu kierunkach
+zwraca kod 0, pusty stderr i identyczny pełny JSON. Testy sprawdzają liczby
+dni, okresów i obserwacji, brak konfliktów, odrębne luki 23/27.11
+i cutoff 27.11 równy 26.11 08:50 UTC. Hashe 111 źródeł i nowego raportu
+są niezmienne po odczycie. Nie uzupełniono brakującej historii.
+
+Brak nowych pobrań live, prognoz, modeli i zmian produkcji JWCD 90D,
+FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+Rzeczywiste okna 30/60/90D pozostają niekompletne.
