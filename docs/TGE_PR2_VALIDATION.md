@@ -5720,3 +5720,39 @@ Nie deklarujemy transakcji wielu plików, synchronizacji katalogu ani
 pełnej odporności paczki na utratę zasilania. Brak nowych pobrań, zmian
 danych, prognoz, modeli, produkcji JWCD 90D, FROZEN, Railway, istniejących
 archiwów, PR #2 i harmonogramów. Okna 30/60/90D nadal niekompletne.
+
+
+## Checkpoint 2026-11-25 — czwarty rzeczywisty PK5 dla dostawy 27.11
+
+Zweryfikowano head 06a341e i CI 45684282683: 704 testy OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-27_fourth: oryginalny
+JSON gzip mtime=0 i capture.json, HTTP 200, URL odpowiedzi zgodny,
+24 okresy, 18620 bajtów JSON. Faktyczne pobranie:
+25.11 21:13:02.336651–21:13:08.920533 Europe/Warsaw
+(20:13:02.336651–20:13:08.920533 UTC).
+Publikacja wszystkich okresów: 25.11 21:03:27.278 Europe/Warsaw.
+Publikacje i oba czasy pobrania są przed własnym cutoff dostawy 27.11:
+26.11 09:50 Europe/Warsaw (08:50 UTC).
+
+SHA-256 oryginału:
+1d76724a0935ec669b5385b5b994bae3d3b03968527dca5cbee7d2f4fb43e518.
+Snapshot:
+pk5-capture-sha256:22de18bb9b5158a9453f1e1989a39c1e61745de8630c38b4d22dbe76ffbed897.
+JWCD H01=14015.00000 MW, H24=14154.00000 MW.
+Zmiany względem kolejnych wcześniejszych obserwacji: 24, 24 i 23 okresy.
+Publikacje wszystkich okresów są nowsze od trzech wcześniejszych paczek.
+
+Dodano tests/test_pk5_november27_fourth.py: lokalnie 1/1 test OK.
+Niezależne mapy oryginalnego JSON potwierdzają JWCD i publication_ts,
+hashe, loader i właściwy cutoff. Test sprawdza dokładne listy zmian oraz
+identyczny pełny raport we wszystkich 24 permutacjach czterech paczek.
+Wybierany jest cały czwarty profil, starsze mają
+SUPERSEDED_JWCD_PUBLICATIONS. CLI --require-selection w obu kierunkach
+daje identyczny JSON i kod 0. Osiem plików źródłowych pozostaje niezmiennych.
+
+Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
+rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
+pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
+JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
