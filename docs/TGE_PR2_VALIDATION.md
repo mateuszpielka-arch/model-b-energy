@@ -5425,3 +5425,45 @@ konflikt nie jest fixture ani oficjalną obserwacją.
 Brak nowych pobrań, zmian istniejących danych i kompletnych rzeczywistych
 okien 30/60/90D. Brak prognoz, zmian modeli, produkcji JWCD 90D, FROZEN,
 Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — sześć rzeczywistych par i audyt walk-forward
+
+Zweryfikowano head ab88347 i CI 45602658617: 687 testów OK, w tym
+dwa testy SQL scoringu i kwarantanny dla 26.11. PR #2 pozostaje otwarty
+z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Dodano nowy, odtwarzalny docs/validation/paired_source_audit_2026-11-26.json.
+Nie zmieniono wcześniejszych checkpointów. Jawna kohorta zawiera pary
+20, 21, 22, 24, 25 i 26.11: 144 okresy, 32 obserwacje PK5, 6 manifestów
+Fix1 i 82 oryginalne pliki. Dla 26.11 uwzględniono wszystkie 12
+zachowanych PK5 i wybrano cały dwunasty profil. Czas ewaluacji
+25.11 10:15:02.707749 UTC to rzeczywisty koniec pobrania Fix1 26.11,
+nie domniemany czas publikacji urzędowej.
+
+Audyt źródeł: 6 kompletnych par dziennych, najdłuższy ciąg 3 dni.
+Dla każdego z 144 wierszy publication_ts, retrieved_at i zakończenie
+pobrania PK5 są nie później niż własny D-1 09:50 Europe/Warsaw,
+a actual_available_at Fix1 jest po nim. Brak zachowanego dowodu PK5
+dla 23.11 nie został uzupełniony ani pominięty w zakresie kalendarza.
+
+Walk-forward obejmuje cele 23–26.11: 4 dni kalendarza, 1 nieobecny
+w sparowanym CSV i 3 dopuszczone, ale bez wspólnego scoringu.
+Dla celu 24.11 dostępne są 3 wcześniejsze dni (braki 27/57/87);
+dla 25.11 — 4 dni (26/56/86); dla 26.11 — 5 dni (25/55/85).
+Żaden dopuszczony wcześniejszy Fix1 nie jest po cutoff swojego celu.
+Wspólne dni i okresy=0, ranking pusty. To diagnostyka niekompletnych
+rzeczywistych okien, nie wynik porównania sześciu modeli.
+
+Dodano tests/test_six_day_source_checkpoint.py: lokalnie 2/2 testy OK.
+Nowy dzień w każdej z sześciu pozycji, przy obu kierunkach wcześniejszych
+dni, daje identyczny pełny checkpoint (12 uporządkowań). Zweryfikowano
+hashe 82 plików źródłowych i nowego raportu przed/po odczycie.
+CLI w obu kierunkach daje identyczny pełny JSON: tryb diagnostyczny
+kod 0, --require-common-sample kod 3, bez stderr i bez częściowego wyniku.
+Pierwsze pięć dni pozostaje historią treningową przy ocenie późniejszych
+celów; test sprawdza pokrycie każdego okna, nie tylko łączną liczbę dni.
+
+Brak nowych pobrań, modeli, prognoz, zmian produkcji JWCD 90D, FROZEN,
+Railway, istniejących archiwów, PR #2 i harmonogramów. Rzeczywiste dane
+DST 23/25h nie zostały dopuszczone przez standardowy adapter 24h.
