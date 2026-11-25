@@ -209,6 +209,10 @@ def _load_pk5_evidence(capture_path, *, day):
     size = metadata.get('bytes')
     if type(size) is not int or not 0 < size <= 8 * 1024 * 1024:
         raise ValueError('PK5 capture raw size or SHA-256 mismatch')
+    if metadata.get('delivery_date') != day.isoformat():
+        raise ValueError('PK5 capture delivery differs from Fixing I')
+    started = parse_capture_timestamp(metadata.get('retrieved_at_utc'))
+    completed = parse_capture_timestamp(metadata.get('retrieval_completed_at_utc'))
     raw_path = _inside(capture_path.parent, filename)
     try:
         with gzip.open(raw_path, 'rb') as stream:
@@ -218,12 +222,10 @@ def _load_pk5_evidence(capture_path, *, day):
     if (len(pk5_raw) != size
             or metadata.get('raw_sha256') != sha256(pk5_raw).hexdigest()):
         raise ValueError('PK5 capture raw size or SHA-256 mismatch')
-    if metadata.get('delivery_date') != day.isoformat():
-        raise ValueError('PK5 capture delivery differs from Fixing I')
     capture = dict(
         raw=pk5_raw, source_url=metadata['url'],
-        retrieved_at=parse_capture_timestamp(metadata['retrieved_at_utc']),
-        retrieval_completed_at=parse_capture_timestamp(metadata['retrieval_completed_at_utc']),
+        retrieved_at=started,
+        retrieval_completed_at=completed,
     )
     # Always validate publication/retrieval/cutoff, including legacy metadata.
     snapshot = prepare_pk5_snapshot(day=day.isoformat(), **capture)

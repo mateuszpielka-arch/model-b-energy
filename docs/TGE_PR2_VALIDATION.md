@@ -5151,3 +5151,36 @@ nowej pary treningowej i kompletnych rzeczywistych okien 30/60/90D.
 Poprzedni etap bcd111b: CI 670 testów OK (run 45531849285).
 Brak SQL, wydanej prognozy, zmian modeli, produkcji JWCD 90D, FROZEN,
 Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — walidacja daty i czasów metadanych PK5 przed gzip
+
+Wspólny loader shadow_source_history._load_pk5_evidence sprawdza teraz
+delivery_date i parsuje retrieved_at_utc/retrieval_completed_at_utc
+przed rozwiązaniem ścieżki i otwarciem skompresowanego payloadu.
+Brakujący timestamp jest przekazywany jako None do istniejącego ścisłego
+parse_capture_timestamp: daje ValueError z komunikatem walidacji zamiast
+KeyError po dekompresji. Oba API load_pk5_capture/load_pk5_snapshot korzystają
+z tej samej kolejności. Poprawne metadane zachowują dotychczasowy wynik.
+
+Nie zmieniono reguł strefy, precyzji, hashy, limitów gzip ani cutoff.
+Po odczycie nadal wykonywany jest pełny prepare_pk5_snapshot, który
+sprawdza publikacje, kolejność pobrania oraz D-1 09:50 Europe/Warsaw.
+To wcześniejsze odrzucanie błędnej daty/formatu czasów, nie pomijanie
+weryfikacji oryginalnego JSON lub jego dostępności.
+
+Dodano tests/test_pk5_capture_metadata_order.py: trzy testy na zachowanej
+ósmej paczce PK5 26.11 i tymczasowych kopiach metadanych.
+Niepoprawna data dostawy oraz brak/null/bool/liczba/lista/niepełna data/
+czas bez strefy/nadmiarowa precyzja dla obu timestampów są odrzucane
+z ValueError przed gzip.open przez oba API. Poprawny odczyt zachowuje
+snapshot zgodny z bezpośrednim adapterem i identyczne oryginalne bajty.
+CLI z poprawną i pozbawioną timestampu paczką w obu kolejnościach ma
+kod 2, pusty stdout, komunikat walidacji i brak tracebacku.
+Kopie nie są zmieniane przez loader. Lokalnie 3/3 testy OK.
+
+Brak nowych pobrań live, zmian fixture, wcześniejszych checkpointów,
+modeli, scoringu lub archiwizacji. Poprzedni etap b7dba10:
+CI 671 testów OK (run 45538892970). Rzeczywiste okna 30/60/90D niekompletne.
+Brak SQL, prognoz, zmian produkcji JWCD 90D, FROZEN, Railway, archiwów,
+PR #2 lub harmonogramów.
