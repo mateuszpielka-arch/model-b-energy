@@ -5653,3 +5653,39 @@ i brak plików staging. Testy nie korzystają z sieci, bazy ani sekretów.
 Brak nowych pobrań i zmian zachowanych źródeł, prognoz, modeli,
 produkcji JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2
 i harmonogramów. Rzeczywiste okna 30/60/90D pozostają niekompletne.
+
+
+## Checkpoint 2026-11-25 — trzeci rzeczywisty PK5 dla dostawy 27.11
+
+Zweryfikowano head f1cf50e i CI 45663524864: 701 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-27_third: oryginalny
+JSON gzip mtime=0 i capture.json, HTTP 200, URL odpowiedzi zgodny,
+24 okresy, 18631 bajtów JSON. Pliki utworzono helperem atomowej publikacji.
+Faktyczne pobranie 25.11 19:12:41.927081–19:12:49.283269 Europe/Warsaw
+(18:12:41.927081–18:12:49.283269 UTC).
+Publikacja wszystkich okresów: 25.11 19:03:57.513 Europe/Warsaw.
+Publikacje i oba czasy pobrania są przed własnym cutoff dostawy 27.11:
+26.11 09:50 Europe/Warsaw (08:50 UTC).
+
+SHA-256 oryginału:
+48963f555cd5a90eab77747c078bc2482db75368ed5807776f3f69f18bbffd87.
+Snapshot:
+pk5-capture-sha256:98857900c7eb1f16add0f329ac4d8cbbde711e03bd226911ab268cb16c8d8102.
+JWCD H01=14068.00000 MW, H24=14160.00000 MW.
+Zmieniły się 23 wartości względem pierwszej obserwacji i 24 względem
+drugiej. Publikacje wszystkich okresów są nowsze od obu poprzednich.
+
+Dodano tests/test_pk5_november27_third.py: lokalnie 1/1 test OK.
+Niezależna mapa oryginalnego JSON potwierdza wartości i publication_ts,
+hashe, loader i właściwy cutoff trzech paczek. Test sprawdza dokładne
+listy 23/24 zmian oraz pełny raport we wszystkich sześciu permutacjach.
+Wybierany jest cały trzeci profil; oba starsze mają
+SUPERSEDED_JWCD_PUBLICATIONS. CLI --require-selection w obu kierunkach
+daje identyczny JSON i kod 0. Sześć plików źródłowych pozostaje niezmiennych.
+
+Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
+rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
+pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
+JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
