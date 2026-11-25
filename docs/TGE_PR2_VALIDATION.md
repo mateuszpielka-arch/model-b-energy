@@ -5547,3 +5547,42 @@ Ponowne pobranie nie jest nowym dniem treningowym. Wcześniejsze kohorty,
 checkpointy i źródła pozostają bez zmian. Brak prognoz, zmian modeli,
 produkcji JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2
 i harmonogramów. Rzeczywiste okna 30/60/90D pozostają niekompletne.
+
+
+## Checkpoint 2026-11-25 — pierwszy rzeczywisty PK5 dla dostawy 27.11
+
+Zweryfikowano head 39e914a i CI 45632495064: 695 testów OK, w tym
+testy SQL ponownego importu i scoringu Fix1 26.11. PR #2 pozostaje
+otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-27: oryginalny JSON
+gzip mtime=0 i capture.json. Źródło:
+https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-27%27
+HTTP 200, URL odpowiedzi zgodny, 24 okresy, 18629 bajtów JSON.
+Faktyczny przedział pobrania 25.11 16:15:09.919466–16:15:18.185876
+Europe/Warsaw (15:15:09.919466–15:15:18.185876 UTC).
+Publikacja wszystkich 24 okresów: 25.11 16:04:02.447 Europe/Warsaw.
+Publikacje i oba czasy pobrania są przed własnym cutoff dostawy 27.11:
+26.11 09:50 Europe/Warsaw (08:50 UTC). Nie użyto cutoff dostawy 26.11.
+
+SHA-256 oryginału:
+3c4f81e6fbe54dfc0caa49a3ad7767f8b472a7a3e0e348b12f27fd1ecc665aa9.
+Snapshot:
+pk5-capture-sha256:93c655b4d6a0760309cd71695ba97fe93aec5d0269aaa78912f46313c783304b.
+JWCD H01=14179.00000 MW, H24=14200.00000 MW.
+
+Dodano tests/test_pk5_november27_sources.py: lokalnie 2/2 testy OK.
+Test porównuje wszystkie JWCD z oryginalnym JSON, etykiety PSE,
+datę dostawy i końce okresów UTC z kanonicznymi początkami,
+hashe, publikacje, oba czasy pobrania, loader, selektor i pełny raport
+CLI --require-selection. Oryginalne pliki pozostają identyczne.
+Wyłącznie tymczasowe syntetyczne kopie metadanych sprawdzają dopuszczenie
+dokładnego cutoff i odrzucenie końca pobrania o 1 mikrosekundę później;
+CLI przy poprawnej i spóźnionej paczce daje kod 2 bez częściowego JSON.
+Syntetyczne timestampy nie zostały zapisane jako rzeczywiste obserwacje.
+
+Brak zachowanego Fix1 27.11; sam PK5 nie tworzy nowej pary treningowej.
+Wcześniejsze kohorty i checkpointy pozostają bez zmian, rzeczywiste
+okna 30/60/90D niekompletne. Brak wydanej prognozy, zmian modeli,
+produkcji JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2
+i harmonogramów.
