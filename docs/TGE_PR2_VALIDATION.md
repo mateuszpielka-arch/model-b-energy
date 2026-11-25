@@ -5284,3 +5284,39 @@ nowej pary treningowej i kompletnych rzeczywistych okien 30/60/90D.
 Poprzedni etap 35ef8b6: CI 676 testów OK (run 45559364914).
 Brak SQL, wydanej prognozy, zmian modeli, produkcji JWCD 90D, FROZEN,
 Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — dwunasty rzeczywisty PK5 26.11
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-26_twelfth: oryginalny JSON
+gzip mtime=0 i capture.json, HTTP 200, URL bez zmiany, 24 okresy.
+Pobranie 25.11 09:18:38.059345–09:18:45.960798 Europe/Warsaw
+(08:18:38.059345–08:18:45.960798 UTC).
+Publikacja wszystkich okresów: 09:13:16.396 Europe/Warsaw.
+Publikacje i oba czasy pobrania są przed cutoff dostawy 26.11:
+25.11 09:50 Europe/Warsaw (08:50 UTC).
+
+Oryginał: 18630 bajtów, SHA-256
+949fa732b8a9450058747d952578f89280f7c9f399da0f3975689e60811050b2.
+Snapshot:
+pk5-capture-sha256:75a701bffe9f79b38839b75c6213c6ddba0783fd7331f253e046fb42627d5b0f.
+JWCD H01=15311.00000 MW, H24=15356.00000 MW.
+Względem jedenastej obserwacji zmieniły się 23 wartości JWCD; względem
+każdej z dziesięciu wcześniejszych — 24. Publikacje są nowe dla wszystkich
+okresów, również dla okresu o niezmienionej wartości.
+
+Dodano tests/test_pk5_november26_twelfth.py. Niezależna mapa oryginalnego
+JSON potwierdza JWCD i publication_ts każdego okresu. Test kontroluje
+hashe, loader, cutoff i jedenaście dokładnych list zmian. Nowa paczka
+na każdej z dwunastu pozycji przy obu kierunkach starszych obserwacji
+daje ten sam pełny raport (24 uporządkowania); wybierany jest cały
+dwunasty profil. Starsze paczki mają SUPERSEDED_JWCD_PUBLICATIONS.
+CLI --require-selection w obu kierunkach daje identyczny JSON i kod 0.
+Dwadzieścia cztery pliki źródłowe pozostają niezmienne.
+Lokalnie 1/1 test OK.
+
+Nie zmieniono wcześniejszych paczek i raportów. Nadal brak zachowanego
+Fix1 26.11, nowej pary treningowej i kompletnych rzeczywistych okien
+30/60/90D. Poprzedni etap 204a679: CI 677 testów OK (run 45566516199).
+Brak SQL, wydanej prognozy, zmian modeli, produkcji JWCD 90D, FROZEN,
+Railway, istniejących archiwów, PR #2 i harmonogramów.
