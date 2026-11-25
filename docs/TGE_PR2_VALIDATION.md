@@ -5389,3 +5389,39 @@ wspólnych okresów. Nie wydano prognozy ani wyników skuteczności modelu.
 Wcześniejsze paczki i checkpointy pozostają bez zmian. Nowa paczka jest
 materiałem testowym, nie zapisem do istniejących archiwów produkcji.
 Brak zmian produkcji JWCD 90D, FROZEN, Railway, modeli, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-25 — scoring kontrolny i kwarantanna dla 26.11
+
+Zweryfikowano head 1e6c92e i CI 45593439960: 684 testy OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Dodano tests/test_tge_november26_scores.py na zachowanym rzeczywistym
+HTML/CSV Fix1 26.11 oraz dwunastym PK5 sprzed cutoff. Kontrola syntetyczna
+JWCD/20 nie jest modelem, wydaną prognozą ani pomiarem trafności modelu.
+Niezależny rachunek Fraction łączy etykiety źródłowego PSE z CSV TGE:
+MAE=466.859166666667, bias=-466.859166666667,
+MAPE=33.596121569446%, WAPE=35.452699337624%.
+Wszystkie 24 ceny rzeczywiste są niezerowe. Wartości porównano z score_day
+z dokładnością 12 miejsc. Lokalnie test rachunku OK; 2 testy PostgreSQL
+pominięte z powodu braku lokalnego FIX1_SHADOW_TEST_DSN. Istniejące CI
+uruchamia je na izolowanym PostgreSQL 16, bez sekretów produkcji.
+
+Test SQL wymaga INSERT całych 24 cen, dwóch niezmieniających REPLAY,
+odrzucenia scoringu 1 mikrosekundę przed faktycznym pobraniem Fix1,
+INSERT jednego wyniku dokładnie przy dostępności i niezmieniających
+REPLAY z referencją i bez. Cofnięcie evaluated_at pozostaje blokowane
+również po zapisaniu wyniku. Ceny, dowody i kwarantanna nie mogą się zmienić.
+
+Drugi test SQL tworzy wyłącznie w pamięci jawnie syntetyczny konflikt H01
+960.00→961.00 z pasującą zmienioną referencją i hashami; lokalna walidacja
+potwierdza zmianę dokładnie jednego okresu. Po zaakceptowaniu oryginału
+i zapisaniu wyniku konflikt musi otrzymać QUARANTINE, bez nadpisania cen
+lub scoringu. Ponowienie konfliktu i oryginału utrzymuje blokadę dnia,
+dwa dowody, jedną kwarantannę i jeden wcześniejszy wynik. Scoring starego
+oraz nowego forecast_id, z referencją lub bez, jest blokowany. Syntetyczny
+konflikt nie jest fixture ani oficjalną obserwacją.
+
+Brak nowych pobrań, zmian istniejących danych i kompletnych rzeczywistych
+okien 30/60/90D. Brak prognoz, zmian modeli, produkcji JWCD 90D, FROZEN,
+Railway, istniejących archiwów, PR #2 i harmonogramów.
