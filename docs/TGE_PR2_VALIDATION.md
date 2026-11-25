@@ -5831,3 +5831,40 @@ Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
 rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
 pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
 JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-26 — jawna bramka pokrycia parami źródeł
+
+Zweryfikowano head a920636 i CI 45711644380: 708 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Dodano opcjonalne --require-paired-coverage w shadow_source_coverage.py.
+Po pełnej walidacji i wydrukowaniu kompletnego JSON kod 3 sygnalizuje,
+że co najmniej jeden dzień z jawnego zakresu start/end ma tylko PK5,
+tylko Fix1, żadne źródło albo konflikt cen Fix1. Poprawne sparowane
+pokrycie daje kod 0. Nie zmieniono API ani formatu raportu; bez flagi
+dotychczasowy tryb diagnostyczny pozostaje bez zmian.
+
+Zakres nowej flagi to wskazany kalendarz. Konflikt poza zakresem pozostaje
+widoczny w pełnym audycie Fix1, ale nowa flaga sama nie blokuje poprawnego
+pokrycia wewnątrz zakresu. Dotychczasowe --fail-on-conflict nadal blokuje
+konflikty we wszystkich dostarczonych manifestach, także poza zakresem.
+--require-selection nadal dotyczy wszystkich dostarczonych grup PK5.
+Flagi można łączyć. Niepoprawne źródło lub daty nadal mają pierwszeństwo:
+kod 2 bez częściowego JSON. model_readiness_assessed pozostaje false;
+sukces pokrycia nie oznacza kompletnego okna 30/60/90D ani rankingu.
+
+Dodano tests/test_joint_paired_coverage_cli.py: lokalnie 3/3 testy OK.
+Testy używają zachowanych PK5 25/26.11 i Fix1 24/25/26.11.
+W jawnie dobranym podzbiorze zakres 24–27.11 obejmuje wszystkie trzy
+rodzaje luk, sprawdzone także osobno; 25.11 ma pełne pokrycie. Oba
+kierunki wejścia dają identyczny pełny JSON w trybie domyślnym i nowej
+bramce, z odpowiednim kodem 0/3. Tymczasowy syntetyczny konflikt H01
+944.60→945.60 z pasującymi hashami blokuje sparowany zakres 25.11,
+ale nie kompletny zakres 26.11; dodanie --fail-on-conflict blokuje oba.
+Nieistniejący manifest w obu kolejnościach i odwrócone daty dają kod 2
+bez stdout. Oryginalne pliki i tymczasowe dowody pozostają niezmienione.
+
+Brak nowych pobrań, zmian zachowanych kohort, prognoz, modeli, produkcji
+JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+Rzeczywiste okna 30/60/90D pozostają niekompletne.

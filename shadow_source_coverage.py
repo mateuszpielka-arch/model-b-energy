@@ -81,6 +81,9 @@ def main():
     parser.add_argument('--fail-on-conflict', action='store_true',
                         help='Exit 3 after complete JSON if any supplied Fix1 day has price conflicts, '
                              'including outside the calendar scope')
+    parser.add_argument('--require-paired-coverage', action='store_true',
+                        help='Exit 3 after complete JSON if any scoped day lacks either source '
+                             'or has conflicting Fix1 prices; does not assess model readiness')
     args = parser.parse_args()
     try:
         groups = []
@@ -98,7 +101,11 @@ def main():
     except (OSError, EOFError, ZlibError, ValueError, TypeError, KeyError) as exc:
         parser.error(str(exc))
     print(output, end='')
-    if ((args.require_selection and report['pk5_audit']['unselected_days'])
+    coverage = report['source_coverage']
+    incomplete_pairs = any(coverage[key] for key in (
+        'pk5_only_days', 'fix1_only_days', 'neither_source_days', 'fix1_price_conflict_days'))
+    if ((args.require_paired_coverage and incomplete_pairs)
+            or (args.require_selection and report['pk5_audit']['unselected_days'])
             or (args.fail_on_conflict and report['fix1_audit']['days_with_price_conflicts'])):
         raise SystemExit(3)
 
