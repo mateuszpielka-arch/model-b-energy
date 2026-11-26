@@ -6659,3 +6659,43 @@ Brak zachowanego Fix1 28.11 i nowej pary treningowej. Wcześniejsze
 kohorty i checkpointy pozostają bez zmian; rzeczywiste okna 30/60/90D
 nadal są niekompletne. Brak wydanej prognozy, zmian modeli, produkcji
 JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-26 — siódmy rzeczywisty PK5 dla dostawy 28.11
+
+Zweryfikowano head 4915b36 i CI 45890173274: 746 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-28_seventh: oryginalny
+JSON gzip mtime=0 i capture.json, HTTP 200, URL odpowiedzi zgodny,
+24 okresy, 18574 bajty JSON. Faktyczne pobranie:
+26.11 22:15:15.187373–22:15:24.840037 Europe/Warsaw
+(21:15:15.187373–21:15:24.840037 UTC).
+Publikacja wszystkich okresów: 26.11 22:04:47.799 Europe/Warsaw.
+Publikacje i oba czasy pobrania są przed własnym cutoff dostawy:
+27.11 09:50 Europe/Warsaw (08:50 UTC).
+
+SHA-256 oryginału:
+ffcdf33e410e76c5b75cbffa96065981791a6af8edd5f1ffc2cf85e5355f48b7.
+Snapshot:
+pk5-capture-sha256:ab3534aef4eda6df6d8f7d5dd2e3a5923b9ad8267e22c4367516762e43422335.
+JWCD H01=11945.00000 MW, H24=10068.00000 MW.
+Liczby zmian względem kolejnych starszych obserwacji: 24/24/24/24/24/5.
+Każda publikacja jest nowsza, także dla 19 okresów bez zmiany wartości
+względem szóstej paczki.
+
+Dodano tests/test_pk5_november28_seventh.py: lokalnie 1/1 test OK.
+Niezależne mapy surowego JSON potwierdzają JWCD i publication_ts każdego
+okresu siedmiu paczek, hashe, loader, identyczne klucze UTC i cutoff.
+Sprawdzono nowszą publikację wszystkich okresów i dokładne sześć list
+zmian. Najnowsza paczka na każdej z siedmiu pozycji przy obu kierunkach
+starszych danych daje ten sam pełny raport (14 uporządkowań).
+Wybierany jest cały siódmy profil, starsze mają
+SUPERSEDED_JWCD_PUBLICATIONS. CLI --require-selection w obu kierunkach
+daje identyczny JSON, kod 0 i pusty stderr. Czternaście plików źródłowych
+pozostaje niezmiennych.
+
+Brak zachowanego Fix1 28.11 i nowej pary treningowej. Wcześniejsze
+kohorty i checkpointy pozostają bez zmian; rzeczywiste okna 30/60/90D
+nadal są niekompletne. Brak wydanej prognozy, zmian modeli, produkcji
+JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
