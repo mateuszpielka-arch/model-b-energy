@@ -46,6 +46,16 @@ def _explicit_utc(value):
     return _utc(parsed)
 
 
+def pk5_standard_periods(delivery):
+    """Reject unsupported dates and unverified DST mapping before source I/O."""
+    if type(delivery) is not date or delivery in (date.min, date.max):
+        raise ValueError('Supported delivery date required')
+    periods = expected_periods(delivery)
+    if len(periods) != 24:
+        raise ValueError('PK5 DST mapping requires separate verification')
+    return periods
+
+
 def validate_pk5_source_url(source_url, delivery):
     """Check the official endpoint and exact delivery filter without reading payloads."""
     if not isinstance(source_url, str):
@@ -71,9 +81,7 @@ def prepare_pk5_snapshot(*, raw, day, source_url, retrieved_at, retrieval_comple
     Only fcst_gen_unit_stor_prov supplies JWCD; other forecast variables are ignored.
     """
     delivery = date.fromisoformat(day)
-    periods = expected_periods(delivery)
-    if len(periods) != 24:
-        raise ValueError('PK5 DST mapping requires separate verification')
+    periods = pk5_standard_periods(delivery)
     validate_pk5_source_url(source_url, delivery)
     if not isinstance(raw, bytes) or not raw or len(raw) > 8 * 1024 * 1024:
         raise ValueError('Nonempty PK5 JSON bytes up to 8 MiB required')

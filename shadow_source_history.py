@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from hashlib import sha256
 
 from shadow_archive_batch import prepare_batch, read_reference_csv, revalidate_batch
-from shadow_pk5_snapshot import prepare_pk5_snapshot, validate_pk5_source_url
+from shadow_pk5_snapshot import prepare_pk5_snapshot, validate_pk5_source_url, pk5_standard_periods
 from shadow_asof import cutoff_for_day, select_snapshot
 from shadow_history_audit import audit_rows
 
@@ -180,7 +180,6 @@ def _load_pk5_evidence(capture_path, *, day):
     Only explicit local files are read. Capture timestamps remain caller-owned;
     this validates their consistency and cutoff, not their authenticity.
     """
-    from datetime import date
     import gzip
     import json
     from pathlib import Path
@@ -188,8 +187,7 @@ def _load_pk5_evidence(capture_path, *, day):
     from shadow_ingest_manifest import MAX_MANIFEST_BYTES, _inside
     from shadow_pk5_snapshot import _unique_object, parse_capture_timestamp
 
-    if type(day) is not date or day in (date.min, date.max):
-        raise ValueError('Supported delivery date required')
+    pk5_standard_periods(day)
     capture_path = Path(capture_path)
     with capture_path.open('rb') as stream:
         metadata_bytes = stream.read(MAX_MANIFEST_BYTES + 1)

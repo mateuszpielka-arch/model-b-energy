@@ -6210,3 +6210,34 @@ Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
 rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
 pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
 JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-26 — wspólna bramka dni PK5 przed I/O
+
+Zweryfikowano head 8e8cb42 i CI 45782606116: 722 testy OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+W shadow_pk5_snapshot.py wydzielono pk5_standard_periods: sprawdza
+obsługiwany typ/zakres daty i odrzuca 23/25h tym samym komunikatem
+PK5 DST mapping requires separate verification. Adapter, loader
+shadow_source_history oraz narzędzie capture_pk5_validation używają teraz
+jednej reguły. Loader wykonuje ją przed otwarciem capture.json i gzip;
+wcześniej DST był odrzucany dopiero przez adapter po odczycie źródła.
+Narzędzie pobierania nadal odrzuca DST przed HTTP i zapisem.
+Nie zmieniono mapowania godzin, cutoff, tożsamości snapshotów ani danych.
+
+Dodano tests/test_pk5_day_preflight.py: lokalnie 3/3 testy OK.
+Daty 29.03.2026 i 25.10.2026 mają odpowiednio 23/25 okresów Europe/Warsaw.
+Oba loadery, adapter i narzędzie capture odrzucają je przed źródłowym I/O;
+katalog z sentinelem pozostaje niezmieniony. CLI dla obu dni i obu
+kolejności nieistniejącego/uszkodzonego manifestu daje kod 2, pusty
+stdout i brak tracebacku z jawnym komunikatem o nieweryfikowanym DST.
+Kontrola na oryginalnym trzynastym PK5 27.11 potwierdza 24 okresy,
+niezmienny snapshot_id, SHA-256, H01/H24 i zgodność obu ścieżek loadera
+z adapterem; oryginalne pliki pozostają niezmienne.
+
+To test granicy dopuszczenia, nie walidacja rzeczywistego mapowania PK5
+w dniach DST ani nowa historia modelowa. Brak pobrań live w tym cyklu,
+zmian kohort, prognoz, modeli, produkcji JWCD 90D, FROZEN, Railway,
+istniejących archiwów, PR #2 i harmonogramów.
+Rzeczywiste okna 30/60/90D pozostają niekompletne.

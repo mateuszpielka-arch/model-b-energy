@@ -17,8 +17,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from shadow_asof import cutoff_for_day
-from shadow_pk5_snapshot import prepare_pk5_snapshot
-from shadow_scoring import expected_periods
+from shadow_pk5_snapshot import prepare_pk5_snapshot, pk5_standard_periods
 from tools.capture_tge_validation import _write_new_evidence
 
 MAX_PK5_BYTES = 8 * 1024 * 1024
@@ -60,10 +59,7 @@ def _open_with_retry(request, day):
 
 def capture(day, directory):
     """Save validated original bytes and evidenced retrieval start/end, exclusively."""
-    if type(day) is not date or day in (date.min, date.max):
-        raise ValueError('Supported delivery date required')
-    if len(expected_periods(day)) != 24:
-        raise ValueError('PK5 DST mapping requires separate verification')
+    pk5_standard_periods(day)
     started = datetime.now(timezone.utc)
     if started > cutoff_for_day(day):
         raise ValueError('PK5 capture started after D-1 09:50 Europe/Warsaw')
