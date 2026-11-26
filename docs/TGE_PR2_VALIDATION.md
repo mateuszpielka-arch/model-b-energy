@@ -6699,3 +6699,36 @@ Brak zachowanego Fix1 28.11 i nowej pary treningowej. Wcześniejsze
 kohorty i checkpointy pozostają bez zmian; rzeczywiste okna 30/60/90D
 nadal są niekompletne. Brak wydanej prognozy, zmian modeli, produkcji
 JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-26 — odrzucanie cichej normalizacji URL PK5
+
+Zweryfikowano head d1051a7 i CI 45897001104: 747 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Odtworzono problem testem CLI: adres z newline wewnątrz hosta
+api.raporty był normalizowany przez urlsplit i przechodził kontrolę
+źródła aż do dostępu do ścieżki payloadu. Test przed poprawką nie przeszedł.
+
+W validate_pk5_source_url dodano kontrolę wejściowego tekstu przed
+urlsplit: odrzucenie znaków C0/DEL oraz zewnętrznych białych znaków.
+Adres nie jest przepisywany ani przycinany. Komunikat pozostaje
+Unexpected PK5 source URL or delivery filter.
+Wspólna walidacja obejmuje adapter i oba loadery; nadal sprawdza HTTPS,
+oficjalny host, endpoint i filtr dostawy. To kontrola deklarowanego
+źródła, nie uwierzytelnienie historycznego HTTP.
+
+Dodano tests/test_pk5_url_controls.py: po poprawce lokalnie 3/3 testy OK.
+Na metadanych rzeczywistego siódmego PK5 28.11 sprawdzono 49 adresów:
+prefiksy C0/spacja, końcowe białe/sterujące znaki oraz CR/LF/TAB wewnątrz
+hosta, ścieżki i query. Oba loadery odrzucają je przed _inside,
+adapter przed parsowaniem JSON. CLI z newline wewnątrz hosta i poprawną
+paczką w obu kolejnościach zwraca kod 2 bez stdout i tracebacku,
+nawet bez gzip niepoprawnej paczki.
+Poprawny URL oraz równoważne kodowanie +/%20 i %24filter/$filter
+zachowują cały snapshot, identyfikator, wartości, publikacje i hashe.
+Oryginalne pliki pozostają niezmienne.
+
+Brak nowych pobrań, zmian kohort, prognoz, modeli, produkcji JWCD 90D,
+FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+Rzeczywiste okna 30/60/90D i ranking pozostają niekompletne.

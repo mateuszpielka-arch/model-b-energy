@@ -58,7 +58,10 @@ def pk5_standard_periods(delivery):
 
 def validate_pk5_source_url(source_url, delivery):
     """Check the official endpoint and exact delivery filter without reading payloads."""
-    if not isinstance(source_url, str):
+    # urlsplit silently strips leading C0/space and embedded CR/LF/TAB.
+    # Reject these inputs before parsing rather than rewriting source evidence.
+    if (not isinstance(source_url, str) or source_url != source_url.strip()
+            or any(ord(char) < 0x20 or ord(char) == 0x7f for char in source_url)):
         raise ValueError('Unexpected PK5 source URL or delivery filter')
     try:
         url = urlsplit(source_url)
