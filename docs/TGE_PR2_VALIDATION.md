@@ -6359,3 +6359,40 @@ raportu pozostają niezmienne podczas audytu.
 Wcześniejsze kohorty i checkpointy nie zostały zmienione. Brak pobrań
 live, wydanej prognozy, zmian modeli, produkcji JWCD 90D, FROZEN,
 Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-26 — rzeczywiste ponowne pobranie Fix1 27.11
+
+Zweryfikowano head 0411b74 i CI 45817848864: 733 testy OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/tge_delivery_2026-11-27_recaptured: oryginalne
+bajty HTML w gzip mtime=0, CSV i manifest. Oficjalna sesja bez redirectu,
+HTTP 200, 24 ceny, 426407 bajtów HTML. Faktyczne pobranie:
+26.11 14:16:00.979385–14:16:11.610084 Europe/Warsaw
+(13:16:00.979385–13:16:11.610084 UTC).
+SHA-256 HTML:
+61221455bd9a1960f72f7ddf5debafaee4598c9379d2e7403b9e83ba65a1892d.
+CSV pozostaje identyczny z pierwszym pobraniem:
+db24cca2ba520f406f6475208c31f05663fb6b17a678b639103a336b0d6808b8.
+Referencja to niezależny XPath z tego samego HTML, nie drugi oficjalny eksport.
+
+Dodano tests/test_tge_november27_recapture.py.
+Lokalnie: 1 test OK, 2 integracje pominięte bez testowego DSN.
+Parser, XPath, hashe, identyczne 24 ceny/UTC, oryginalny gzip i rzeczywiste
+przedziały obu pobrań są sprawdzone bez zmiany plików.
+
+Integracje na istniejącym izolowanym PostgreSQL w CI sprawdzają:
+- nowe surowe pobranie jest zachowane jako drugi batch; REPLAY manifestów
+  nie nadpisuje cen, pierwszego batcha ani zaakceptowanej dostępności;
+  pozostają 24 ceny, 2 batche i brak kwarantanny;
+- w obu kolejnościach importu scoring syntetycznej kontroli JWCD/20
+  pozostaje przy pierwszym zaakceptowanym batchu i jego rzeczywistym czasie,
+  także po REPLAY starszego lub nowszego HTML. Próba o 1 us przed tym
+  czasem jest blokowana z referencją i bez niej; dokładnie w tym czasie
+  wynik jest idempotentny. To kontrola mechanizmu, nie ocena prognozy.
+
+Ponowne pobranie nie zwiększa liczby dni modelowych. Starszych kohort,
+checkpointów i źródeł nie zmieniono. Brak wydanej prognozy, zmian modeli,
+produkcji JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2
+i harmonogramów. Rzeczywiste okna 30/60/90D nadal są niekompletne.
