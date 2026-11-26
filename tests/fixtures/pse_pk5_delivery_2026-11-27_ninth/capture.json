@@ -1,0 +1,13 @@
+{
+  "url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-27%27",
+  "response_url": "https://api.raporty.pse.pl/api/pk5l-wp?%24filter=business_date+eq+%272026-11-27%27",
+  "http_status": 200,
+  "delivery_date": "2026-11-27",
+  "retrieved_at_utc": "2026-11-26T04:22:49.559999+00:00",
+  "retrieval_completed_at_utc": "2026-11-26T04:22:57.837823+00:00",
+  "bytes": 18633,
+  "raw_sha256": "d21352a10ebe79b171f10d707a41f32ebe7576279c049ab6ab23ee9cce6ec3e2",
+  "raw_file": "pse_pk5_2026-11-27.json.gz",
+  "rows": 24,
+  "snapshot_id": "pk5-capture-sha256:fc6de196ccc8e369867982ea448719323aa533b3055b9fcab2307ba3098be264"
+}

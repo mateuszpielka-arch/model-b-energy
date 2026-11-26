@@ -6019,3 +6019,40 @@ Oryginalne pliki pozostają niezmienne.
 Brak nowych pobrań, zmian kohort, prognoz, modeli, produkcji JWCD 90D,
 FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
 Rzeczywiste okna 30/60/90D pozostają niekompletne.
+
+
+## Checkpoint 2026-11-26 — dziewiąty rzeczywisty PK5 dla dostawy 27.11
+
+Zweryfikowano head 420d95b i CI 45748038414: 717 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-27_ninth: oryginalny
+JSON gzip mtime=0 i capture.json, HTTP 200, URL odpowiedzi zgodny,
+24 okresy, 18633 bajty JSON. Faktyczne pobranie:
+26.11 05:22:49.559999–05:22:57.837823 Europe/Warsaw
+(04:22:49.559999–04:22:57.837823 UTC).
+Publikacja wszystkich okresów: 26.11 05:13:37.512 Europe/Warsaw.
+Publikacje i oba czasy pobrania są przed własnym cutoff dostawy:
+26.11 09:50 Europe/Warsaw (08:50 UTC).
+
+SHA-256 oryginału:
+d21352a10ebe79b171f10d707a41f32ebe7576279c049ab6ab23ee9cce6ec3e2.
+Snapshot:
+pk5-capture-sha256:fc6de196ccc8e369867982ea448719323aa533b3055b9fcab2307ba3098be264.
+JWCD H01=13758.00000 MW, H24=14043.00000 MW.
+Wszystkie 24 wartości różnią się od każdej z ośmiu starszych obserwacji.
+
+Dodano tests/test_pk5_november27_ninth.py: lokalnie 1/1 test OK.
+Niezależne mapy surowego JSON potwierdzają JWCD i publication_ts każdego
+okresu wszystkich dziewięciu paczek, hashe, loader i cutoff. Test sprawdza
+osiem dokładnych list po 24 zmiany. Najnowsza paczka na każdej z dziewięciu
+pozycji przy obu kierunkach starszych danych daje ten sam pełny raport
+(18 uporządkowań). Wybierany jest cały dziewiąty profil, starsze mają
+SUPERSEDED_JWCD_PUBLICATIONS. CLI --require-selection w obu kierunkach
+daje identyczny JSON i kod 0. Osiemnaście plików źródłowych pozostaje
+niezmiennych.
+
+Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
+rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
+pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
+JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
