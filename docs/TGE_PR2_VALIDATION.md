@@ -6320,3 +6320,42 @@ PostgreSQL; nie użyto sekretów ani bazy produkcyjnej.
 Brak nowych pobrań, zmian źródłowych archiwów, kohort, prognoz, modeli,
 produkcji JWCD 90D, FROZEN, Railway, PR #2 i harmonogramów.
 Rzeczywiste okna 30/60/90D i ranking pozostają niekompletne.
+
+
+## Checkpoint 2026-11-26 — audyt siedmiu dni par PK5/Fix1
+
+Zweryfikowano head 3fd362a i CI 45808795096: 731 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Dodano nowy docs/validation/paired_source_audit_2026-11-27.json.
+Jawna kohorta zachowuje sześć wcześniejszych grup i dodaje oryginalny
+Fix1 27.11 oraz wszystkie trzynaście PK5 tego dnia. Razem 45 obserwacji
+PK5 (1/1/4/6/8/12/13), 7 manifestów Fix1, 111 plików źródłowych.
+source_commit=3fd362a793a5777ca5c11c06afee20ffeec86df6.
+Czas ewaluacji to faktyczna dostępność nowego Fix1:
+26.11 11:16:20.196066 Europe/Warsaw (10:16:20.196066 UTC).
+
+Kompletne pary: 20/21/22/24/25/26/27.11, 7 dni i 168 okresów.
+Najdłuższy ciąg to 4 dni (24–27.11). Dla każdego wiersza publikacja,
+retrieved_at i zakończenie pobrania PK5 przechodzą własne D-1 09:50;
+actual Fix1 ma faktyczny późniejszy retrieved_at. Kohorta zawiera
+wyłącznie dni 24h. Nie dodano rzeczywistego mapowania DST ani brakującej
+przedcutoffowej obserwacji PK5 23.11.
+
+Walk-forward obejmuje cele 23–27.11: 5 dni kalendarza,
+1 nieobecny w CSV (23.11), 4 dopuszczone bez możliwości porównania modeli.
+Wspólne dni/okresy=0, ranking pusty. Dla celu 27.11 jest 6 wcześniejszych
+par; brakujące dni w oknach 30/60/90D wynoszą odpowiednio 24/54/84.
+Nie ma wcześniejszych actual dostępnych dopiero po cutoff celu.
+
+Dodano tests/test_seven_day_source_checkpoint.py: lokalnie 2/2 testy OK.
+Pełny raport jest odtwarzany przy każdej z siedmiu pozycji nowej grupy
+i obu kierunkach starszych grup (14 uporządkowań). Sprawdzono 168
+unikalnych okresów, wszystkie własne cutoff oraz jawne luki treningowe.
+CLI w obu kierunkach zwraca identyczny pełny JSON: domyślnie kod 0,
+z --require-common-sample kod 3, bez stderr. Hashe 111 źródeł i nowego
+raportu pozostają niezmienne podczas audytu.
+
+Wcześniejsze kohorty i checkpointy nie zostały zmienione. Brak pobrań
+live, wydanej prognozy, zmian modeli, produkcji JWCD 90D, FROZEN,
+Railway, istniejących archiwów, PR #2 i harmonogramów.
