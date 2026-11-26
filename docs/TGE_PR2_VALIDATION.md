@@ -6396,3 +6396,40 @@ Ponowne pobranie nie zwiększa liczby dni modelowych. Starszych kohort,
 checkpointów i źródeł nie zmieniono. Brak wydanej prognozy, zmian modeli,
 produkcji JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2
 i harmonogramów. Rzeczywiste okna 30/60/90D nadal są niekompletne.
+
+
+## Checkpoint 2026-11-26 — pierwszy rzeczywisty PK5 dla dostawy 28.11
+
+Zweryfikowano head c744394 i CI 45827655006: 736 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-28: oryginalny JSON
+gzip mtime=0 i capture.json, HTTP 200, URL odpowiedzi zgodny,
+24 okresy, 18575 bajtów JSON. Faktyczne pobranie:
+26.11 15:17:59.642095–15:18:08.037847 Europe/Warsaw
+(14:17:59.642095–14:18:08.037847 UTC).
+Publikacja wszystkich okresów: 26.11 15:04:02.370 Europe/Warsaw.
+Publikacje i oba czasy pobrania są przed własnym cutoff dostawy 28.11:
+27.11 09:50 Europe/Warsaw (08:50 UTC).
+
+SHA-256 oryginału:
+2954401339b2d8525b157c3f4d6fd72789b3a942bf56288aa4777a12ebe17f2a.
+Snapshot:
+pk5-capture-sha256:eb9e2d653c08c041130f948d967b5f61a29955d6eb740bd9f40c1e0e93315e07.
+JWCD H01=12043.00000 MW, H24=10026.00000 MW.
+Kanoniczne początki okresów UTC: 27.11 23:00–28.11 22:00.
+
+Dodano tests/test_pk5_november28_sources.py: lokalnie 2/2 testy OK.
+Niezależna mapa surowego JSON potwierdza wszystkie etykiety PSE,
+początki UTC, JWCD i publikacje, hashe, tożsamość snapshotu oraz
+własny cutoff. API i CLI --require-selection dają ten sam pełny raport,
+kod 0 i pusty stderr; oryginalne pliki pozostają niezmienne.
+Osobny test wyłącznie na tymczasowych syntetycznych metadanych dopuszcza
+zakończenie pobrania dokładnie o cutoff i odrzuca +1 us przez oba loadery.
+CLI z poprawnym i spóźnionym źródłem daje kod 2 bez częściowego JSON.
+Tych testowych czasów nie zapisano jako dowodu rzeczywistego pobrania.
+
+Brak zachowanego Fix1 28.11 i nowej pary treningowej. Wcześniejsze
+kohorty i checkpointy pozostają bez zmian; rzeczywiste okna 30/60/90D
+nadal są niekompletne. Brak wydanej prognozy, zmian modeli, produkcji
+JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
