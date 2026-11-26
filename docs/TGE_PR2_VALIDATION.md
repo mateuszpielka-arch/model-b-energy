@@ -5944,3 +5944,42 @@ Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
 rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
 pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
 JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-26 — ósmy rzeczywisty PK5 dla dostawy 27.11
+
+Zweryfikowano head dc3b3c9 i CI 45734634968: 713 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/pse_pk5_delivery_2026-11-27_eighth: oryginalny
+JSON gzip mtime=0 i capture.json, HTTP 200, URL odpowiedzi zgodny,
+24 okresy, 18633 bajty JSON. Faktyczne pobranie:
+26.11 03:14:40.019804–03:14:47.606266 Europe/Warsaw
+(02:14:40.019804–02:14:47.606266 UTC).
+Publikacja wszystkich okresów: 26.11 03:03:52.476 Europe/Warsaw.
+Publikacje i oba czasy pobrania są przed własnym cutoff dostawy:
+26.11 09:50 Europe/Warsaw (08:50 UTC).
+
+SHA-256 oryginału:
+4cfa9eff74e5ea333d280abab9adaeb64beabc67fa4819c5673105ab4bbd583a.
+Snapshot:
+pk5-capture-sha256:24bb1e6aa155681afe91fd857528a8ab495412a022e11c440493844f3b162a90.
+JWCD H01=13790.00000 MW, H24=14054.00000 MW.
+Liczby zmienionych wartości względem kolejnych starszych obserwacji:
+24/24/23/24/24/24/16. Wszystkie publikacje są nowsze, również dla
+ośmiu okresów bez zmiany wartości względem siódmej paczki.
+
+Dodano tests/test_pk5_november27_eighth.py: lokalnie 1/1 test OK.
+Niezależne mapy surowego JSON potwierdzają JWCD i publication_ts każdego
+okresu wszystkich ośmiu paczek, hashe, loader i cutoff. Test sprawdza
+siedem dokładnych list zmian. Najnowsza paczka na każdej z ośmiu pozycji
+przy obu kierunkach starszych danych daje ten sam pełny raport
+(16 uporządkowań). Wybierany jest cały ósmy profil, starsze mają
+SUPERSEDED_JWCD_PUBLICATIONS. CLI --require-selection w obu kierunkach
+daje identyczny JSON i kod 0. Szesnaście plików źródłowych pozostaje
+niezmiennych.
+
+Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
+rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
+pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
+JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
