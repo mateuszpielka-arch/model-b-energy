@@ -6241,3 +6241,44 @@ w dniach DST ani nowa historia modelowa. Brak pobrań live w tym cyklu,
 zmian kohort, prognoz, modeli, produkcji JWCD 90D, FROZEN, Railway,
 istniejących archiwów, PR #2 i harmonogramów.
 Rzeczywiste okna 30/60/90D pozostają niekompletne.
+
+
+## Checkpoint 2026-11-26 — rzeczywisty Fix1 dla dostawy 27.11
+
+Zweryfikowano head 73c1999 i CI 45790161002: 725 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Zapisano tests/fixtures/tge_delivery_2026-11-27: oryginalny HTML TGE,
+CSV z jawnymi UTC i manifest. Oficjalna sesja:
+https://tge.pl/energia-elektryczna-rdn?dateShow=26-11-2026
+HTTP 200, 24 ceny, 282320 bajtów HTML. Faktyczne pobranie:
+26.11 11:16:09.114367–11:16:20.196066 Europe/Warsaw
+(10:16:09.114367–10:16:20.196066 UTC).
+Dostępność actual to zakończenie pobrania, bez wnioskowania wcześniejszej
+publikacji. Jest po własnym cutoff prognozy 09:50, zgodnie z rolą wyniku.
+
+SHA-256 HTML:
+3239ef47607f917b260c43d05bb76de50a6a8c74f5bf35ff1c33026130457a74.
+SHA-256 CSV:
+db24cca2ba520f406f6475208c31f05663fb6b17a678b639103a336b0d6808b8.
+H01=997.99, H24=951.03 PLN/MWh.
+Referencja pochodzi z niezależnej ekstrakcji lxml XPath z TEGO SAMEGO
+oficjalnego HTML; nie jest niezależnym oficjalnym eksportem.
+
+Dodano tests/test_tge_november27_sources.py: lokalnie 3/3 testy OK.
+Parser, XPath, CSV i load_batches zgadzają się dla wszystkich 24 cen
+oraz UTC. Test łączy Fix1 z trzynastoma zachowanymi obserwacjami PK5:
+we wszystkich 26 pozycjach najnowszej paczki przy obu kierunkach
+starszych wybierany jest cały trzynasty profil. Pozostałe 12 mają
+SUPERSEDED_JWCD_PUBLICATIONS. Sprawdzono indywidualne publikacje,
+retrieved_at i zakończenie pobrania względem D-1 09:50, hashe i
+niezmienność 29 plików źródłowych. H01/H24 JWCD=13684/14001 MW.
+Audyt pojedynczej pary wskazuje 1 dzień / 24 okresy; nie oznacza
+kompletnej historii modelowej.
+
+Walk-forward na tej pojedynczej parze przed dostępnością wyniku o 1 us
+oraz dokładnie w chwili dostępności nadal daje 0 wspólnych dni/okresów
+i pusty ranking. Brak kompletnych rzeczywistych okien 30/60/90D.
+Wcześniejsze kohorty i checkpointy pozostają niezmienione.
+Brak wydanej prognozy, zmian modeli, produkcji JWCD 90D, FROZEN,
+Railway, istniejących archiwów, PR #2 i harmonogramów.
