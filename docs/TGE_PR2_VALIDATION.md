@@ -5983,3 +5983,39 @@ Brak zachowanego Fix1 27.11, nowej pary treningowej i kompletnych
 rzeczywistych okien 30/60/90D. Wcześniejsze kohorty i checkpointy
 pozostają bez zmian. Brak wydanej prognozy, zmian modeli, produkcji
 JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-26 — weryfikacja źródła PK5 przed odczytem gzip
+
+Zweryfikowano head a6336ce i CI 45741238373: 714 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+W shadow_pk5_snapshot.py wydzielono validate_pk5_source_url, wspólny
+dla prepare_pk5_snapshot oraz shadow_source_history._load_pk5_evidence.
+Loader sprawdza teraz oficjalny host HTTPS, endpoint /api/pk5l-wp
+i dokładny filtr daty dostawy przed _inside i odczytem gzip.
+Równość request/response URL nadal jest sprawdzana osobno. Nie jest to
+uwierzytelnienie historycznego HTTP, tylko walidacja deklarowanego źródła.
+
+Dopuszczone adresy i reguły filtra pozostają takie jak w adapterze.
+Niepoprawny typ URL oraz błędny zapis IPv6 dostają teraz spójny ValueError:
+Unexpected PK5 source URL or delivery filter. Dla poprawnego źródła
+nadal wykonywana jest pełna kontrola rozmiaru, SHA-256, JSON, etykiet,
+JWCD, publikacji, kolejności pobrania i cutoff w adapterze.
+Nie zmieniono tożsamości snapshotu ani poprawnych źródłowych wartości.
+
+Dodano tests/test_pk5_url_preflight.py: lokalnie 3/3 testy OK.
+Na tymczasowych kopiach metadanych ósmego rzeczywistego PK5 27.11
+sprawdzono 16 błędnych źródeł: typy inne niż tekst, pusty URL, HTTP,
+inny host/endpoint/dzień, fragment, dodatkowy lub powtórzony filtr,
+brak filtra, błędny IPv6 i userinfo. Oba loadery odrzucają je przed
+dostępem do ścieżki payloadu; adapter przed parsowaniem JSON.
+Poprawny URL oraz równoważne kodowanie query +/%20 i %24filter/$filter
+zachowują identyczne wartości, publikacje, hashe i snapshot_id.
+CLI z poprawną i błędną paczką w obu kolejnościach daje kod 2,
+pusty stdout i brak tracebacku, nawet bez pliku gzip błędnej paczki.
+Oryginalne pliki pozostają niezmienne.
+
+Brak nowych pobrań, zmian kohort, prognoz, modeli, produkcji JWCD 90D,
+FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+Rzeczywiste okna 30/60/90D pozostają niekompletne.

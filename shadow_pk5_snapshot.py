@@ -46,6 +46,22 @@ def _explicit_utc(value):
     return _utc(parsed)
 
 
+def validate_pk5_source_url(source_url, delivery):
+    """Check the official endpoint and exact delivery filter without reading payloads."""
+    if not isinstance(source_url, str):
+        raise ValueError('Unexpected PK5 source URL or delivery filter')
+    try:
+        url = urlsplit(source_url)
+    except ValueError as exc:
+        raise ValueError('Unexpected PK5 source URL or delivery filter') from exc
+    if (url.scheme != 'https' or url.netloc != 'api.raporty.pse.pl'
+            or url.path != '/api/pk5l-wp' or url.fragment
+            or parse_qs(url.query, keep_blank_values=True) != {
+                '$filter': [f"business_date eq '{delivery.isoformat()}'"]
+            }):
+        raise ValueError('Unexpected PK5 source URL or delivery filter')
+
+
 def prepare_pk5_snapshot(*, raw, day, source_url, retrieved_at, retrieval_completed_at):
     """Check one complete 24h response and admit it at its own D-1 09:50.
 
@@ -58,13 +74,7 @@ def prepare_pk5_snapshot(*, raw, day, source_url, retrieved_at, retrieval_comple
     periods = expected_periods(delivery)
     if len(periods) != 24:
         raise ValueError('PK5 DST mapping requires separate verification')
-    url = urlsplit(source_url)
-    if (url.scheme != 'https' or url.netloc != 'api.raporty.pse.pl'
-            or url.path != '/api/pk5l-wp' or url.fragment
-            or parse_qs(url.query, keep_blank_values=True) != {
-                '$filter': [f"business_date eq '{delivery.isoformat()}'"]
-            }):
-        raise ValueError('Unexpected PK5 source URL or delivery filter')
+    validate_pk5_source_url(source_url, delivery)
     if not isinstance(raw, bytes) or not raw or len(raw) > 8 * 1024 * 1024:
         raise ValueError('Nonempty PK5 JSON bytes up to 8 MiB required')
     started, completed = _utc(retrieved_at), _utc(retrieval_completed_at)
