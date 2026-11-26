@@ -6282,3 +6282,41 @@ i pusty ranking. Brak kompletnych rzeczywistych okien 30/60/90D.
 Wcześniejsze kohorty i checkpointy pozostają niezmienione.
 Brak wydanej prognozy, zmian modeli, produkcji JWCD 90D, FROZEN,
 Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-26 — scoring i kwarantanna na źródłach 27.11
+
+Zweryfikowano head 33faae0 i CI 45800022119: 728 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+Dodano tests/test_tge_november27_scores.py, korzystający z zachowanego
+oryginalnego Fix1 27.11 oraz trzynastego PK5 sprzed D-1 09:50.
+Stały przelicznik JWCD/20 to WYŁĄCZNIE syntetyczna kontrola scoringu,
+nie wytrenowany model, wydana prognoza ani ocena jej trafności.
+
+Niezależna wyrocznia Fraction łączy oryginalne etykiety PSE z CSV Fix1:
+MAE=651.122500000000 PLN/MWh, bias=-651.122500000000 PLN/MWh,
+MAPE=42.175178570589%, WAPE=45.083468350574%.
+24 okresy, wszystkie actual niezerowe. Test kontroluje wszystkie cztery
+metryki i niezmienność pięciu oryginalnych plików źródłowych.
+
+Dwa testy integracyjne używają wyłącznie FIX1_SHADOW_TEST_DSN i
+istniejącej izolowanej bazy fix1_shadow_test w CI:
+- INSERT oraz dwa REPLAY archiwum pozostawiają identyczne rekordy.
+  Scoring o 1 us przed faktyczną dostępnością Fix1 jest blokowany,
+  dokładnie w chwili pobrania zapisuje jeden wynik; REPLAY z referencją
+  i bez niej nie dodaje wyników ani nie omija blokady wcześniejszego czasu.
+- Syntetyczny konflikt H01 997.99→998.99 z pasującymi hashami trafia
+  do kwarantanny bez nadpisania 24 cen i istniejącego wyniku.
+  Powtórny konflikt i powrót oryginału pozostają w kwarantannie.
+  Stary i nowy forecast_id z referencją lub bez niej są blokowane.
+
+Lokalnie test metryk: 1 OK; 2 integracje pominięte bez testowego DSN,
+nie przedstawiono ich jako wykonanych lokalnie. Dodatkowo lokalnie
+potwierdzono parsowanie syntetycznego konfliktu: zmienia wyłącznie H01.
+Pełne wykonanie integracji zapewnia istniejący workflow izolowanego
+PostgreSQL; nie użyto sekretów ani bazy produkcyjnej.
+
+Brak nowych pobrań, zmian źródłowych archiwów, kohort, prognoz, modeli,
+produkcji JWCD 90D, FROZEN, Railway, PR #2 i harmonogramów.
+Rzeczywiste okna 30/60/90D i ranking pozostają niekompletne.
