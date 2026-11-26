@@ -183,6 +183,7 @@ def _load_pk5_evidence(capture_path, *, day):
     import gzip
     import json
     from pathlib import Path
+    from re import fullmatch
     from zlib import error as ZlibError
     from shadow_ingest_manifest import MAX_MANIFEST_BYTES, _inside
     from shadow_pk5_snapshot import _unique_object, parse_capture_timestamp
@@ -205,7 +206,10 @@ def _load_pk5_evidence(capture_path, *, day):
             or type(metadata.get('rows')) is not int or metadata['rows'] != 24):
         raise ValueError('PK5 capture HTTP/source/row metadata mismatch')
     size = metadata.get('bytes')
-    if type(size) is not int or not 0 < size <= 8 * 1024 * 1024:
+    raw_hash = metadata.get('raw_sha256')
+    if (type(size) is not int or not 0 < size <= 8 * 1024 * 1024
+            or not isinstance(raw_hash, str)
+            or fullmatch(r'[0-9a-f]{64}', raw_hash) is None):
         raise ValueError('PK5 capture raw size or SHA-256 mismatch')
     if metadata.get('delivery_date') != day.isoformat():
         raise ValueError('PK5 capture delivery differs from Fixing I')
@@ -226,7 +230,7 @@ def _load_pk5_evidence(capture_path, *, day):
     except (OSError, EOFError, ZlibError) as exc:
         raise ValueError('Invalid gzip PK5 evidence') from exc
     if (len(pk5_raw) != size
-            or metadata.get('raw_sha256') != sha256(pk5_raw).hexdigest()):
+            or raw_hash != sha256(pk5_raw).hexdigest()):
         raise ValueError('PK5 capture raw size or SHA-256 mismatch')
     capture = dict(
         raw=pk5_raw, source_url=metadata['url'],

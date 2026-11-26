@@ -6547,3 +6547,35 @@ Brak zachowanego Fix1 28.11 i nowej pary treningowej. Wcześniejsze
 kohorty i checkpointy pozostają bez zmian; rzeczywiste okna 30/60/90D
 nadal są niekompletne. Brak wydanej prognozy, zmian modeli, produkcji
 JWCD 90D, FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+
+
+## Checkpoint 2026-11-26 — kontrola formatu SHA-256 PK5 przed gzip
+
+Zweryfikowano head dcbf2b6 i CI 45867128802: 741 testów OK.
+PR #2 pozostaje otwarty z osobnej gałęzi shadow/tge-parser-validation-20261029.
+
+W shadow_source_history._load_pk5_evidence sprawdzany jest teraz
+raw_sha256 jako tekst dokładnie 64 małych znaków szesnastkowych,
+razem z rozmiarem w metadanych, przed _inside i odczytem gzip.
+Wcześniej niepoprawny typ/format był odrzucany dopiero po odczycie źródła.
+Komunikat pozostaje PK5 capture raw size or SHA-256 mismatch.
+Nie normalizuje się deklarowanego hasha. Poprawnie zapisany hash nadal
+wymaga bounded odczytu gzip i porównania z SHA-256 rzeczywistych bajtów,
+przed parsowaniem payloadu. Nie zmieniono poprawnych tożsamości,
+wartości, publikacji, cutoff ani formatu źródeł.
+
+Dodano tests/test_pk5_hash_preflight.py: lokalnie 3/3 testy OK.
+Na tymczasowych kopiach metadanych czwartego rzeczywistego PK5 28.11
+sprawdzono 13 przypadków brakującego/błędnego hasha: brak pola, null,
+bool, liczba, tablica, obiekt, pusty tekst, 63/65 znaków, litera g,
+wielkie litery, końcowy newline i poprzedzająca spacja.
+Oba loadery odrzucają je przed dostępem do ścieżki źródła.
+Poprawny format z niezgodnym hashem nadal otwiera gzip i odrzuca
+rzeczywiste bajty przed adapterem; poprawne metadane odtwarzają cały
+oryginalny snapshot. CLI z poprawną i błędną paczką w obu kolejnościach,
+także bez gzip błędnej paczki, daje kod 2 bez stdout i tracebacku.
+Oryginalne źródła pozostają niezmienne.
+
+Brak nowych pobrań, zmian kohort, prognoz, modeli, produkcji JWCD 90D,
+FROZEN, Railway, istniejących archiwów, PR #2 i harmonogramów.
+Rzeczywiste okna 30/60/90D i ranking pozostają niekompletne.
